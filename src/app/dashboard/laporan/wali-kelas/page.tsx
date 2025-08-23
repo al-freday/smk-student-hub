@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -75,7 +75,7 @@ export default function LaporanWaliKelasPage() {
   const [pembayaranKomite, setPembayaranKomite] = useState<Komite[]>([
       { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-01-10" },
       { id: 2, nis: "12346", nama: "Citra Dewi", status: "Lunas", tanggal: "2024-02-15" },
-      { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-03-10" },
+      { id: 3, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-03-10" },
   ]);
 
   // Generic state for handling dialogs
