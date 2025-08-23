@@ -47,7 +47,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
          <Link href="/dashboard" className="flex items-center gap-2">
            <Icons.logo className="h-7 w-7 text-primary"/>
            <span className="text-lg font-semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
-            SMK Student Hub
+            SMKN 2 Tana Toraja
            </span>
          </Link>
       </SidebarHeader>

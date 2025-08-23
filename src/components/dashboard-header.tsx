@@ -31,7 +31,7 @@ export default function DashboardHeader() {
           <SheetContent side="left" className="p-0">
             <Link href="#" className="flex h-16 items-center border-b px-4">
                <Icons.logo className="h-6 w-6 mr-2" />
-               <span className="font-semibold">SMK Student Hub</span>
+               <span className="font-semibold">SMKN 2 Tana Toraja</span>
             </Link>
             <DashboardNav isMobile={true} />
           </SheetContent>
