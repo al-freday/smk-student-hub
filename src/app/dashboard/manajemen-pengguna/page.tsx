@@ -192,30 +192,58 @@ export default function ManajemenPenggunaPage() {
   };
 
   const renderFormFields = () => (
-      <>
-          <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="nama" className="text-right">Nama</Label>
-              <Input id="nama" value={formData.nama || ""} onChange={e => setFormData({ ...formData, nama: e.target.value })} className="col-span-3" />
-          </div>
-          {activeTab === 'waliKelas' && (
-               <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
-                  <Input id="kelas" value={formData.kelas || ""} onChange={e => setFormData({ ...formData, kelas: e.target.value })} className="col-span-3" />
-              </div>
-          )}
-           {activeTab === 'guruMapel' && (
-               <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-                  <Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" />
-              </div>
-          )}
-           {activeTab === 'guruPiket' && (
-               <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
-                  <Input id="hariPiket" value={formData.hariPiket || ""} onChange={e => setFormData({ ...formData, hariPiket: e.target.value })} className="col-span-3" />
-              </div>
-          )}
-      </>
+    <>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="nama" className="text-right">
+          Nama
+        </Label>
+        <Input
+          id="nama"
+          value={formData.nama || ''}
+          onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+          className="col-span-3"
+        />
+      </div>
+      {activeTab === 'waliKelas' && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="kelas" className="text-right">
+            Kelas Binaan
+          </Label>
+          <Input
+            id="kelas"
+            value={formData.kelas || ''}
+            onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
+            className="col-span-3"
+          />
+        </div>
+      )}
+      {activeTab === 'guruMapel' && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="mapel" className="text-right">
+            Mata Pelajaran
+          </Label>
+          <Input
+            id="mapel"
+            value={formData.mapel || ''}
+            onChange={(e) => setFormData({ ...formData, mapel: e.target.value })}
+            className="col-span-3"
+          />
+        </div>
+      )}
+      {activeTab === 'guruPiket' && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="hariPiket" className="text-right">
+            Hari Piket
+          </Label>
+          <Input
+            id="hariPiket"
+            value={formData.hariPiket || ''}
+            onChange={(e) => setFormData({ ...formData, hariPiket: e.target.value })}
+            className="col-span-3"
+          />
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -341,5 +369,3 @@ export default function ManajemenPenggunaPage() {
     </div>
   );
 }
-
-    
