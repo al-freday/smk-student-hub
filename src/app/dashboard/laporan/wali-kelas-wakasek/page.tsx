@@ -97,7 +97,7 @@ export default function LaporanWaliKelasWakasekPage() {
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas (Diterima)</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas</h2>
         <p className="text-muted-foreground">
           Daftar laporan bulanan yang telah dikirim oleh para wali kelas.
         </p>

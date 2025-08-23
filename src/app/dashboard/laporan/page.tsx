@@ -13,7 +13,7 @@ const reportTypesByRole = {
     { title: "Laporan Guru Pendamping", href: "/dashboard/laporan/guru-pendamping", description: "Rekapitulasi catatan pendampingan siswa." },
     { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Catatan perkembangan akademik per mata pelajaran." },
     { title: "Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Laporan harian dari guru yang bertugas piket." },
-    { title: "Laporan Wali Kelas (Diterima)", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
+    { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
     { title: "Laporan Guru BK", href: "/dashboard/laporan/guru-bk", description: "Rekapitulasi sesi bimbingan dan konseling." },
   ],
   waliKelas: [
