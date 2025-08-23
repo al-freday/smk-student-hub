@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Users,
   School,
+  UserPlus,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -30,13 +31,14 @@ import { Separator } from "./ui/separator";
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+  { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
   { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
   { href: "/dashboard/kinerja-guru", icon: BookUser, label: "Kinerja Guru" },
   { href: "/dashboard/kinerja-siswa", icon: Users, label: "Kinerja Siswa" },
-  { href: "#", icon: ShieldAlert, label: "Tata Tertib" },
-  { href: "#", icon: FileText, label: "Laporan" },
-  { href: "#", icon: GanttChartSquare, label: "Supervisi" },
-  { href: "#", icon: Bell, label: "Notifikasi" },
+  { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+  { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
+  { href: "/dashboard/supervisi", icon: GanttChartSquare, label: "Supervisi" },
+  { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
 ];
 
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
@@ -75,7 +77,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Pengaturan">
-                <Link href="#">
+                <Link href="/dashboard/pengaturan">
                   <Settings className="size-4" />
                   <span className="group-data-[collapsible=icon]:hidden">Pengaturan</span>
                 </Link>
