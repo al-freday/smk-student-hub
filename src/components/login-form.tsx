@@ -25,6 +25,15 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
+const generateUserRoles = (count: number, role: string, roleKey: string): { [email: string]: string } => {
+    const users: { [email: string]: string } = {};
+    for (let i = 3; i <= count; i++) {
+        users[`${roleKey}${i}@email.com`] = role;
+    }
+    return users;
+};
+
+
 // Daftar pengguna yang disimulasikan untuk login berbasis peran
 const userRoles: { [email: string]: string } = {
     // Wakasek
@@ -32,18 +41,23 @@ const userRoles: { [email: string]: string } = {
     // Wali Kelas
     "budi.s@email.com": "waliKelas",
     "dewi.l@email.com": "waliKelas",
+    ...generateUserRoles(16, "waliKelas", "walikelas"),
     // Guru BK
     "siti.a@email.com": "guruBk",
     "bambang.w@email.com": "guruBk",
+    ...generateUserRoles(3, "guruBk", "gurubk"),
     // Guru Mapel
     "eko.p@email.com": "guruMapel",
     "anita.s@email.com": "guruMapel",
+    ...generateUserRoles(40, "guruMapel", "gurumapel"),
     // Guru Piket
     "joko.s@email.com": "guruPiket",
     "endang.m@email.com": "guruPiket",
+    ...generateUserRoles(40, "guruPiket", "gurupiket"),
     // Guru Pendamping
     "rina.k@email.com": "guruPendamping",
     "agus.s@email.com": "guruPendamping",
+    ...generateUserRoles(40, "guruPendamping", "gurupendamping"),
 };
 
 
@@ -142,3 +156,5 @@ export function LoginForm() {
     </div>
   );
 }
+
+    

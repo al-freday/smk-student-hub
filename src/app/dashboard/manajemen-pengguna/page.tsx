@@ -54,26 +54,40 @@ interface User {
 
 type UserRole = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
+const generateUsers = (count: number, role: string, roleKey: string): User[] => {
+    return Array.from({ length: count }, (_, i) => {
+        const id = i + 1;
+        const name = `${role} ${id}`;
+        const email = `${roleKey}${id}@email.com`;
+        return { id, nama: name, email, role };
+    });
+};
+
 const initialUsers: { [key in UserRole]: User[] } = {
     waliKelas: [
         { id: 1, nama: "Drs. Budi Santoso", email: "budi.s@email.com", role: "Wali Kelas" },
         { id: 2, nama: "Dewi Lestari, S.Pd.", email: "dewi.l@email.com", role: "Wali Kelas" },
+        ...generateUsers(14, "Wali Kelas", "walikelas").slice(2)
     ],
     guruBk: [
         { id: 1, nama: "Siti Aminah, S.Pd.", email: "siti.a@email.com", role: "Guru BK" },
         { id: 2, nama: "Dr. Bambang Wijaya", email: "bambang.w@email.com", role: "Guru BK" },
+        ...generateUsers(1, "Guru BK", "gurubk").slice(2)
     ],
     guruMapel: [
         { id: 1, nama: "Eko Prasetyo, S.Kom.", email: "eko.p@email.com", role: "Guru Mapel" },
         { id: 2, nama: "Anita Sari, M.Pd.", email: "anita.s@email.com", role: "Guru Mapel" },
+        ...generateUsers(38, "Guru Mapel", "gurumapel").slice(2)
     ],
     guruPiket: [
         { id: 1, nama: "Joko Susilo, S.Pd.", email: "joko.s@email.com", role: "Guru Piket" },
         { id: 2, nama: "Endang Mulyani, S.Ag.", email: "endang.m@email.com", role: "Guru Piket" },
+        ...generateUsers(38, "Guru Piket", "gurupiket").slice(2)
     ],
     guruPendamping: [
         { id: 1, nama: "Rina Kartika, S.Pd.", email: "rina.k@email.com", role: "Guru Pendamping" },
         { id: 2, nama: "Agus Setiawan, S.Psi.", email: "agus.s@email.com", role: "Guru Pendamping" },
+        ...generateUsers(38, "Guru Pendamping", "gurupendamping").slice(2)
     ],
 };
 
@@ -303,3 +317,5 @@ export default function ManajemenPenggunaPage() {
     </div>
   );
 }
+
+    
