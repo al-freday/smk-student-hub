@@ -176,7 +176,7 @@ export default function JadwalPelajaranPage() {
                               <TableBody>
                                 {jadwalKelas.map((j) => (
                                   <TableRow key={j.id}>
-                                    <TableCell>{j.jamMulai} - {j.selesai}</TableCell>
+                                    <TableCell>{j.jamMulai} - {j.jamSelesai}</TableCell>
                                     <TableCell className="font-medium">{j.mataPelajaran}</TableCell>
                                     <TableCell>{j.guru}</TableCell>
                                     <TableCell className="text-right">
@@ -281,5 +281,3 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
-
-    
