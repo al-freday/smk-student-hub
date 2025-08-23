@@ -31,7 +31,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Edit, Trash2, PlusCircle, Upload } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlusCircle, Upload, Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,6 +52,14 @@ export default function PengaturanPage() {
   const [headmasterName, setHeadmasterName] = useState("Nama Kepala Sekolah");
   const [logo, setLogo] = useState("https://placehold.co/80x80.png");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State for Account Settings
+  const [accountName, setAccountName] = useState("Wakasek Kesiswaan");
+  const [accountEmail, setAccountEmail] = useState("wakasek@email.com");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
 
   const [teachers, setTeachers] = useState<{ [key in TeacherType]: Guru[] }>({
     waliKelas: [{ id: 1, nama: "Drs. Budi Santoso", kelas: "X TKJ 1" }],
@@ -91,6 +99,13 @@ export default function PengaturanPage() {
         title: "Tema Berhasil Diubah",
         description: "Tampilan aplikasi telah diperbarui.",
     });
+  };
+  
+  const handleSaveChanges = (title: string, description: string) => {
+      toast({
+          title: title,
+          description: description,
+      });
   };
 
   const themes = {
@@ -208,8 +223,47 @@ export default function PengaturanPage() {
                     <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoChange}/>
                  </div>
               </div>
+               <Button onClick={() => handleSaveChanges("Informasi Sekolah Disimpan", "Perubahan informasi sekolah telah berhasil disimpan.")}>
+                    <Save className="mr-2 h-4 w-4"/>
+                    Simpan Perubahan
+               </Button>
             </CardContent>
           </Card>
+          
+           <Card>
+            <CardHeader>
+              <CardTitle>Pengaturan Akun</CardTitle>
+              <CardDescription>Ubah informasi login Anda.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="account-name">Nama Pengguna</Label>
+                <Input id="account-name" value={accountName} onChange={(e) => setAccountName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="account-email">Email</Label>
+                <Input id="account-email" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="current-password">Password Saat Ini</Label>
+                <Input id="current-password" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Password Baru</Label>
+                <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Konfirmasi Password Baru</Label>
+                <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
+              </div>
+              <Button onClick={() => handleSaveChanges("Pengaturan Akun Disimpan", "Perubahan informasi akun Anda telah berhasil disimpan.")}>
+                 <Save className="mr-2 h-4 w-4"/>
+                 Simpan Perubahan Akun
+              </Button>
+            </CardContent>
+          </Card>
+
+
           <Card>
              <CardHeader>
               <CardTitle>Tema Aplikasi</CardTitle>
@@ -328,3 +382,5 @@ export default function PengaturanPage() {
     </div>
   );
 }
+
+    
