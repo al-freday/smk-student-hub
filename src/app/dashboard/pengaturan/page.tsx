@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -12,39 +12,34 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function PengaturanPage() {
   const { toast } = useToast();
-  const [schoolName] = useState("SMKN 2 Tana Toraja");
-  const [headmasterName] = useState("Nama Kepala Sekolah");
-  const [logo] = useState("https://placehold.co/80x80.png");
+  // State untuk data sekolah (read-only)
+  const [schoolName, setSchoolName] = useState("SMKN 2 Tana Toraja");
+  const [headmasterName, setHeadmasterName] = useState("Nama Kepala Sekolah");
+  const [logo, setLogo] = useState("https://placehold.co/80x80.png");
 
-  // State for Account Settings
+  // State untuk Pengaturan Akun (bisa diubah pengguna)
   const [accountName, setAccountName] = useState("Wakasek Kesiswaan");
   const [accountEmail, setAccountEmail] = useState("wakasek@email.com");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const handleThemeChange = (newTheme: { [key: string]: string }) => {
-    Object.entries(newTheme).forEach(([property, value]) => {
-      document.documentElement.style.setProperty(property, value);
-    });
-    toast({
-        title: "Tema Berhasil Diubah",
-        description: "Tampilan aplikasi telah diperbarui.",
-    });
-  };
   
+  useEffect(() => {
+    // Muat informasi sekolah dari localStorage
+    const savedInfo = localStorage.getItem("schoolInfo");
+    if (savedInfo) {
+      const { schoolName, headmasterName, logo } = JSON.parse(savedInfo);
+      setSchoolName(schoolName);
+      setHeadmasterName(headmasterName);
+      setLogo(logo);
+    }
+  }, []);
+
   const handleSaveChanges = (title: string, description: string) => {
       toast({
           title: title,
           description: description,
       });
-  };
-
-  const themes = {
-    default: { "--primary": "231 48% 48%", "--accent": "266 44% 58%" },
-    green: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" },
-    blue: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" },
-    orange: { "--primary": "25 95% 53%", "--accent": "25 90% 65%" },
   };
 
   return (
@@ -62,7 +57,7 @@ export default function PengaturanPage() {
             <CardHeader>
               <CardTitle>Informasi Sekolah</CardTitle>
               <CardDescription>
-                Informasi ini dikelola oleh Wakasek Kesiswaan.
+                Informasi ini dikelola oleh Administrator.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -90,14 +85,11 @@ export default function PengaturanPage() {
             <CardHeader>
               <CardTitle>Tema Aplikasi</CardTitle>
               <CardDescription>
-                Pilih skema warna yang Anda sukai.
+                Tema default diatur oleh Administrator.
               </CardDescription>
             </CardHeader>
-             <CardContent className="grid grid-cols-2 gap-4">
-                <Button variant="outline" onClick={() => handleThemeChange(themes.default)}>Default</Button>
-                <Button variant="outline" className="bg-green-600 text-white hover:bg-green-700" onClick={() => handleThemeChange(themes.green)}>Hijau</Button>
-                <Button variant="outline" className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleThemeChange(themes.blue)}>Biru</Button>
-                <Button variant="outline" className="bg-orange-600 text-white hover:bg-orange-700" onClick={() => handleThemeChange(themes.orange)}>Oranye</Button>
+             <CardContent>
+                <p className="text-sm text-muted-foreground">Tema aplikasi saat ini mengikuti pengaturan global.</p>
              </CardContent>
           </Card>
         </div>

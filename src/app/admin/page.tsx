@@ -1,0 +1,87 @@
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Shield } from "lucide-react";
+
+export default function AdminLoginPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Simulasi proses login
+    setTimeout(() => {
+      if (username === "admin" && password === "admin123") {
+        toast({ title: "Login Berhasil", description: "Selamat datang, Admin." });
+        sessionStorage.setItem("admin_logged_in", "true");
+        router.push("/admin/dashboard");
+      } else {
+        toast({
+          title: "Login Gagal",
+          description: "Username atau password salah.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      }
+    }, 1000);
+  };
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        <Card>
+          <CardHeader className="text-center">
+             <div className="mx-auto mb-4 bg-primary text-primary-foreground rounded-full p-3 w-fit">
+               <Shield className="h-8 w-8" />
+            </div>
+            <CardTitle>Login Administrator</CardTitle>
+            <CardDescription>
+              Masukkan kredensial admin untuk melanjutkan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  );
+}
