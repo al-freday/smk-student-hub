@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -52,26 +52,17 @@ const initialPelanggaran = [
     },
 ];
 
-// Data ini seharusnya diambil dari sumber global/API, untuk simulasi kita definisikan di sini
-const daftarKelas = [
-  "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
-  "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
-  "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
-];
+interface Siswa {
+    id: number;
+    nis: string;
+    nama: string;
+    kelas: string;
+}
 
-const daftarSiswa = daftarKelas.flatMap((kelas, classIndex) => 
-    Array.from({ length: 40 }, (_, i) => ({
-        id: (classIndex * 40) + i + 1,
-        nis: `24${((classIndex * 40) + i + 1).toString().padStart(4, '0')}`,
-        nama: `Siswa ${i + 1} ${kelas}`,
-        kelas: kelas
-    }))
-);
-
-const daftarWaliKelas = daftarKelas.map((kelas, i) => ({
-    kelas: kelas,
-    wali: `Wali Kelas ${i + 1}`
-}));
+interface WaliKelas {
+    kelas: string;
+    wali: string;
+}
 
 interface CatatanSiswa {
     id: number;
@@ -89,6 +80,9 @@ export default function TataTertibPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("pelanggaran");
   
+  const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [daftarWaliKelas, setDaftarWaliKelas] = useState<WaliKelas[]>([]);
+
   // State untuk form pelanggaran
   const [selectedSiswaPelanggaran, setSelectedSiswaPelanggaran] = useState("");
   const [selectedPelanggaran, setSelectedPelanggaran] = useState("");
@@ -103,6 +97,25 @@ export default function TataTertibPage() {
 
   const [riwayat, setRiwayat] = useState<CatatanSiswa[]>([]);
 
+  useEffect(() => {
+      const savedSiswa = localStorage.getItem('siswaData');
+      if (savedSiswa) setDaftarSiswa(JSON.parse(savedSiswa));
+
+      const savedTeachers = localStorage.getItem('teachersData');
+      if (savedTeachers) {
+          const teachersData = JSON.parse(savedTeachers);
+          const waliKelasList = teachersData.waliKelas || [];
+          setDaftarWaliKelas(waliKelasList.map((w: any) => ({ kelas: w.kelas, wali: w.nama })));
+      }
+
+      const savedRiwayat = localStorage.getItem('riwayatCatatan');
+      if (savedRiwayat) setRiwayat(JSON.parse(savedRiwayat));
+  }, []);
+
+  const saveDataToLocalStorage = (data: CatatanSiswa[]) => {
+      localStorage.setItem('riwayatCatatan', JSON.stringify(data));
+  };
+
   const waliKelasTerpilih = useMemo(() => {
     const siswaNama = activeTab === 'pelanggaran' ? selectedSiswaPelanggaran : selectedSiswaPrestasi;
     if (!siswaNama) return "N/A";
@@ -110,7 +123,7 @@ export default function TataTertibPage() {
     if (!siswa) return "N/A";
     const wali = daftarWaliKelas.find(w => w.kelas === siswa.kelas);
     return wali ? wali.wali : "N/A";
-  }, [selectedSiswaPelanggaran, selectedSiswaPrestasi, activeTab]);
+  }, [selectedSiswaPelanggaran, selectedSiswaPrestasi, activeTab, daftarSiswa, daftarWaliKelas]);
 
   const getPoinFromDeskripsi = (deskripsi: string) => {
     for (const kategori of initialPelanggaran) {
@@ -130,7 +143,7 @@ export default function TataTertibPage() {
     const poin = getPoinFromDeskripsi(selectedPelanggaran);
 
     const catatanBaru: CatatanSiswa = {
-        id: riwayat.length + 1,
+        id: riwayat.length > 0 ? Math.max(...riwayat.map(r => r.id)) + 1 : 1,
         siswa: siswa.nama,
         kelas: siswa.kelas,
         waliKelas: waliKelasTerpilih,
@@ -140,7 +153,9 @@ export default function TataTertibPage() {
         tanggal: format(new Date(), "yyyy-MM-dd"),
         tipe: 'pelanggaran',
     };
-    setRiwayat([catatanBaru, ...riwayat]);
+    const updatedRiwayat = [catatanBaru, ...riwayat];
+    setRiwayat(updatedRiwayat);
+    saveDataToLocalStorage(updatedRiwayat);
     toast({ title: "Pelanggaran Dicatat", description: `Pelanggaran untuk ${siswa.nama} telah disimpan.` });
     setSelectedSiswaPelanggaran("");
     setSelectedPelanggaran("");
@@ -156,7 +171,7 @@ export default function TataTertibPage() {
     if (!siswa) return;
 
     const catatanBaru: CatatanSiswa = {
-        id: riwayat.length + 1,
+        id: riwayat.length > 0 ? Math.max(...riwayat.map(r => r.id)) + 1 : 1,
         siswa: siswa.nama,
         kelas: siswa.kelas,
         waliKelas: waliKelasTerpilih,
@@ -166,7 +181,9 @@ export default function TataTertibPage() {
         tanggal: format(new Date(), "yyyy-MM-dd"),
         tipe: 'prestasi',
     };
-    setRiwayat([catatanBaru, ...riwayat]);
+    const updatedRiwayat = [catatanBaru, ...riwayat];
+    setRiwayat(updatedRiwayat);
+    saveDataToLocalStorage(updatedRiwayat);
     toast({ title: "Prestasi Dicatat", description: `Prestasi untuk ${siswa.nama} telah disimpan.` });
     setSelectedSiswaPrestasi("");
     setJenisPrestasi("");

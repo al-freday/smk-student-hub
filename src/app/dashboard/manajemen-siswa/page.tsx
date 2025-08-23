@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,14 +91,11 @@ const generateInitialSiswa = (): Siswa[] => {
   return siswaList;
 };
 
-
-const initialSiswa: Siswa[] = generateInitialSiswa();
-
-
 export default function ManajemenSiswaPage() {
   const { toast } = useToast();
-  const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
+  const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
+  const [daftarKelasDinamis, setDaftarKelasDinamis] = useState<string[]>([]);
 
   // Form states for siswa
   const [nis, setNis] = useState("");
@@ -112,6 +109,31 @@ export default function ManajemenSiswaPage() {
   const [siswaKehadiran, setSiswaKehadiran] = useState<Siswa | null>(null);
   const [statusKehadiran, setStatusKehadiran] = useState<Kehadiran['status']>('Hadir');
   const [tanggalKehadiran, setTanggalKehadiran] = useState<Date | undefined>(new Date());
+
+  useEffect(() => {
+      const savedSiswa = localStorage.getItem('siswaData');
+      const savedKelas = localStorage.getItem('kelasData');
+
+      if (savedKelas) {
+          const kelasData = JSON.parse(savedKelas);
+          setDaftarKelasDinamis(kelasData.map((k: any) => k.nama));
+      } else {
+          setDaftarKelasDinamis(daftarKelas);
+      }
+
+      if (savedSiswa) {
+          setSiswa(JSON.parse(savedSiswa));
+      } else {
+          const initialSiswa = generateInitialSiswa();
+          setSiswa(initialSiswa);
+          localStorage.setItem('siswaData', JSON.stringify(initialSiswa));
+      }
+  }, []);
+
+  const saveDataToLocalStorage = (data: Siswa[]) => {
+      localStorage.setItem('siswaData', JSON.stringify(data));
+  };
+
 
   const resetForm = () => {
     setNis("");
@@ -141,15 +163,18 @@ export default function ManajemenSiswaPage() {
 
   const handleSaveSiswa = () => {
     if (nis && nama && kelas) {
+        let updatedSiswa;
       if (editingSiswa) {
-        setSiswa(siswa.map((s) => s.id === editingSiswa.id ? { ...s, nis, nama, kelas } : s));
+        updatedSiswa = siswa.map((s) => s.id === editingSiswa.id ? { ...s, nis, nama, kelas } : s);
       } else {
         const newSiswa: Siswa = {
           id: siswa.length > 0 ? Math.max(...siswa.map((s) => s.id)) + 1 : 1,
           nis, nama, kelas,
         };
-        setSiswa([...siswa, newSiswa]);
+        updatedSiswa = [...siswa, newSiswa];
       }
+      setSiswa(updatedSiswa);
+      saveDataToLocalStorage(updatedSiswa);
       resetForm();
       setOpen(false);
     }
@@ -187,7 +212,9 @@ export default function ManajemenSiswaPage() {
   };
 
   const handleDeleteSiswa = (id: number) => {
-    setSiswa(siswa.filter((s) => s.id !== id));
+    const updatedSiswa = siswa.filter((s) => s.id !== id);
+    setSiswa(updatedSiswa);
+    saveDataToLocalStorage(updatedSiswa);
   };
   
   const handleImport = () => {
@@ -239,7 +266,7 @@ export default function ManajemenSiswaPage() {
                     <Label htmlFor="kelas" className="text-right">Kelas</Label>
                      <Select onValueChange={setKelas} value={kelas}>
                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
-                        <SelectContent>{daftarKelas.map(k => (<SelectItem key={k} value={k}>{k}</SelectItem>))}</SelectContent>
+                        <SelectContent>{daftarKelasDinamis.map(k => (<SelectItem key={k} value={k}>{k}</SelectItem>))}</SelectContent>
                       </Select>
                   </div>
                 </div>

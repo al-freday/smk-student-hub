@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle } from "lucide-react";
+import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2 } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AttendanceChart from "@/components/attendance-chart";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getDashboardStats } from "@/lib/data"; // Import fungsi baru
 
 const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -25,80 +26,118 @@ const getRoleDisplayName = (role: string) => {
     }
 };
 
-const WakasekDashboard = () => (
-    <>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <StatCard
-                title="Total Siswa Aktif"
-                value="1,250"
-                icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                description="+20.1% dari bulan lalu"
-            />
-            <StatCard
-                title="Total Guru"
-                value="75"
-                icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
-                description="Data terkini"
-            />
-            <StatCard
-                title="Jumlah Kelas"
-                value="30"
-                icon={<School className="h-4 w-4 text-muted-foreground" />}
-                description="Tahun ajaran 2024/2025"
-            />
-            <StatCard
-                title="Kehadiran Hari Ini"
-                value="95.3%"
-                icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-                description="+1.2% dari kemarin"
-            />
-            <StatCard
-                title="Pelanggaran Hari Ini"
-                value="12"
-                icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
-                description="+5 dari kemarin"
-                isNegative={true}
-            />
-        </div>
+const WakasekDashboard = () => {
+    const [stats, setStats] = useState({
+        totalSiswa: 0,
+        totalGuru: 0,
+        totalKelas: 0,
+        kehadiranHariIni: "0%",
+        pelanggaranHariIni: 0,
+    });
+    const [isLoading, setIsLoading] = useState(true);
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+    useEffect(() => {
+        const fetchStats = () => {
+            const newStats = getDashboardStats();
+            setStats(newStats);
+            setIsLoading(false);
+        };
+        fetchStats();
+    }, []);
+
+    if (isLoading) {
+        return (
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                {[...Array(5)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium"><div className="h-4 w-24 bg-muted rounded"></div></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold"><div className="h-8 w-16 bg-muted rounded"></div></div>
+                            <p className="text-xs text-muted-foreground"><div className="h-3 w-32 bg-muted rounded mt-1"></div></p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        )
+    }
+
+    return (
+        <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                <StatCard
+                    title="Total Siswa Aktif"
+                    value={stats.totalSiswa.toLocaleString()}
+                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                    description="Data dari Manajemen Siswa"
+                />
+                <StatCard
+                    title="Total Guru"
+                    value={stats.totalGuru.toLocaleString()}
+                    icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
+                    description="Data dari Manajemen Guru"
+                />
+                <StatCard
+                    title="Jumlah Kelas"
+                    value={stats.totalKelas.toLocaleString()}
+                    icon={<School className="h-4 w-4 text-muted-foreground" />}
+                    description="Data dari Manajemen Kelas"
+                />
+                <StatCard
+                    title="Kehadiran Hari Ini"
+                    value={stats.kehadiranHariIni}
+                    icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+                    description="Berdasarkan data absensi"
+                />
+                <StatCard
+                    title="Pelanggaran Hari Ini"
+                    value={stats.pelanggaranHariIni.toLocaleString()}
+                    icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
+                    description="Data dari Tata Tertib"
+                    isNegative={stats.pelanggaranHariIni > 0}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Laporan Terbaru</CardTitle>
+                            <CardDescription>Daftar pelanggaran dan prestasi siswa yang baru saja dicatat.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <RecentReportsTable />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-1">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pelanggaran Berdasarkan Kategori</CardTitle>
+                            <CardDescription>Distribusi total pelanggaran siswa.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <InfractionsByCategoryChart />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
+            <div className="grid gap-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Laporan Terbaru</CardTitle>
-                        <CardDescription>Daftar pelanggaran dan prestasi siswa yang baru saja dicatat.</CardDescription>
+                        <CardTitle>Grafik Absensi Siswa (Minggu Ini)</CardTitle>
+                        <CardDescription>Perbandingan kehadiran siswa selama 5 hari terakhir.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <RecentReportsTable />
+                    <CardContent className="pl-2">
+                        <AttendanceChart />
                     </CardContent>
                 </Card>
             </div>
-            <div className="lg:col-span-1">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Pelanggaran Berdasarkan Kategori</CardTitle>
-                        <CardDescription>Distribusi total pelanggaran siswa.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <InfractionsByCategoryChart />
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-
-        <div className="grid gap-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Grafik Absensi Siswa (Minggu Ini)</CardTitle>
-                    <CardDescription>Perbandingan kehadiran siswa selama 5 hari terakhir.</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                    <AttendanceChart />
-                </CardContent>
-            </Card>
-        </div>
-    </>
-);
+        </>
+    )
+};
 
 const WaliKelasDashboard = () => {
     const studentsNeedingAttention = [
@@ -309,13 +348,9 @@ export default function DashboardPage() {
             <div className="flex-1 space-y-6">
                 <div className="space-y-2">
                     <h2 className="text-3xl font-bold tracking-tight">Memuat Dasbor...</h2>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
-                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
-                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
-                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
-                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                    <div className="flex justify-center items-center h-64">
+                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
                 </div>
             </div>
         );

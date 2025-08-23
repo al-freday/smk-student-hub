@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MoreHorizontal, Edit, Trash2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ const initialKelas: Kelas[] = [
 ];
 
 export default function ManajemenKelasPage() {
-  const [kelas, setKelas] = useState<Kelas[]>(initialKelas);
+  const [kelas, setKelas] = useState<Kelas[]>([]);
   const [editingKelas, setEditingKelas] = useState<Kelas | null>(null);
   
   // Form states for adding/editing
@@ -78,6 +78,21 @@ export default function ManajemenKelasPage() {
   const [jumlahSiswa, setJumlahSiswa] = useState("");
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const savedKelas = localStorage.getItem('kelasData');
+    if (savedKelas) {
+      setKelas(JSON.parse(savedKelas));
+    } else {
+      setKelas(initialKelas);
+      localStorage.setItem('kelasData', JSON.stringify(initialKelas));
+    }
+  }, []);
+
+  const saveDataToLocalStorage = (data: Kelas[]) => {
+    localStorage.setItem('kelasData', JSON.stringify(data));
+  };
+
 
   const resetForm = () => {
     setNamaKelas("");
@@ -98,31 +113,32 @@ export default function ManajemenKelasPage() {
 
   const handleSaveKelas = () => {
     if (namaKelas && jumlahSiswa) {
+        let updatedKelas;
       if (editingKelas) {
-        // Update existing kelas
-        setKelas(
-          kelas.map((k) =>
+        updatedKelas = kelas.map((k) =>
             k.id === editingKelas.id
               ? { ...k, nama: namaKelas, jumlahSiswa: parseInt(jumlahSiswa, 10) }
               : k
-          )
-        );
+          );
       } else {
-        // Add new kelas
         const newKelas: Kelas = {
           id: kelas.length > 0 ? Math.max(...kelas.map((k) => k.id)) + 1 : 1,
           nama: namaKelas,
           jumlahSiswa: parseInt(jumlahSiswa, 10),
         };
-        setKelas([...kelas, newKelas]);
+        updatedKelas = [...kelas, newKelas];
       }
+      setKelas(updatedKelas);
+      saveDataToLocalStorage(updatedKelas);
       resetForm();
       setIsDialogOpen(false);
     }
   };
 
   const handleDeleteKelas = (id: number) => {
-    setKelas(kelas.filter((k) => k.id !== id));
+    const updatedKelas = kelas.filter((k) => k.id !== id);
+    setKelas(updatedKelas);
+    saveDataToLocalStorage(updatedKelas);
   };
 
 
