@@ -127,7 +127,7 @@ export default function LaporanGuruMapelPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
             {isWakasekView ? "Laporan Guru Mapel (Diterima)" : "Laporan Guru Mata Pelajaran"}
@@ -190,7 +190,7 @@ export default function LaporanGuruMapelPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem asChild>
-                                        <Link href="#"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
+                                        <Link href="/dashboard/laporan/guru-mapel"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diproses')}>
                                         <RefreshCw className="mr-2 h-4 w-4" />

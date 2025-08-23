@@ -123,7 +123,7 @@ export default function LaporanGuruPendampingPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
             {isWakasekView ? "Laporan Guru Pendamping (Diterima)" : "Laporan Guru Pendamping"}
@@ -184,7 +184,7 @@ export default function LaporanGuruPendampingPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem asChild>
-                                        <Link href="#"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
+                                        <Link href="/dashboard/laporan/guru-pendamping"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diproses')}>
                                         <RefreshCw className="mr-2 h-4 w-4" />

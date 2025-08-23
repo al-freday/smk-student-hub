@@ -624,4 +624,3 @@ export default function LaporanWaliKelasPage() {
     </div>
   );
 }
-
