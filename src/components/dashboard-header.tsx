@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,8 +17,46 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
 import { DashboardNav } from "./dashboard-nav";
 import { Icons } from "./icons";
+import { useEffect, useState } from "react";
+
+const getRoleDisplayName = (role: string) => {
+    switch (role) {
+        case 'waliKelas': return 'Wali Kelas';
+        case 'guruBk': return 'Guru BK';
+        case 'guruMapel': return 'Guru Mapel';
+        case 'guruPiket': return 'Guru Piket';
+        case 'guruPendamping': return 'Guru Pendamping';
+        case 'wakasek': return 'Wakasek Kesiswaan';
+        default: return 'Pengguna';
+    }
+};
+
+const getAvatarFallback = (role: string) => {
+     switch (role) {
+        case 'waliKelas': return 'WK';
+        case 'guruBk': return 'BK';
+        case 'guruMapel': return 'GM';
+        case 'guruPiket': return 'GP';
+        case 'guruPendamping': return 'GP';
+        case 'wakasek': return 'WK';
+        default: return 'U';
+    }
+}
+
 
 export default function DashboardHeader() {
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    // Ambil peran dari localStorage saat komponen dimuat di client-side
+    const role = localStorage.getItem('userRole') || 'wakasek';
+    setUserRole(role);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+  };
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <div className="md:hidden">
@@ -52,17 +91,19 @@ export default function DashboardHeader() {
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar>
                 <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                <AvatarFallback>WK</AvatarFallback>
+                <AvatarFallback>{getAvatarFallback(userRole)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Wakasek Kesiswaan</DropdownMenuLabel>
+            <DropdownMenuLabel>{getRoleDisplayName(userRole)}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profil</DropdownMenuItem>
-            <DropdownMenuItem>Pengaturan</DropdownMenuItem>
+             <Link href="/dashboard/pengaturan">
+                <DropdownMenuItem>Pengaturan</DropdownMenuItem>
+             </Link>
             <DropdownMenuSeparator />
-             <Link href="/">
+             <Link href="/" onClick={handleLogout}>
               <DropdownMenuItem>Logout</DropdownMenuItem>
             </Link>
           </DropdownMenuContent>

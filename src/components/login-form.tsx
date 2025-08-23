@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,14 +18,38 @@ import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
+// Daftar pengguna yang disimulasikan untuk login berbasis peran
+const userRoles: { [email: string]: string } = {
+    // Wakasek
+    "wakasek@email.com": "wakasek",
+    // Wali Kelas
+    "budi.s@email.com": "waliKelas",
+    "dewi.l@email.com": "waliKelas",
+    // Guru BK
+    "siti.a@email.com": "guruBk",
+    "bambang.w@email.com": "guruBk",
+    // Guru Mapel
+    "eko.p@email.com": "guruMapel",
+    "anita.s@email.com": "guruMapel",
+    // Guru Piket
+    "joko.s@email.com": "guruPiket",
+    "endang.m@email.com": "guruPiket",
+    // Guru Pendamping
+    "rina.k@email.com": "guruPendamping",
+    "agus.s@email.com": "guruPendamping",
+};
+
+
 export function LoginForm() {
   const router = useRouter();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -36,12 +61,16 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+ function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    console.log(values);
-    // Simulate API call
+
+    const role = userRoles[values.email.toLowerCase()] || 'wakasek'; // Default ke wakasek jika tidak ditemukan
+
+    // Simulasikan panggilan API
     setTimeout(() => {
       setIsLoading(false);
+      // Simpan peran di localStorage untuk disimulasikan di seluruh aplikasi
+      localStorage.setItem('userRole', role);
       router.push("/dashboard");
     }, 1500);
   }
@@ -51,6 +80,7 @@ export function LoginForm() {
     // Simulate Google Sign-In
     setTimeout(() => {
       setIsGoogleLoading(false);
+       localStorage.setItem('userRole', 'wakasek'); // Default Google sign in as wakasek
       router.push("/dashboard");
     }, 1500);
   }
