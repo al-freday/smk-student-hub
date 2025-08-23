@@ -6,7 +6,6 @@ import {
   Bell,
   BookUser,
   CalendarClock,
-  ClipboardCheck,
   FileText,
   GanttChartSquare,
   LayoutDashboard,
@@ -60,14 +59,14 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.label}>
-              <SidebarMenuButton asChild tooltip={item.label} isActive={pathname === item.href}>
-                <Link href={item.href}>
-                  <item.icon className="size-4" />
-                  <span className="group-data-[collapsible=icon]:hidden">
-                    {item.label}
-                  </span>
-                </Link>
-              </SidebarMenuButton>
+              <Link href={item.href}>
+                <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                    <item.icon className="size-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">
+                      {item.label}
+                    </span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
@@ -76,21 +75,21 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
       <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Pengaturan">
                 <Link href="/dashboard/pengaturan">
-                  <Settings className="size-4" />
-                  <span className="group-data-[collapsible=icon]:hidden">Pengaturan</span>
+                  <SidebarMenuButton tooltip="Pengaturan">
+                    <Settings className="size-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Pengaturan</span>
+                  </SidebarMenuButton>
                 </Link>
-              </SidebarMenuButton>
             </SidebarMenuItem>
             <Separator className="my-1"/>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Logout">
-                <Link href="/">
+              <Link href="/">
+                <SidebarMenuButton tooltip="Logout">
                   <LogOut className="size-4" />
                   <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-                </Link>
-              </SidebarMenuButton>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
       </SidebarFooter>
