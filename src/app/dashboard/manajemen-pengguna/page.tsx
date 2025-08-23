@@ -29,7 +29,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Edit, Trash2, PlusCircle } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlusCircle, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -88,12 +88,14 @@ export default function ManajemenPenggunaPage() {
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const resetForm = () => {
     setNama("");
     setEmail("");
     setPassword("");
     setEditingUser(null);
+    setShowPassword(false);
   };
   
   const handleOpenDialog = (userToEdit: User | null = null) => {
@@ -207,7 +209,26 @@ export default function ManajemenPenggunaPage() {
                               </div>
                                <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="password" className="text-right">Password</Label>
-                                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="col-span-3" placeholder={editingUser ? "Isi untuk ganti password" : "••••••••"} />
+                                <div className="col-span-3 relative">
+                                    <Input 
+                                        id="password" 
+                                        type={showPassword ? "text" : "password"} 
+                                        value={password} 
+                                        onChange={(e) => setPassword(e.target.value)} 
+                                        className="pr-10"
+                                        placeholder={editingUser ? "Isi untuk ganti password" : "••••••••"} 
+                                    />
+                                    <Button 
+                                        type="button"
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="absolute inset-y-0 right-0 h-full px-3"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        <span className="sr-only">{showPassword ? "Sembunyikan password" : "Tampilkan password"}</span>
+                                    </Button>
+                                </div>
                               </div>
                             </div>
                             <DialogFooter>
@@ -282,5 +303,3 @@ export default function ManajemenPenggunaPage() {
     </div>
   );
 }
-
-    
