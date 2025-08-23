@@ -5,378 +5,241 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
 
 
 const initialPelanggaran = [
     {
         kategori: "Disiplin Kehadiran",
         items: [
-            "Terlambat masuk sekolah (≤10 menit).",
-            "Terlambat masuk sekolah (>10 menit).",
-            "Tidak masuk tanpa keterangan (1 hari).",
-            "Membolos jam pelajaran.",
-            "Meninggalkan sekolah tanpa izin.",
-            "Tidak mengikuti upacara.",
-            "Tidak mengikuti kegiatan wajib sekolah (ekstrakurikuler, P5).",
-            "Tidur saat pelajaran.",
-            "Tidak masuk saat ulangan tanpa alasan jelas.",
-            "Pulang sebelum waktunya tanpa izin.",
+            { deskripsi: "Terlambat masuk sekolah (≤10 menit).", poin: 5 },
+            { deskripsi: "Terlambat masuk sekolah (>10 menit).", poin: 10 },
+            { deskripsi: "Tidak masuk tanpa keterangan (1 hari).", poin: 15 },
+            { deskripsi: "Membolos jam pelajaran.", poin: 20 },
         ],
     },
     {
         kategori: "Kerapian & Seragam",
         items: [
-            "Tidak memakai seragam sesuai jadwal.",
-            "Tidak memakai sepatu hitam.",
-            "Tidak memakai kaos kaki putih/hitam.",
-            "Tidak memakai ikat pinggang standar.",
-            "Tidak memakai dasi/atribut sesuai aturan.",
-            "Baju tidak dimasukkan.",
-            "Rambut gondrong (putra).",
-            "Rambut dicat/diwarnai.",
-            "Rambut model tidak pantas (punk, mohawk, dll).",
-            "Memakai aksesoris berlebihan (gelang, kalung, anting).",
+            { deskripsi: "Tidak memakai seragam sesuai jadwal.", poin: 5 },
+            { deskripsi: "Rambut gondrong (putra).", poin: 10 },
+            { deskripsi: "Rambut dicat/diwarnai.", poin: 10 },
         ],
     },
     {
         kategori: "Sikap & Perilaku",
         items: [
-            "Tidak hormat kepada guru.",
-            "Menggunakan bahasa kasar.",
-            "Menghina teman/guru.",
-            "Membuat keributan di kelas.",
-            "Mengganggu jalannya pelajaran.",
-            "Membantah guru.",
-            "Tidak melaksanakan tugas piket kelas.",
-            "Tidak menjaga kebersihan kelas.",
-            "Mengotori fasilitas sekolah (mencoret meja, tembok, dll).",
-            "Membawa makanan/minuman ke kelas saat pelajaran.",
+            { deskripsi: "Tidak hormat kepada guru.", poin: 25 },
+            { deskripsi: "Menggunakan bahasa kasar.", poin: 15 },
+            { deskripsi: "Membuat keributan di kelas.", poin: 10 },
+            { deskripsi: "Bullying (verbal).", poin: 50 },
         ],
     },
-    {
-        kategori: "Akademik",
-        items: [
-            "Tidak membawa buku pelajaran.",
-            "Tidak mengerjakan PR.",
-            "Tidak membawa peralatan praktik.",
-            "Mencontek saat ulangan.",
-            "Menyuruh orang lain mengerjakan tugas.",
-            "Menggunakan HP saat ujian.",
-            "Mengabaikan tugas kelompok.",
-            "Tidak serius dalam praktik bengkel/lab.",
-            "Menyalahgunakan peralatan bengkel/lab.",
-            "Menggunakan AI/mesin untuk mencontek tanpa izin.",
-        ],
-    },
-    {
-        kategori: "Pelanggaran Sosial",
-        items: [
-            "Berkelahi ringan di kelas.",
-            "Berkelahi di luar kelas.",
-            "Menghasut teman untuk melawan guru.",
-            "Membentuk geng negatif.",
-            "Bullying (verbal).",
-            "Bullying (fisik).",
-            "Membuat unggahan negatif tentang sekolah/guru di media sosial.",
-            "Menyebarkan hoaks.",
-            "Membawa barang teman tanpa izin.",
-            "Mengancam teman.",
-        ],
-    },
-    {
-        kategori: "Merokok & Zat Terlarang",
-        items: [
-            "Membawa rokok.",
-            "Merokok di lingkungan sekolah.",
-            "Membawa vape.",
-            "Menggunakan vape.",
-            "Membawa minuman keras.",
-            "Mengonsumsi minuman keras.",
-            "Membawa narkoba.",
-            "Menggunakan narkoba.",
-            "Mengedarkan narkoba.",
-            "Mengajak teman memakai narkoba.",
-        ],
-    },
-    {
-        kategori: "Pelanggaran Teknologi",
-        items: [
-            "Membawa HP saat ujian.",
-            "Menggunakan HP di kelas tanpa izin.",
-            "Bermain game online saat pelajaran.",
-            "Mengakses situs terlarang (porno, judi).",
-            "Menyebarkan foto/video tidak pantas.",
-            "Membuat konten negatif di sekolah.",
-            "Membobol WiFi sekolah.",
-            "Mengotak-atik komputer lab tanpa izin.",
-            "Merekam guru tanpa izin.",
-            "Menyalahgunakan media sosial OSIS.",
-        ],
-    },
-    {
+     {
         kategori: "Kriminalitas",
         items: [
-            "Mencuri barang teman.",
-            "Mencuri barang sekolah.",
-            "Merusak properti sekolah dengan sengaja.",
-            "Mengambil uang kas kelas tanpa izin.",
-            "Menjual barang ilegal di sekolah.",
-            "Membawa senjata tajam.",
-            "Membawa senjata api.",
-            "Membawa petasan/bahan peledak.",
-            "Melakukan pemerasan.",
-            "Melakukan penganiayaan.",
-        ],
-    },
-    {
-        kategori: "Asusila",
-        items: [
-            "Berpacaran berlebihan di sekolah (mesra berlebihan).",
-            "Membawa majalah/film porno.",
-            "Mengakses situs porno.",
-            "Melakukan pelechean verbal.",
-            "Melakukan pelecehan fisik.",
-            "Melakukan pelecehan seksual.",
-            "Pergaulan bebas (di dalam/luar sekolah).",
-            "Membuat video asusila.",
-            "Mengirim konten asusila lewat HP.",
-            "Melakukan hubungan terlarang.",
-        ],
-    },
-    {
-        kategori: "Pelanggaran Lain",
-        items: [
-            "Tidak mengikuti kegiatan wajib sekolah (MOS, PKL, upacara nasional).",
-            "Tidak mengikuti peringatan hari besar nasional.",
-            "Tidak menjaga nama baik sekolah di luar lingkungan sekolah.",
-            "Tidak menjaga fasilitas praktik industri.",
-            "Menghindari kegiatan gotong royong.",
-            "Membawa kendaraan bermotor tanpa SIM.",
-            "Balapan liar dengan seragam sekolah.",
-            "Membawa kendaraan dengan knalpot bising.",
-            "Melanggar lalu lintas saat berangkat/pulang sekolah.",
-            "Menggunakan narkoba/alkohol saat PKL/Prakerin.",
+            { deskripsi: "Mencuri barang teman.", poin: 75 },
+            { deskripsi: "Merusak properti sekolah dengan sengaja.", poin: 80 },
+            { deskripsi: "Membawa senjata tajam.", poin: 100 },
         ],
     },
 ];
 
+const daftarSiswa = [
+    { id: 1, nis: "1234567890", nama: "Ahmad Budi", kelas: "X OT 1" },
+    { id: 2, nis: "0987654321", nama: "Citra Dewi", kelas: "XI AKL" },
+    { id: 3, nis: "1122334455", nama: "Eka Putra", kelas: "XII TKR" },
+    { id: 4, nis: "1122334456", nama: "Fitriani", kelas: "XII TKJ 1" },
+    { id: 5, nis: "1122334457", nama: "Gunawan", kelas: "XI OTKP 1" },
+];
+
+interface CatatanPelanggaran {
+    id: number;
+    siswa: string;
+    kelas: string;
+    pelanggaran: string;
+    poin: number;
+    tindakan: string;
+    tanggal: string;
+}
 
 export default function TataTertibPage() {
-  const [pelanggaran, setPelanggaran] = useState(initialPelanggaran);
-  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const [selectedSiswa, setSelectedSiswa] = useState("");
+  const [selectedPelanggaran, setSelectedPelanggaran] = useState("");
+  const [tindakan, setTindakan] = useState("");
+  const [riwayat, setRiwayat] = useState<CatatanPelanggaran[]>([]);
 
-  // Form states
-  const [selectedKategori, setSelectedKategori] = useState("");
-  const [newKategori, setNewKategori] = useState("");
-  const [deskripsi, setDeskripsi] = useState("");
-
-  const handleTambahPeraturan = () => {
-    const kategoriToAdd = selectedKategori === "new" ? newKategori : selectedKategori;
-
-    if (!kategoriToAdd || !deskripsi) {
-      // Basic validation
-      alert("Kategori dan deskripsi tidak boleh kosong.");
-      return;
+  const getPoinFromDeskripsi = (deskripsi: string) => {
+    for (const kategori of initialPelanggaran) {
+        const item = kategori.items.find(i => i.deskripsi === deskripsi);
+        if (item) return item.poin;
     }
-
-    setPelanggaran(prevPelanggaran => {
-      const newPelanggaran = [...prevPelanggaran];
-      const kategoriIndex = newPelanggaran.findIndex(p => p.kategori === kategoriToAdd);
-
-      if (kategoriIndex > -1) {
-        // Add to existing category
-        newPelanggaran[kategoriIndex].items.push(deskripsi);
-      } else {
-        // Add new category with the item
-        newPelanggaran.push({
-          kategori: kategoriToAdd,
-          items: [deskripsi]
-        });
-      }
-      return newPelanggaran;
-    });
-
-    // Reset form and close dialog
-    setSelectedKategori("");
-    setNewKategori("");
-    setDeskripsi("");
-    setOpen(false);
+    return 0;
   };
 
+  const handleSimpan = () => {
+    if (!selectedSiswa || !selectedPelanggaran || !tindakan) {
+        toast({
+            title: "Gagal Menyimpan",
+            description: "Harap lengkapi semua kolom.",
+            variant: "destructive",
+        });
+        return;
+    }
+    
+    const siswa = daftarSiswa.find(s => s.nama === selectedSiswa);
+    const poin = getPoinFromDeskripsi(selectedPelanggaran);
+
+    const catatanBaru: CatatanPelanggaran = {
+        id: riwayat.length + 1,
+        siswa: selectedSiswa,
+        kelas: siswa?.kelas || "N/A",
+        pelanggaran: selectedPelanggaran,
+        poin,
+        tindakan,
+        tanggal: format(new Date(), "yyyy-MM-dd"),
+    };
+
+    setRiwayat([catatanBaru, ...riwayat]);
+
+    toast({
+        title: "Berhasil Disimpan",
+        description: `Pelanggaran untuk ${selectedSiswa} telah dicatat.`,
+    });
+    
+    // Reset form
+    setSelectedSiswa("");
+    setSelectedPelanggaran("");
+    setTindakan("");
+  };
 
   return (
     <div className="flex-1 space-y-6">
-        <div className="flex items-center justify-between">
-            <div>
-                 <h2 className="text-3xl font-bold tracking-tight">Tata Tertib Sekolah</h2>
-                 <p className="text-muted-foreground">
-                    Lihat dan kelola peraturan sekolah dan poin pelanggaran.
-                 </p>
-            </div>
-             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tambah Peraturan
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Tambah Peraturan Baru</DialogTitle>
-                  <DialogDescription>
-                    Pilih kategori atau buat baru, lalu masukkan deskripsi peraturan.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="kategori" className="text-right">
-                      Kategori
-                    </Label>
-                    <Select onValueChange={setSelectedKategori} value={selectedKategori}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Pilih Kategori" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pelanggaran.map((p, index) => (
-                           <SelectItem key={index} value={p.kategori}>{p.kategori}</SelectItem>
-                        ))}
-                        <SelectItem value="new">-- Buat Kategori Baru --</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedKategori === 'new' && (
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-kategori" className="text-right">
-                            Kategori Baru
-                        </Label>
-                        <Input
-                            id="new-kategori"
-                            value={newKategori}
-                            onChange={(e) => setNewKategori(e.target.value)}
-                            className="col-span-3"
-                            placeholder="Contoh: Kebersihan"
-                        />
-                     </div>
-                  )}
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="deskripsi" className="text-right">
-                      Deskripsi
-                    </Label>
-                    <Textarea
-                      id="deskripsi"
-                      value={deskripsi}
-                      onChange={(e) => setDeskripsi(e.target.value)}
-                      className="col-span-3"
-                      placeholder="Tuliskan deskripsi peraturan di sini."
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline" onClick={() => {
-                      setSelectedKategori("");
-                      setNewKategori("");
-                      setDeskripsi("");
-                    }}>Batal</Button>
-                  </DialogClose>
-                  <Button type="submit" onClick={handleTambahPeraturan}>
-                    Simpan
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-      </div>
+        <div>
+            <h2 className="text-3xl font-bold tracking-tight">Catat Pelanggaran & Prestasi</h2>
+            <p className="text-muted-foreground">
+                Gunakan formulir ini untuk mencatat pelanggaran atau prestasi siswa.
+            </p>
+        </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
             <Card>
                 <CardHeader>
-                <CardTitle>Jenis Pelanggaran dan Poin</CardTitle>
-                <CardDescription>
-                    Berikut adalah daftar 100 butir tata tertib siswa.
-                </CardDescription>
+                    <CardTitle>Formulir Pencatatan</CardTitle>
+                    <CardDescription>Pilih siswa, jenis pelanggaran, dan jelaskan tindakan yang diambil.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                        {pelanggaran.map((kategori, index) => (
-                        <AccordionItem value={`item-${index + 1}`} key={index}>
-                            <AccordionTrigger className="font-semibold">{`${index + 1}. ${kategori.kategori}`}</AccordionTrigger>
-                            <AccordionContent>
-                                <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                                    {kategori.items.map((item, itemIndex) => (
-                                        <li key={itemIndex}>{item}</li>
-                                    ))}
-                                </ol>
-                            </AccordionContent>
-                        </AccordionItem>
-                        ))}
-                    </Accordion>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="siswa">Pilih Siswa</Label>
+                        <Select value={selectedSiswa} onValueChange={setSelectedSiswa}>
+                            <SelectTrigger id="siswa">
+                                <SelectValue placeholder="-- Nama Anak Wali --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {daftarSiswa.map(siswa => (
+                                    <SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} ({siswa.kelas})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pelanggaran">Pilih Jenis Pelanggaran</Label>
+                        <Select value={selectedPelanggaran} onValueChange={setSelectedPelanggaran}>
+                            <SelectTrigger id="pelanggaran">
+                                <SelectValue placeholder="-- Jenis Pelanggaran --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {initialPelanggaran.map(kategori => (
+                                    <SelectGroup key={kategori.kategori}>
+                                        <SelectLabel>{kategori.kategori}</SelectLabel>
+                                        {kategori.items.map(item => (
+                                             <SelectItem key={item.deskripsi} value={item.deskripsi}>{item.deskripsi} ({item.poin} poin)</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="tindakan">Tindakan yang Diambil</Label>
+                        <Textarea 
+                            id="tindakan" 
+                            placeholder="Contoh: Diberikan teguran lisan dan diminta membuat surat pernyataan."
+                            value={tindakan}
+                            onChange={(e) => setTindakan(e.target.value)}
+                        />
+                     </div>
+                     <Button onClick={handleSimpan}>Simpan Catatan</Button>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Riwayat Pencatatan Terbaru</CardTitle>
+                    <CardDescription>Daftar pelanggaran yang baru saja Anda catat akan muncul di sini.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Siswa</TableHead>
+                                <TableHead>Pelanggaran</TableHead>
+                                <TableHead className="text-center">Poin</TableHead>
+                                <TableHead>Tindakan</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {riwayat.length > 0 ? (
+                                riwayat.map(item => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="font-medium">{item.siswa} <br/><span className="text-xs text-muted-foreground">{item.kelas}</span></TableCell>
+                                        <TableCell>{item.pelanggaran}</TableCell>
+                                        <TableCell className="text-center"><Badge variant="destructive">+{item.poin}</Badge></TableCell>
+                                        <TableCell>{item.tindakan}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center h-24">Belum ada data tercatat.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+             </Card>
+
         </div>
 
         <div className="lg:col-span-1 space-y-6">
             <Card>
                 <CardHeader>
-                <CardTitle>Prinsip Umum</CardTitle>
+                    <CardTitle>Referensi Tata Tertib</CardTitle>
+                    <CardDescription>Gunakan daftar ini sebagai panduan.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ul className="list-disc list-inside space-y-2 text-sm">
-                        <li>Siswa wajib menaati seluruh tata tertib sekolah.</li>
-                        <li>Setiap pelanggaran diberikan poin sesuai tingkatannya.</li>
-                        <li>Akumulasi poin berakibat pada sanksi pembinaan.</li>
-                        <li>Poin pelanggaran bersifat akumulatif dalam satu tahun pelajaran.</li>
-                    </ul>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Kategori Pelanggaran</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center"><span>Ringan</span> <Badge variant="secondary">1–10 poin</Badge></div>
-                    <div className="flex justify-between items-center"><span>Sedang</span> <Badge variant="default" className="bg-yellow-500">11–25 poin</Badge></div>
-                    <div className="flex justify-between items-center"><span>Berat</span> <Badge variant="default" className="bg-orange-500">26–50 poin</Badge></div>
-                    <div className="flex justify-between items-center"><span>Sangat Berat</span> <Badge variant="destructive">51–100 poin</Badge></div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                <CardTitle>Sanksi Berdasarkan Poin</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div>
-                        <div className="font-semibold flex justify-between">1–25 poin <Badge variant="secondary">Ringan</Badge></div>
-                        <p className="text-muted-foreground mt-1">Teguran lisan/tertulis, pemanggilan orang tua.</p>
-                    </div>
-                     <div>
-                        <div className="font-semibold flex justify-between">26–50 poin <Badge variant="default" className="bg-yellow-500">Sedang</Badge></div>
-                        <p className="text-muted-foreground mt-1">Surat peringatan 1, skorsing 1–3 hari.</p>
-                    </div>
-                     <div>
-                        <div className="font-semibold flex justify-between">51–75 poin <Badge variant="default" className="bg-orange-500">Berat</Badge></div>
-                        <p className="text-muted-foreground mt-1">Surat peringatan 2, skorsing 4–7 hari, konseling intensif.</p>
-                    </div>
-                     <div>
-                        <div className="font-semibold flex justify-between">76–100 poin <Badge variant="destructive">Sangat Berat</Badge></div>
-                        <p className="text-muted-foreground mt-1">Surat peringatan 3, pemanggilan orang tua & komite, rekomendasi pindah sekolah/DO.</p>
-                    </div>
+                     <Accordion type="single" collapsible className="w-full">
+                        {initialPelanggaran.map((kategori, index) => (
+                        <AccordionItem value={`item-${index + 1}`} key={index}>
+                            <AccordionTrigger className="font-semibold text-left">{kategori.kategori}</AccordionTrigger>
+                            <AccordionContent>
+                                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                                    {kategori.items.map((item, itemIndex) => (
+                                        <li key={itemIndex}>{item.deskripsi} <Badge variant="secondary">{item.poin} poin</Badge></li>
+                                    ))}
+                                </ul>
+                            </AccordionContent>
+                        </AccordionItem>
+                        ))}
+                    </Accordion>
                 </CardContent>
             </Card>
         </div>
