@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface WaliKelas {
   id: number;
@@ -16,22 +18,30 @@ interface WaliKelas {
   kelas?: string;
 }
 
+type ReportStatus = 'Terkirim' | 'Diproses' | 'Diterima';
+
 interface ReceivedReport {
   id: number;
   kelas: string;
   waliKelas: string;
   tanggal: string;
-  status: "Terkirim";
+  status: ReportStatus;
 }
 
 export default function LaporanWaliKelasWakasekPage() {
   const [receivedReports, setReceivedReports] = useState<ReceivedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  
+  const reportStorageKey = 'waliKelasReportsStatus';
 
   useEffect(() => {
     // Simulasi pengambilan data dari localStorage, yang seharusnya diisi oleh halaman Manajemen Guru
     try {
       const savedTeachers = localStorage.getItem('teachersData');
+      const savedStatuses = localStorage.getItem(reportStorageKey);
+      const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+
       if (savedTeachers) {
         const teachersData = JSON.parse(savedTeachers);
         const waliKelasList: WaliKelas[] = teachersData.waliKelas || [];
@@ -42,7 +52,7 @@ export default function LaporanWaliKelasWakasekPage() {
           waliKelas: wali.nama,
           // Membuat tanggal pengiriman yang bervariasi untuk simulasi
           tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
-          status: "Terkirim" as const,
+          status: statuses[wali.id] || 'Terkirim',
         }));
         setReceivedReports(reports);
       }
@@ -52,6 +62,37 @@ export default function LaporanWaliKelasWakasekPage() {
       setIsLoading(false);
     }
   }, []);
+
+  const handleStatusChange = (id: number, status: ReportStatus) => {
+    const updatedReports = receivedReports.map(report =>
+      report.id === id ? { ...report, status } : report
+    );
+    setReceivedReports(updatedReports);
+
+    // Save updated status to localStorage
+    const savedStatuses = localStorage.getItem(reportStorageKey);
+    const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+    statuses[id] = status;
+    localStorage.setItem(reportStorageKey, JSON.stringify(statuses));
+    
+    toast({
+        title: "Status Diperbarui",
+        description: `Laporan dari ${updatedReports.find(r => r.id === id)?.waliKelas} telah ditandai sebagai ${status}.`,
+    });
+  };
+
+  const getStatusBadgeVariant = (status: ReportStatus) => {
+    switch (status) {
+      case 'Diterima':
+        return 'default';
+      case 'Diproses':
+        return 'secondary';
+      case 'Terkirim':
+        return 'outline';
+      default:
+        return 'outline';
+    }
+  };
 
   return (
     <div className="flex-1 space-y-6">
@@ -65,7 +106,7 @@ export default function LaporanWaliKelasWakasekPage() {
         <CardHeader>
           <CardTitle>Laporan Masuk</CardTitle>
           <CardDescription>
-            Berikut adalah daftar laporan yang telah diterima. Klik "Lihat Detail" untuk meninjau laporan.
+            Berikut adalah daftar laporan yang telah diterima. Kelola status setiap laporan melalui menu Aksi.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -92,14 +133,29 @@ export default function LaporanWaliKelasWakasekPage() {
                       <TableCell className="font-medium">{report.kelas}</TableCell>
                       <TableCell>{report.waliKelas}</TableCell>
                       <TableCell>{report.tanggal}</TableCell>
-                      <TableCell><Badge>{report.status}</Badge></TableCell>
+                      <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Link href="/dashboard/laporan/wali-kelas">
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
-                            Lihat Detail
-                          </Button>
-                        </Link>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Buka menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                    <Link href="/dashboard/laporan/wali-kelas"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(report.id, 'Diproses')}>
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Tandai Diproses
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(report.id, 'Diterima')}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    Tandai Diterima
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))
