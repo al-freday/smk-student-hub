@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
 
 // Data Types
 interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
@@ -58,6 +59,7 @@ export default function LaporanWaliKelasPage() {
       "Ketua Kelas": "Ahmad Budi", "Wakil Ketua Kelas": "Citra Dewi", "Sekretaris": "Fitriani", "Bendahara": "Gunawan"
   });
   const [kehadiranSiswa, setKehadiranSiswa] = useState<Kehadiran>({ totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 });
+  const [detailKehadiranHariIni, setDetailKehadiranHariIni] = useState<KehadiranSiswa[]>([]);
   const [catatanSiswa, setCatatanSiswa] = useState<Catatan[]>([
       { id: 1, nama: "Eka Putra", catatan: "Perlu bimbingan lebih pada mata pelajaran Bahasa Inggris." },
   ]);
@@ -76,7 +78,7 @@ export default function LaporanWaliKelasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{section: string; id: number} | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{section: string; id: number | string} | null>(null);
   
   // Generic form state
   const [formData, setFormData] = useState<any>({});
@@ -89,6 +91,7 @@ export default function LaporanWaliKelasPage() {
     if (data) {
         const riwayat: KehadiranSiswa[] = JSON.parse(data);
         const kehadiranHariIni = riwayat.filter(k => k.tanggal === today);
+        setDetailKehadiranHariIni(kehadiranHariIni);
 
         rekap.hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
         rekap.sakit = kehadiranHariIni.filter(k => k.status === 'Sakit').length;
@@ -167,6 +170,16 @@ export default function LaporanWaliKelasPage() {
     setDialogOpen(false);
     setFormData({});
     setEditingItem(null);
+  };
+
+  const getBadgeVariant = (status: KehadiranSiswa['status']) => {
+    switch (status) {
+      case 'Hadir': return 'default';
+      case 'Sakit': return 'secondary';
+      case 'Izin': return 'secondary';
+      case 'Alpa': return 'destructive';
+      default: return 'outline';
+    }
   };
 
   const renderDialogContent = () => {
@@ -373,12 +386,34 @@ export default function LaporanWaliKelasPage() {
                         <CardDescription>Data ini direkapitulasi secara otomatis dari halaman Manajemen Siswa.</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                    <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Total Siswa</p><p className="text-2xl font-bold">{kehadiranSiswa.totalSiswa}</p></div>
-                    <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Hadir</p><p className="text-2xl font-bold">{kehadiranSiswa.hadir}</p></div>
-                    <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Sakit</p><p className="text-2xl font-bold">{kehadiranSiswa.sakit}</p></div>
-                    <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Izin</p><p className="text-2xl font-bold">{kehadiranSiswa.izin}</p></div>
-                    <div className="p-4 bg-destructive/20 rounded-lg"><p className="text-sm text-destructive">Alpa</p><p className="text-2xl font-bold text-destructive">{kehadiranSiswa.alpa}</p></div>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center mb-6">
+                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Total Siswa</p><p className="text-2xl font-bold">{kehadiranSiswa.totalSiswa}</p></div>
+                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Hadir</p><p className="text-2xl font-bold">{kehadiranSiswa.hadir}</p></div>
+                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Sakit</p><p className="text-2xl font-bold">{kehadiranSiswa.sakit}</p></div>
+                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Izin</p><p className="text-2xl font-bold">{kehadiranSiswa.izin}</p></div>
+                        <div className="p-4 bg-destructive/20 rounded-lg"><p className="text-sm text-destructive">Alpa</p><p className="text-2xl font-bold text-destructive">{kehadiranSiswa.alpa}</p></div>
+                    </div>
+                    <Separator />
+                    <div className="mt-4">
+                        <h4 className="text-md font-medium mb-2">Detail Kehadiran Hari Ini</h4>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {detailKehadiranHariIni.length > 0 ? (
+                                    detailKehadiranHariIni.map(s => (
+                                        <TableRow key={s.id}>
+                                            <TableCell>{s.nis}</TableCell>
+                                            <TableCell className="font-medium">{s.nama}</TableCell>
+                                            <TableCell><Badge variant={getBadgeVariant(s.status)}>{s.status}</Badge></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data kehadiran untuk hari ini.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
              <Card>
