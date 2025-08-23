@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2, CalendarIcon, Check, X } from "lucide-react";
+import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2, CalendarIcon, Check, X, Download, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,9 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 
 // Data Types
 interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
@@ -37,6 +40,8 @@ interface KehadiranSiswa { id: string; nis: string; nama: string; kelas: string;
 
 export default function LaporanWaliKelasPage() {
   const { toast } = useToast();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // States for all data sections
   const [identitasSiswa, setIdentitasSiswa] = useState<Siswa[]>([
@@ -129,6 +134,46 @@ export default function LaporanWaliKelasPage() {
   }, []);
   
   const handlePrint = () => window.print();
+
+  const handleDownloadPDF = async () => {
+    const reportElement = reportRef.current;
+    if (!reportElement) return;
+
+    setIsDownloading(true);
+    
+    try {
+      const canvas = await html2canvas(reportElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height],
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`Laporan Wali Kelas - X OT 1 - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      toast({
+        title: "Laporan Diunduh",
+        description: "Laporan telah berhasil diunduh sebagai PDF.",
+      });
+    } catch (error) {
+      console.error("Gagal membuat PDF:", error);
+      toast({
+        title: "Gagal Mengunduh",
+        description: "Terjadi kesalahan saat membuat file PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
 
   const handleSendReport = () => {
     toast({
@@ -330,214 +375,221 @@ export default function LaporanWaliKelasPage() {
           </p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak Laporan</Button>
+            <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak</Button>
+            <Button onClick={handleDownloadPDF} disabled={isDownloading}>
+              {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Unduh PDF
+            </Button>
             <Button onClick={handleSendReport}><Send className="mr-2 h-4 w-4" /> Kirim Laporan ke Wakasek</Button>
         </div>
       </div>
       
-      <Tabs defaultValue="dataSiswa">
-        <TabsList className="grid w-full grid-cols-5 print:hidden">
-          <TabsTrigger value="dataSiswa">Data Siswa</TabsTrigger>
-          <TabsTrigger value="administrasi">Administrasi Kelas</TabsTrigger>
-          <TabsTrigger value="akademik">Akademik</TabsTrigger>
-          <TabsTrigger value="kehadiran">Kehadiran & Rapor</TabsTrigger>
-          <TabsTrigger value="keuangan">Keuangan</TabsTrigger>
-        </TabsList>
+      <div ref={reportRef} className="report-container space-y-6">
+        <Tabs defaultValue="dataSiswa">
+            <TabsList className="grid w-full grid-cols-5 print:hidden">
+            <TabsTrigger value="dataSiswa">Data Siswa</TabsTrigger>
+            <TabsTrigger value="administrasi">Administrasi Kelas</TabsTrigger>
+            <TabsTrigger value="akademik">Akademik</TabsTrigger>
+            <TabsTrigger value="kehadiran">Kehadiran & Rapor</TabsTrigger>
+            <TabsTrigger value="keuangan">Keuangan</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="dataSiswa" className="space-y-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Users /> Identitas Anak Wali</CardTitle><Button size="sm" onClick={() => handleOpenDialog('identitasSiswa')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama</TableHead><TableHead>L/P</TableHead><TableHead>Alamat</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><FileText /> Catatan Siswa</CardTitle><Button size="sm" onClick={() => handleOpenDialog('catatanSiswa')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Catatan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'catatanSiswa', id: c.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Daftar Mutasi Siswa</CardTitle><Button size="sm" onClick={() => handleOpenDialog('mutasiSiswa')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                     <Table>
-                        <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Jenis Mutasi</TableHead><TableHead>Keterangan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('mutasiSiswa', m)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'mutasiSiswa', id: m.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </TabsContent>
-
-        <TabsContent value="administrasi" className="space-y-6">
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="dataSiswa" className="space-y-6">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Box /> Sarana Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('saranaKelas')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Users /> Identitas Anak Wali</CardTitle><Button size="sm" onClick={() => handleOpenDialog('identitasSiswa')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                     <CardContent>
-                         <Table>
-                            <TableHeader><TableRow><TableHead>Nama Barang</TableHead><TableHead>Jumlah</TableHead><TableHead>Kondisi</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                            <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('saranaKelas', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'saranaKelas', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama</TableHead><TableHead>L/P</TableHead><TableHead>Alamat</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                         </Table>
                     </CardContent>
                 </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Users /> Struktur Organisasi Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('strukturOrganisasi', strukturOrganisasi)}><Edit className="mr-2 h-4 w-4" /> Edit</Button></CardHeader>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><FileText /> Catatan Siswa</CardTitle><Button size="sm" onClick={() => handleOpenDialog('catatanSiswa')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                     <CardContent>
-                        <ul className="space-y-2 text-sm">
-                            {Object.entries(strukturOrganisasi).map(([jabatan, nama]) => (
-                                <li key={jabatan} className="flex justify-between">
-                                    <span className="font-semibold">{jabatan}:</span>
-                                    <span>{nama}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Catatan</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'catatanSiswa', id: c.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
-            </div>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Piket Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPiket')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Siswa Bertugas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{jadwalPiket.map(p => (<TableRow key={p.id}><TableCell className="font-semibold">{p.hari}</TableCell><TableCell>{p.siswa}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPiket', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPiket', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Armchair /> Denah Tempat Duduk</CardTitle></CardHeader>
-                <CardContent><p className="text-muted-foreground text-center">Fitur denah tempat duduk akan segera tersedia.</p></CardContent>
-            </Card>
-        </TabsContent>
-
-        <TabsContent value="akademik" className="space-y-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><TrendingUp /> Rekap Nilai Rata-Rata</CardTitle><Button size="sm" onClick={() => handleOpenDialog('rekapNilai')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                     <Table>
-                        <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead className="text-right">Rata-Rata Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('rekapNilai', n)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'rekapNilai', id: n.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Pelajaran</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPelajaran')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                     <Table>
-                        <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Jam</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Guru</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPelajaran', j)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPelajaran', id: j.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        
-        <TabsContent value="kehadiran" className="space-y-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Hari Ini)</CardTitle>
-                        <CardDescription>Data ini direkapitulasi secara otomatis dari halaman Manajemen Siswa.</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center mb-6">
-                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Total Siswa</p><p className="text-2xl font-bold">{kehadiranSiswa.totalSiswa}</p></div>
-                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Hadir</p><p className="text-2xl font-bold">{kehadiranSiswa.hadir}</p></div>
-                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Sakit</p><p className="text-2xl font-bold">{kehadiranSiswa.sakit}</p></div>
-                        <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Izin</p><p className="text-2xl font-bold">{kehadiranSiswa.izin}</p></div>
-                        <div className="p-4 bg-destructive/20 rounded-lg"><p className="text-sm text-destructive">Alpa</p><p className="text-2xl font-bold text-destructive">{kehadiranSiswa.alpa}</p></div>
-                    </div>
-                    <Separator />
-                    <div className="mt-4">
-                        <h4 className="text-md font-medium mb-2">Detail Kehadiran Hari Ini</h4>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Daftar Mutasi Siswa</CardTitle><Button size="sm" onClick={() => handleOpenDialog('mutasiSiswa')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
                         <Table>
-                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Jenis Mutasi</TableHead><TableHead>Keterangan</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('mutasiSiswa', m)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'mutasiSiswa', id: m.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="administrasi" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Box /> Sarana Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('saranaKelas')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Nama Barang</TableHead><TableHead>Jumlah</TableHead><TableHead>Kondisi</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                                <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('saranaKelas', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'saranaKelas', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Users /> Struktur Organisasi Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('strukturOrganisasi', strukturOrganisasi)} className="print:hidden"><Edit className="mr-2 h-4 w-4" /> Edit</Button></CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm">
+                                {Object.entries(strukturOrganisasi).map(([jabatan, nama]) => (
+                                    <li key={jabatan} className="flex justify-between">
+                                        <span className="font-semibold">{jabatan}:</span>
+                                        <span>{nama}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                </div>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Piket Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPiket')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Siswa Bertugas</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{jadwalPiket.map(p => (<TableRow key={p.id}><TableCell className="font-semibold">{p.hari}</TableCell><TableCell>{p.siswa}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPiket', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPiket', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Armchair /> Denah Tempat Duduk</CardTitle></CardHeader>
+                    <CardContent><p className="text-muted-foreground text-center">Fitur denah tempat duduk akan segera tersedia.</p></CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="akademik" className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><TrendingUp /> Rekap Nilai Rata-Rata</CardTitle><Button size="sm" onClick={() => handleOpenDialog('rekapNilai')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead className="text-right">Rata-Rata Kelas</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('rekapNilai', n)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'rekapNilai', id: n.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Pelajaran</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPelajaran')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Jam</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Guru</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPelajaran', j)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPelajaran', id: j.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            
+            <TabsContent value="kehadiran" className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Hari Ini)</CardTitle>
+                            <CardDescription>Data ini direkapitulasi secara otomatis dari halaman Manajemen Siswa.</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center mb-6">
+                            <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Total Siswa</p><p className="text-2xl font-bold">{kehadiranSiswa.totalSiswa}</p></div>
+                            <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Hadir</p><p className="text-2xl font-bold">{kehadiranSiswa.hadir}</p></div>
+                            <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Sakit</p><p className="text-2xl font-bold">{kehadiranSiswa.sakit}</p></div>
+                            <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Izin</p><p className="text-2xl font-bold">{kehadiranSiswa.izin}</p></div>
+                            <div className="p-4 bg-destructive/20 rounded-lg"><p className="text-sm text-destructive">Alpa</p><p className="text-2xl font-bold text-destructive">{kehadiranSiswa.alpa}</p></div>
+                        </div>
+                        <Separator />
+                        <div className="mt-4">
+                            <h4 className="text-md font-medium mb-2">Detail Kehadiran Hari Ini</h4>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {detailKehadiranHariIni.length > 0 ? (
+                                        detailKehadiranHariIni.map(s => (
+                                            <TableRow key={s.id}>
+                                                <TableCell>{s.nis}</TableCell>
+                                                <TableCell className="font-medium">{s.nama}</TableCell>
+                                                <TableCell><Badge variant={getBadgeVariant(s.status)}>{s.status}</Badge></TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data kehadiran untuk hari ini.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><FileText /> Daftar Penerimaan Rapor</CardTitle><Button size="sm" onClick={() => handleOpenDialog('terimaRapor')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Tanggal Terima</TableHead><TableHead>Penerima</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('terimaRapor', r)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'terimaRapor', id: r.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="keuangan" className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><DollarSign /> Daftar Pembayaran Komite</CardTitle><Button size="sm" onClick={() => handleOpenDialog('pembayaranKomite')} className="print:hidden"><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Rekapitulasi Pembayaran Komite Tahunan</CardTitle>
+                                <CardDescription>Status pembayaran siswa untuk tahun ajaran yang dipilih.</CardDescription>
+                            </div>
+                            <Select value={selectedYear} onValueChange={setSelectedYear}>
+                                <SelectTrigger className="w-[180px] print:hidden">
+                                    <SelectValue placeholder="Pilih Tahun" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {years.map(year => <SelectItem key={year} value={year}>{year}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="sticky left-0 bg-card">Nama Siswa</TableHead>
+                                    {[...Array(12)].map((_, i) => <TableHead key={i} className="text-center">{new Date(0, i).toLocaleString('id-ID', { month: 'short' })}</TableHead>)}
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>
-                                {detailKehadiranHariIni.length > 0 ? (
-                                    detailKehadiranHariIni.map(s => (
-                                        <TableRow key={s.id}>
-                                            <TableCell>{s.nis}</TableCell>
-                                            <TableCell className="font-medium">{s.nama}</TableCell>
-                                            <TableCell><Badge variant={getBadgeVariant(s.status)}>{s.status}</Badge></TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data kehadiran untuk hari ini.</TableCell></TableRow>
-                                )}
+                                {paymentRecap.map(({ nis, nama, payments }) => (
+                                    <TableRow key={nis}>
+                                        <TableCell className="font-medium sticky left-0 bg-card">{nama}</TableCell>
+                                        {payments.map((status, index) => (
+                                            <TableCell key={index} className="text-center">
+                                                {status === true && <Check className="h-5 w-5 text-green-500 mx-auto" />}
+                                                {status === false && <X className="h-5 w-5 text-red-500 mx-auto" />}
+                                                {status === null && <span className="text-muted-foreground">-</span>}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
-                    </div>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><FileText /> Daftar Penerimaan Rapor</CardTitle><Button size="sm" onClick={() => handleOpenDialog('terimaRapor')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Tanggal Terima</TableHead><TableHead>Penerima</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('terimaRapor', r)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'terimaRapor', id: r.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </TabsContent>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </Tabs>
+      </div>
 
-        <TabsContent value="keuangan" className="space-y-6">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><DollarSign /> Daftar Pembayaran Komite</CardTitle><Button size="sm" onClick={() => handleOpenDialog('pembayaranKomite')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle>Rekapitulasi Pembayaran Komite Tahunan</CardTitle>
-                            <CardDescription>Status pembayaran siswa untuk tahun ajaran yang dipilih.</CardDescription>
-                        </div>
-                        <Select value={selectedYear} onValueChange={setSelectedYear}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Pilih Tahun" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map(year => <SelectItem key={year} value={year}>{year}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardHeader>
-                <CardContent className="overflow-x-auto">
-                     <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="sticky left-0 bg-card">Nama Siswa</TableHead>
-                                {[...Array(12)].map((_, i) => <TableHead key={i} className="text-center">{new Date(0, i).toLocaleString('id-ID', { month: 'short' })}</TableHead>)}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paymentRecap.map(({ nis, nama, payments }) => (
-                                <TableRow key={nis}>
-                                    <TableCell className="font-medium sticky left-0 bg-card">{nama}</TableCell>
-                                    {payments.map((status, index) => (
-                                        <TableCell key={index} className="text-center">
-                                            {status === true && <Check className="h-5 w-5 text-green-500 mx-auto" />}
-                                            {status === false && <X className="h-5 w-5 text-red-500 mx-auto" />}
-                                            {status === null && <span className="text-muted-foreground">-</span>}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </TabsContent>
-      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -572,3 +624,4 @@ export default function LaporanWaliKelasPage() {
     </div>
   );
 }
+

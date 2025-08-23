@@ -82,3 +82,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  .print\:hidden {
+    display: none;
+  }
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  .report-container {
+    padding: 1rem;
+    border: none;
+    box-shadow: none;
+  }
+  .dark .report-container {
+    --background: 0 0% 100%;
+    --foreground: 220 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 15% 15%;
+    --muted: 220 15% 90%;
+    --muted-foreground: 220 15% 45%;
+    --border: 220 15% 85%;
+  }
+}
