@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -13,162 +12,71 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { MoreHorizontal, Edit, Trash2, PlusCircle, Eye, EyeOff } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Eye } from "lucide-react";
 
-
-interface User {
+interface Guru {
   id: number;
   nama: string;
+}
+
+interface User extends Guru {
   email: string;
   role: string;
 }
 
-type UserRole = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
+type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
-const generateUsers = (count: number, role: string, roleKey: string): User[] => {
-    return Array.from({ length: count }, (_, i) => {
-        const id = i + 1;
-        const name = `${role} ${id}`;
-        const email = `${roleKey}${id}@email.com`;
-        return { id, nama: name, email, role };
-    });
+
+const getRoleName = (tab: TeacherType | string) => {
+    switch (tab) {
+        case 'waliKelas': return 'Wali Kelas';
+        case 'guruMapel': return 'Guru Mapel';
+        case 'guruPiket': return 'Guru Piket';
+        case 'guruBk': return 'Guru BK';
+        case 'guruPendamping': return 'Guru Pendamping';
+        default: return 'Pengguna';
+    }
 };
 
-const initialUsers: { [key in UserRole]: User[] } = {
-    waliKelas: [
-        { id: 1, nama: "Drs. Budi Santoso", email: "budi.s@email.com", role: "Wali Kelas" },
-        { id: 2, nama: "Dewi Lestari, S.Pd.", email: "dewi.l@email.com", role: "Wali Kelas" },
-        ...generateUsers(14, "Wali Kelas", "walikelas").slice(2)
-    ],
-    guruBk: [
-        { id: 1, nama: "Siti Aminah, S.Pd.", email: "siti.a@email.com", role: "Guru BK" },
-        { id: 2, nama: "Dr. Bambang Wijaya", email: "bambang.w@email.com", role: "Guru BK" },
-        ...generateUsers(1, "Guru BK", "gurubk").slice(2)
-    ],
-    guruMapel: [
-        { id: 1, nama: "Eko Prasetyo, S.Kom.", email: "eko.p@email.com", role: "Guru Mapel" },
-        { id: 2, nama: "Anita Sari, M.Pd.", email: "anita.s@email.com", role: "Guru Mapel" },
-        ...generateUsers(38, "Guru Mapel", "gurumapel").slice(2)
-    ],
-    guruPiket: [
-        { id: 1, nama: "Joko Susilo, S.Pd.", email: "joko.s@email.com", role: "Guru Piket" },
-        { id: 2, nama: "Endang Mulyani, S.Ag.", email: "endang.m@email.com", role: "Guru Piket" },
-        ...generateUsers(38, "Guru Piket", "gurupiket").slice(2)
-    ],
-    guruPendamping: [
-        { id: 1, nama: "Rina Kartika, S.Pd.", email: "rina.k@email.com", role: "Guru Pendamping" },
-        { id: 2, nama: "Agus Setiawan, S.Psi.", email: "agus.s@email.com", role: "Guru Pendamping" },
-        ...generateUsers(38, "Guru Pendamping", "gurupendamping").slice(2)
-    ],
-};
+const createEmailFromName = (name: string, roleKey: string, id: number) => {
+    const namePart = name.toLowerCase().replace(/\s/g, '.').replace(/[^a-z0-9.]/g, '');
+    return `${namePart}${id}@email.com`;
+}
 
 export default function ManajemenPenggunaPage() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState<{ [key in TeacherType]: User[] }>({
+        waliKelas: [],
+        guruBk: [],
+        guruMapel: [],
+        guruPiket: [],
+        guruPendamping: [],
+  });
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<UserRole>('waliKelas');
-  
-  // Form states
-  const [nama, setNama] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState<TeacherType>('waliKelas');
 
-  const resetForm = () => {
-    setNama("");
-    setEmail("");
-    setPassword("");
-    setEditingUser(null);
-    setShowPassword(false);
-  };
-  
-  const handleOpenDialog = (userToEdit: User | null = null) => {
-    if (userToEdit) {
-      setEditingUser(userToEdit);
-      setNama(userToEdit.nama);
-      setEmail(userToEdit.email);
-      setPassword(""); // Password should not be pre-filled
-    } else {
-      resetForm();
+  useEffect(() => {
+    // Load teacher data from localStorage and transform it into user data
+    const savedTeachers = localStorage.getItem('teachersData');
+    if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        const usersData = {
+            waliKelas: [],
+            guruBk: [],
+            guruMapel: [],
+            guruPiket: [],
+            guruPendamping: [],
+        };
+        
+        for (const roleKey in teachersData) {
+            usersData[roleKey as TeacherType] = teachersData[roleKey].map((guru: Guru) => ({
+                ...guru,
+                role: getRoleName(roleKey),
+                email: createEmailFromName(guru.nama, roleKey, guru.id),
+            }));
+        }
+        setUsers(usersData);
     }
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveUser = () => {
-    if (!nama || !email || (!editingUser && !password)) {
-        alert("Nama, email, dan password harus diisi untuk pengguna baru.");
-        return;
-    };
-    
-    const userList = users[activeTab];
-    const roleName = getRoleName(activeTab);
-
-    const newUserData: User = {
-        id: editingUser ? editingUser.id : (userList.length > 0 ? Math.max(...userList.map(u => u.id)) + 1 : 1),
-        nama,
-        email,
-        role: roleName,
-    };
-
-    let updatedList;
-    if (editingUser) {
-      updatedList = userList.map(u => u.id === editingUser.id ? newUserData : u);
-    } else {
-      updatedList = [...userList, newUserData];
-    }
-
-    setUsers(prev => ({ ...prev, [activeTab]: updatedList }));
-    resetForm();
-    setIsDialogOpen(false);
-  };
-
-  const handleDeleteUser = (id: number) => {
-    setUsers(prev => ({
-      ...prev,
-      [activeTab]: prev[activeTab].filter(u => u.id !== id)
-    }));
-  };
-
-  const getRoleName = (tab: UserRole) => {
-    switch (tab) {
-      case 'waliKelas': return 'Wali Kelas';
-      case 'guruMapel': return 'Guru Mapel';
-      case 'guruPiket': return 'Guru Piket';
-      case 'guruBk': return 'Guru BK';
-      case 'guruPendamping': return 'Guru Pendamping';
-      default: return 'Pengguna';
-    }
-  };
+  }, []);
 
   return (
     <div className="flex-1 space-y-6">
@@ -176,7 +84,7 @@ export default function ManajemenPenggunaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            Kelola akun pengguna untuk setiap peran di sekolah.
+            Lihat akun pengguna untuk setiap peran. Data ini bersumber dari Manajemen Guru.
           </p>
         </div>
       </div>
@@ -185,11 +93,11 @@ export default function ManajemenPenggunaPage() {
         <CardHeader>
           <CardTitle>Daftar Pengguna</CardTitle>
           <CardDescription>
-            Kelola daftar pengguna berdasarkan perannya masing-masing.
+            Data pengguna ini dibuat secara otomatis dari halaman Manajemen Guru. Untuk mengubah data, silakan kembali ke halaman tersebut.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as UserRole)}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherType)}>
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="waliKelas">Wali Kelas</TabsTrigger>
               <TabsTrigger value="guruBk">Guru BK</TabsTrigger>
@@ -200,110 +108,32 @@ export default function ManajemenPenggunaPage() {
 
             {Object.keys(users).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
-                  <div className="flex justify-end mb-4">
-                    <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) resetForm(); }}>
-                          <DialogTrigger asChild>
-                            <Button onClick={() => handleOpenDialog()}>
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Tambah {getRoleName(activeTab)}
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>{editingUser ? 'Edit' : 'Tambah'} {getRoleName(activeTab)}</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="nama" className="text-right">Nama</Label>
-                                <Input id="nama" value={nama} onChange={(e) => setNama(e.target.value)} className="col-span-3" placeholder="Nama lengkap pengguna" />
-                              </div>
-                               <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="email" className="text-right">Email</Label>
-                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="col-span-3" placeholder="email@example.com" />
-                              </div>
-                               <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="password" className="text-right">Password</Label>
-                                <div className="col-span-3 relative">
-                                    <Input 
-                                        id="password" 
-                                        type={showPassword ? "text" : "password"} 
-                                        value={password} 
-                                        onChange={(e) => setPassword(e.target.value)} 
-                                        className="pr-10"
-                                        placeholder={editingUser ? "Isi untuk ganti password" : "••••••••"} 
-                                    />
-                                    <Button 
-                                        type="button"
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="absolute inset-y-0 right-0 h-full px-3"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                    >
-                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        <span className="sr-only">{showPassword ? "Sembunyikan password" : "Tampilkan password"}</span>
-                                    </Button>
-                                </div>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                              <Button onClick={handleSaveUser}>Simpan</Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                  </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nama</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Peran</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
+                      <TableHead className="text-right">Password</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users[key as UserRole].length > 0 ? (
-                       users[key as UserRole].map((user) => (
+                    {users[key as TeacherType].length > 0 ? (
+                       users[key as TeacherType].map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.nama}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.role}</TableCell>
-                          <TableCell className="text-right">
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleOpenDialog(user)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                                   <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" />
-                                            <span>Hapus</span>
-                                            </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data pengguna secara permanen.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Hapus</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                          <TableCell className="text-right text-muted-foreground flex items-center justify-end gap-2">
+                            <Eye className="h-4 w-4"/>
+                            <span>••••••••</span>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                          Belum ada data pengguna.
+                          Belum ada data pengguna. Silakan tambahkan di Manajemen Guru.
                         </TableCell>
                       </TableRow>
                     )}
