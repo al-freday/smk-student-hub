@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -42,8 +42,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -57,6 +57,12 @@ interface Siswa {
   kelas: string;
 }
 
+interface Kelas {
+    id: number;
+    nama: string;
+    jumlahSiswa: number;
+}
+
 interface Kehadiran {
   id: string;
   nis: string;
@@ -66,17 +72,15 @@ interface Kehadiran {
   status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
-const daftarKelas = [
-  "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
-  "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
-  "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
-];
-
 const generateInitialSiswa = (): Siswa[] => {
   const siswaList: Siswa[] = [];
   let id = 1;
+  const daftarKelas = [
+    "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
+    "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
+    "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
+  ];
   daftarKelas.forEach(kelas => {
-    // Generate 40 students for each class to match class management data
     for (let i = 1; i <= 40; i++) {
       const nisSuffix = id.toString().padStart(4, '0');
       const nis = `24${nisSuffix}`;
@@ -95,7 +99,7 @@ export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
-  const [daftarKelasDinamis, setDaftarKelasDinamis] = useState<string[]>([]);
+  const [daftarKelasDinamis, setDaftarKelasDinamis] = useState<Kelas[]>([]);
 
   // Form states for siswa
   const [nis, setNis] = useState("");
@@ -116,9 +120,7 @@ export default function ManajemenSiswaPage() {
 
       if (savedKelas) {
           const kelasData = JSON.parse(savedKelas);
-          setDaftarKelasDinamis(kelasData.map((k: any) => k.nama));
-      } else {
-          setDaftarKelasDinamis(daftarKelas);
+          setDaftarKelasDinamis(kelasData);
       }
 
       if (savedSiswa) {
@@ -133,7 +135,6 @@ export default function ManajemenSiswaPage() {
   const saveDataToLocalStorage = (data: Siswa[]) => {
       localStorage.setItem('siswaData', JSON.stringify(data));
   };
-
 
   const resetForm = () => {
     setNis("");
@@ -156,7 +157,7 @@ export default function ManajemenSiswaPage() {
   
   const handleOpenKehadiranDialog = (siswa: Siswa) => {
       setSiswaKehadiran(siswa);
-      setStatusKehadiran('Hadir'); // Reset to default
+      setStatusKehadiran('Hadir');
       setTanggalKehadiran(new Date());
       setOpenKehadiran(true);
   };
@@ -187,7 +188,6 @@ export default function ManajemenSiswaPage() {
     const dataKehadiran = localStorage.getItem("kehadiranSiswa");
     const riwayat: Kehadiran[] = dataKehadiran ? JSON.parse(dataKehadiran) : [];
 
-    // Hapus catatan lama untuk siswa ini pada hari ini jika ada
     const riwayatBaru = riwayat.filter(k => !(k.nis === siswaKehadiran.nis && k.tanggal === tanggalFormatted));
     
     const catatanBaru: Kehadiran = {
@@ -266,7 +266,7 @@ export default function ManajemenSiswaPage() {
                     <Label htmlFor="kelas" className="text-right">Kelas</Label>
                      <Select onValueChange={setKelas} value={kelas}>
                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
-                        <SelectContent>{daftarKelasDinamis.map(k => (<SelectItem key={k} value={k}>{k}</SelectItem>))}</SelectContent>
+                        <SelectContent>{daftarKelasDinamis.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent>
                       </Select>
                   </div>
                 </div>
@@ -280,61 +280,80 @@ export default function ManajemenSiswaPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Siswa</CardTitle>
-          <CardDescription>Data siswa yang terdaftar akan ditampilkan di sini.</CardDescription>
+          <CardTitle>Daftar Kelas & Siswa</CardTitle>
+          <CardDescription>Pilih kelas untuk melihat daftar siswa di dalamnya.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>NIS</TableHead>
-                <TableHead>Nama Siswa</TableHead>
-                <TableHead>Kelas</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {siswa.length > 0 ? (
-                siswa.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.nis}</TableCell>
-                    <TableCell className="font-medium">{s.nama}</TableCell>
-                    <TableCell>{s.kelas}</TableCell>
-                    <TableCell className="text-right">
-                        <Button variant="outline" size="sm" className="mr-2" onClick={() => handleOpenKehadiranDialog(s)}>
-                            <CalendarCheck className="mr-2 h-4 w-4" /> Catat Kehadiran
-                        </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Buka menu</span><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(s)}><Edit className="mr-2 h-4 w-4" /><span>Edit</span></DropdownMenuItem>
-                           <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /><span>Hapus</span></DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                                <AlertDialogDescription>Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data siswa secara permanen.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteSiswa(s.id)}>Hapus</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow><TableCell colSpan={4} className="text-center h-24">Belum ada data siswa.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <Accordion type="single" collapsible className="w-full">
+            {daftarKelasDinamis.map((k) => {
+              const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
+              return (
+                <AccordionItem value={k.nama} key={k.id}>
+                  <AccordionTrigger>
+                    <div className="flex justify-between w-full pr-4">
+                        <span className="font-semibold">{k.nama}</span>
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                            <Users className="h-4 w-4"/> {siswaDiKelas.length} Siswa
+                        </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                     {siswaDiKelas.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>NIS</TableHead>
+                              <TableHead>Nama Siswa</TableHead>
+                              <TableHead className="text-right">Aksi</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {siswaDiKelas.map((s) => (
+                                <TableRow key={s.id}>
+                                  <TableCell>{s.nis}</TableCell>
+                                  <TableCell className="font-medium">{s.nama}</TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="outline" size="sm" className="mr-2" onClick={() => handleOpenKehadiranDialog(s)}>
+                                          <CalendarCheck className="mr-2 h-4 w-4" /> Catat Kehadiran
+                                      </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Buka menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleOpenDialog(s)}><Edit className="mr-2 h-4 w-4" /><span>Edit</span></DropdownMenuItem>
+                                         <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /><span>Hapus</span></DropdownMenuItem>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                                              <AlertDialogDescription>Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data siswa secara permanen.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleDeleteSiswa(s.id)}>Hapus</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                          </TableBody>
+                        </Table>
+                     ) : (
+                         <div className="text-center text-sm text-muted-foreground py-4">
+                            <p>Belum ada data siswa di kelas ini.</p>
+                        </div>
+                     )}
+                  </AccordionContent>
+                </AccordionItem>
+              )
+            })}
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -392,3 +411,5 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
+
+    
