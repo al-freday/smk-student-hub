@@ -107,12 +107,6 @@ const WaliKelasDashboard = () => {
         { id: 3, name: "Eka Putra", class: "X OT 1", points: 25, reason: "Absen tanpa keterangan" },
     ];
 
-    const recentActivities = [
-        { id: 1, description: "Laporan bulanan kelas X OT 1 telah dibuat.", time: "2 jam yang lalu" },
-        { id: 2, description: "Ahmad Budi menerima poin pelanggaran (+5) karena terlambat.", time: "Kemarin" },
-        { id: 3, description: "Jadwal piket kelas diperbarui.", time: "3 hari yang lalu" },
-    ];
-
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -144,90 +138,62 @@ const WaliKelasDashboard = () => {
                 />
             </div>
 
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                 <div className="lg:col-span-3">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Grafik Absensi Kelas (Minggu Ini)</CardTitle>
+                            <CardDescription>Perbandingan kehadiran siswa di kelas Anda.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                            <AttendanceChart />
+                        </CardContent>
+                    </Card>
+                 </div>
+                 <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pelanggaran Kelas</CardTitle>
+                            <CardDescription>Distribusi pelanggaran di kelas Anda.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <InfractionsByCategoryChart />
+                        </CardContent>
+                    </Card>
+                 </div>
+            </div>
+
             <Card>
                 <CardHeader>
-                    <CardTitle>Akses Cepat</CardTitle>
-                    <CardDescription>Pintasan untuk tugas-tugas utama Anda sebagai wali kelas.</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        Siswa Perlu Perhatian
+                    </CardTitle>
+                    <CardDescription>Daftar siswa dengan poin pelanggaran tertinggi atau catatan khusus.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                     <Link href="/dashboard/manajemen-siswa">
-                        <Button className="w-full justify-start text-base py-6 h-auto">
-                            <Users className="mr-4 h-5 w-5"/> Kelola Data Siswa
-                        </Button>
-                    </Link>
-                     <Link href="/dashboard/tata-tertib">
-                        <Button variant="secondary" className="w-full justify-start text-base py-6 h-auto">
-                            <ShieldAlert className="mr-4 h-5 w-5"/> Catat Pelanggaran/Prestasi
-                        </Button>
-                    </Link>
-                     <Link href="/dashboard/laporan/wali-kelas">
-                        <Button variant="secondary" className="w-full justify-start text-base py-6 h-auto">
-                            <FileText className="mr-4 h-5 w-5"/> Buat Laporan Bulanan
-                        </Button>
-                    </Link>
-                     <Link href="/dashboard/jadwal-pelajaran">
-                        <Button variant="secondary" className="w-full justify-start text-base py-6 h-auto">
-                            <Calendar className="mr-4 h-5 w-5"/> Lihat Jadwal Pelajaran
-                        </Button>
-                    </Link>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nama Siswa</TableHead>
+                                <TableHead>Poin</TableHead>
+                                <TableHead>Keterangan</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {studentsNeedingAttention.map((student) => (
+                                <TableRow key={student.id}>
+                                    <TableCell className="font-medium">{student.name}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="destructive">{student.points}</Badge>
+                                    </TableCell>
+                                    <TableCell>{student.reason}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-destructive" />
-                            Siswa Perlu Perhatian
-                        </CardTitle>
-                        <CardDescription>Daftar siswa dengan poin pelanggaran tertinggi atau catatan khusus.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nama Siswa</TableHead>
-                                    <TableHead>Poin</TableHead>
-                                    <TableHead>Keterangan</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {studentsNeedingAttention.map((student) => (
-                                    <TableRow key={student.id}>
-                                        <TableCell className="font-medium">{student.name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="destructive">{student.points}</Badge>
-                                        </TableCell>
-                                        <TableCell>{student.reason}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Aktivitas Kelas Terbaru</CardTitle>
-                        <CardDescription>Log kegiatan dan administrasi kelas Anda.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {recentActivities.map((activity) => (
-                                <div key={activity.id} className="flex items-start gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="h-2 w-2 mt-2 rounded-full bg-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium">{activity.description}</p>
-                                        <p className="text-xs text-muted-foreground">{activity.time}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
         </>
     );
