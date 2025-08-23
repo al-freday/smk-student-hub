@@ -27,6 +27,7 @@ const getRoleDisplayName = (role: string) => {
         case 'guruPiket': return 'Guru Piket';
         case 'guruPendamping': return 'Guru Pendamping';
         case 'wakasek': return 'Wakasek Kesiswaan';
+        case 'admin': return 'Administrator';
         default: return 'Pengguna';
     }
 };
@@ -39,6 +40,7 @@ const getAvatarFallback = (role: string) => {
         case 'guruPiket': return 'GP';
         case 'guruPendamping': return 'GP';
         case 'wakasek': return 'WK';
+        case 'admin': return 'AD';
         default: return 'U';
     }
 }

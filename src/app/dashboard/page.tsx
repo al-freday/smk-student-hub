@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getDashboardStats } from "@/lib/data"; // Import fungsi baru
+import { getDashboardStats } from "@/lib/data";
+import { useRouter } from "next/navigation";
 
 const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -341,8 +342,6 @@ const renderDashboardByRole = (role: string) => {
     switch (role) {
         case 'wakasek':
             return <WakasekDashboard />;
-        case 'admin': // Admin gets the same dashboard as Wakasek
-            return <WakasekDashboard />;
         case 'waliKelas':
             return <WaliKelasDashboard />;
         default:
@@ -351,21 +350,24 @@ const renderDashboardByRole = (role: string) => {
 }
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [userRole, setUserRole] = useState("");
-
+    
     useEffect(() => {
         const role = localStorage.getItem('userRole') || 'wakasek';
+        if (role === 'admin') {
+            router.replace('/admin/dashboard');
+            return;
+        }
         setUserRole(role);
-    }, []);
+    }, [router]);
 
-    if (!userRole) {
+
+    if (!userRole || userRole === 'admin') {
         return (
             <div className="flex-1 space-y-6">
-                <div className="space-y-2">
-                    <h2 className="text-3xl font-bold tracking-tight">Memuat Dasbor...</h2>
-                    <div className="flex justify-center items-center h-64">
-                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
+                <div className="flex justify-center items-center h-screen">
+                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
             </div>
         );

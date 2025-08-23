@@ -32,7 +32,6 @@ const getRoleName = (roleKey: string) => {
 
 const createEmailFromName = (name: string, roleKey: string, id: number | string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    const roleInitial = roleKey.replace('guru', '').charAt(0);
     return `${namePart}${id}@schoolemail.com`;
 };
 

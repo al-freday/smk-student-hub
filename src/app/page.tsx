@@ -1,6 +1,10 @@
+
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Shield } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -20,9 +24,14 @@ export default function Home() {
             <LoginForm />
           </CardContent>
         </Card>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SMKN 2 Tana Toraja. All rights reserved.
-        </p>
+        <div className="mt-6 text-center">
+           <Link href="/admin">
+                <Button variant="link" className="text-muted-foreground">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Login sebagai Administrator
+                </Button>
+            </Link>
+        </div>
       </div>
     </main>
   );

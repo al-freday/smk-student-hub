@@ -26,6 +26,7 @@ export default function AdminLoginPage() {
       if (username === "admin" && password === "admin123") {
         toast({ title: "Login Berhasil", description: "Selamat datang, Admin." });
         sessionStorage.setItem("admin_logged_in", "true");
+        localStorage.setItem("userRole", "admin");
         router.push("/admin/dashboard");
       } else {
         toast({

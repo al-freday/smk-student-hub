@@ -41,17 +41,7 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
-  admin: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
-    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
-    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
-    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
-    { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
-    { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
-  ],
+  admin: [], // Admin tidak memiliki menu navigasi di dasbor utama
   waliKelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
@@ -85,7 +75,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const [userRole, setUserRole] = useState<keyof typeof navItemsByRole>('wakasek');
   
   useEffect(() => {
-    // Ambil peran dari localStorage saat komponen dimuat di client-side
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek';
     setUserRole(role);
   }, []);
@@ -94,8 +83,12 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     localStorage.removeItem('userRole');
   };
 
-  const navItems = navItemsByRole[userRole] || navItemsByRole.wakasek;
+  const navItems = navItemsByRole[userRole] || [];
   const containerClass = isMobile ? "flex flex-col h-full" : "";
+
+  if (userRole === 'admin' || navItems.length === 0) {
+    return null; // Jangan render apapun untuk admin atau jika tidak ada item nav
+  }
 
   return (
     <div className={containerClass}>
