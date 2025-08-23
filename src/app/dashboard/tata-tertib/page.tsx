@@ -1,10 +1,29 @@
+
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
-const pelanggaran = [
+
+const initialPelanggaran = [
     {
         kategori: "Disiplin Kehadiran",
         items: [
@@ -131,7 +150,7 @@ const pelanggaran = [
             "Berpacaran berlebihan di sekolah (mesra berlebihan).",
             "Membawa majalah/film porno.",
             "Mengakses situs porno.",
-            "Melakukan pelecehan verbal.",
+            "Melakukan pelechean verbal.",
             "Melakukan pelecehan fisik.",
             "Melakukan pelecehan seksual.",
             "Pergaulan bebas (di dalam/luar sekolah).",
@@ -159,6 +178,48 @@ const pelanggaran = [
 
 
 export default function TataTertibPage() {
+  const [pelanggaran, setPelanggaran] = useState(initialPelanggaran);
+  const [open, setOpen] = useState(false);
+
+  // Form states
+  const [selectedKategori, setSelectedKategori] = useState("");
+  const [newKategori, setNewKategori] = useState("");
+  const [deskripsi, setDeskripsi] = useState("");
+
+  const handleTambahPeraturan = () => {
+    const kategoriToAdd = selectedKategori === "new" ? newKategori : selectedKategori;
+
+    if (!kategoriToAdd || !deskripsi) {
+      // Basic validation
+      alert("Kategori dan deskripsi tidak boleh kosong.");
+      return;
+    }
+
+    setPelanggaran(prevPelanggaran => {
+      const newPelanggaran = [...prevPelanggaran];
+      const kategoriIndex = newPelanggaran.findIndex(p => p.kategori === kategoriToAdd);
+
+      if (kategoriIndex > -1) {
+        // Add to existing category
+        newPelanggaran[kategoriIndex].items.push(deskripsi);
+      } else {
+        // Add new category with the item
+        newPelanggaran.push({
+          kategori: kategoriToAdd,
+          items: [deskripsi]
+        });
+      }
+      return newPelanggaran;
+    });
+
+    // Reset form and close dialog
+    setSelectedKategori("");
+    setNewKategori("");
+    setDeskripsi("");
+    setOpen(false);
+  };
+
+
   return (
     <div className="flex-1 space-y-6">
         <div className="flex items-center justify-between">
@@ -168,10 +229,78 @@ export default function TataTertibPage() {
                     Lihat dan kelola peraturan sekolah dan poin pelanggaran.
                  </p>
             </div>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Peraturan
-            </Button>
+             <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah Peraturan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Tambah Peraturan Baru</DialogTitle>
+                  <DialogDescription>
+                    Pilih kategori atau buat baru, lalu masukkan deskripsi peraturan.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="kategori" className="text-right">
+                      Kategori
+                    </Label>
+                    <Select onValueChange={setSelectedKategori} value={selectedKategori}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Pilih Kategori" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pelanggaran.map((p, index) => (
+                           <SelectItem key={index} value={p.kategori}>{p.kategori}</SelectItem>
+                        ))}
+                        <SelectItem value="new">-- Buat Kategori Baru --</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedKategori === 'new' && (
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-kategori" className="text-right">
+                            Kategori Baru
+                        </Label>
+                        <Input
+                            id="new-kategori"
+                            value={newKategori}
+                            onChange={(e) => setNewKategori(e.target.value)}
+                            className="col-span-3"
+                            placeholder="Contoh: Kebersihan"
+                        />
+                     </div>
+                  )}
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="deskripsi" className="text-right">
+                      Deskripsi
+                    </Label>
+                    <Textarea
+                      id="deskripsi"
+                      value={deskripsi}
+                      onChange={(e) => setDeskripsi(e.target.value)}
+                      className="col-span-3"
+                      placeholder="Tuliskan deskripsi peraturan di sini."
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" onClick={() => {
+                      setSelectedKategori("");
+                      setNewKategori("");
+                      setDeskripsi("");
+                    }}>Batal</Button>
+                  </DialogClose>
+                  <Button type="submit" onClick={handleTambahPeraturan}>
+                    Simpan
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -256,3 +385,5 @@ export default function TataTertibPage() {
     </div>
   );
 }
+
+    
