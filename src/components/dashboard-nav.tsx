@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   BookUser,
+  CalendarClock,
+  ClipboardCheck,
   FileText,
   GanttChartSquare,
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   Settings,
   ShieldAlert,
   Users,
+  School,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -26,8 +29,10 @@ import { Separator } from "./ui/separator";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "#", icon: Users, label: "Data Siswa" },
-  { href: "#", icon: BookUser, label: "Wali Kelas & Guru" },
+  { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+  { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+  { href: "/dashboard/kinerja-guru", icon: BookUser, label: "Kinerja Guru" },
+  { href: "/dashboard/kinerja-siswa", icon: Users, label: "Kinerja Siswa" },
   { href: "#", icon: ShieldAlert, label: "Tata Tertib" },
   { href: "#", icon: FileText, label: "Laporan" },
   { href: "#", icon: GanttChartSquare, label: "Supervisi" },
