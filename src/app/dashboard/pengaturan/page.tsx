@@ -44,7 +44,7 @@ interface Guru {
   hariPiket?: string; // Untuk Guru Piket
 }
 
-type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket';
+type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
 export default function PengaturanPage() {
   const { toast } = useToast();
@@ -58,6 +58,7 @@ export default function PengaturanPage() {
     guruBk: [{ id: 1, nama: "Siti Aminah, S.Pd." }],
     guruMapel: [{ id: 1, nama: "Eko Prasetyo, S.Kom.", mapel: "Dasar Desain Grafis" }],
     guruPiket: [{ id: 1, nama: "Joko Susilo, S.Pd.", hariPiket: "Senin" }],
+    guruPendamping: [{ id: 1, nama: "Rina Kartika, S.Pd." }],
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,7 +126,7 @@ export default function PengaturanPage() {
     if (!namaGuru) return;
     
     const teacherList = teachers[activeTab];
-    const newTeacherData = {
+    const newTeacherData: Guru = {
         id: editingTeacher ? editingTeacher.id : (teacherList.length > 0 ? Math.max(...teacherList.map(t => t.id)) + 1 : 1),
         nama: namaGuru,
         ...(activeTab === 'waliKelas' && { kelas: detail }),
@@ -158,6 +159,7 @@ export default function PengaturanPage() {
       case 'guruMapel': return { title: 'Guru Mapel', label: 'Mata Pelajaran', placeholder: 'Contoh: Matematika' };
       case 'guruPiket': return { title: 'Guru Piket', label: 'Hari Piket', placeholder: 'Contoh: Senin' };
       case 'guruBk': return { title: 'Guru BK', label: null, placeholder: '' };
+      case 'guruPendamping': return { title: 'Guru Pendamping', label: null, placeholder: '' };
       default: return { title: 'Guru', label: null, placeholder: '' };
     }
   };
@@ -235,11 +237,12 @@ export default function PengaturanPage() {
             </CardHeader>
             <CardContent>
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherType)}>
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="waliKelas">Wali Kelas</TabsTrigger>
                   <TabsTrigger value="guruBk">Guru BK</TabsTrigger>
                   <TabsTrigger value="guruMapel">Guru Mapel</TabsTrigger>
                   <TabsTrigger value="guruPiket">Guru Piket</TabsTrigger>
+                  <TabsTrigger value="guruPendamping">Pendamping</TabsTrigger>
                 </TabsList>
 
                 {Object.keys(teachers).map((key) => (
@@ -325,5 +328,3 @@ export default function PengaturanPage() {
     </div>
   );
 }
-
-    
