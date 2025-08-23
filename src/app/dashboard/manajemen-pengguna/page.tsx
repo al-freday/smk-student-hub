@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 interface Guru {
   id: number;
@@ -79,6 +80,9 @@ export default function ManajemenPenggunaPage() {
                 }
             }
             setUsers(usersData);
+        } else {
+             // If no data in storage, initialize with empty arrays
+            setUsers({ waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [] });
         }
     } catch (error) {
         console.error("Failed to parse teachers data from localStorage", error);
@@ -132,7 +136,7 @@ export default function ManajemenPenggunaPage() {
         <CardHeader>
           <CardTitle>Daftar Pengguna</CardTitle>
           <CardDescription>
-            Untuk menambah, mengubah, atau menghapus pengguna, silakan lakukan melalui halaman Manajemen Guru.
+            Untuk menambah, mengubah, atau menghapus pengguna, silakan lakukan melalui halaman <Link href="/dashboard/manajemen-guru" className="underline text-primary">Manajemen Guru</Link>.
           </CardDescription>
         </CardHeader>
         <CardContent>
