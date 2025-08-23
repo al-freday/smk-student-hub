@@ -48,11 +48,27 @@ interface Guru {
 
 type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
+const daftarKelas = [
+  "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
+  "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
+  "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
+];
+
+const hariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+
 const initialTeachers: { [key in TeacherType]: Guru[] } = {
-    waliKelas: Array.from({ length: 16 }, (_, i) => ({ id: i + 1, nama: `Wali Kelas ${i + 1}`, kelas: `Kelas Binaan ${i + 1}` })),
+    waliKelas: daftarKelas.map((kelas, i) => ({ 
+        id: i + 1, 
+        nama: `Wali Kelas ${i + 1}`, 
+        kelas: kelas 
+    })),
     guruBk: Array.from({ length: 3 }, (_, i) => ({ id: i + 1, nama: `Guru BK ${i + 1}` })),
     guruMapel: Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nama: `Guru Mapel ${i + 1}`, mapel: `Mapel ${i + 1}` })),
-    guruPiket: Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nama: `Guru Piket ${i + 1}`, hariPiket: "Senin" })),
+    guruPiket: Array.from({ length: 40 }, (_, i) => ({ 
+        id: i + 1, 
+        nama: `Guru Piket ${i + 1}`, 
+        hariPiket: hariPiket[i % hariPiket.length] 
+    })),
     guruPendamping: Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nama: `Guru Pendamping ${i + 1}` })),
 };
 
@@ -266,5 +282,3 @@ export default function ManajemenGuruPage() {
         </div>
     );
 }
-
-    
