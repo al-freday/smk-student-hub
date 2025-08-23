@@ -234,78 +234,84 @@ const WaliKelasDashboard = () => {
 };
 
 
-const GeneralUserDashboard = ({ role }: { role: string }) => (
-    <>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <StatCard
-                title="Siswa Bimbingan"
-                value="12"
-                icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                description="Total siswa yang Anda tangani"
-            />
-            <StatCard
-                title="Laporan Dibuat"
-                value="5"
-                icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-                description="Laporan bulan ini"
-            />
-             <StatCard
-                title="Jadwal Mengajar/Piket"
-                value="3 Sesi"
-                icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
-                description="Jadwal minggu ini"
-            />
-        </div>
-        <Card>
-            <CardHeader>
-                <CardTitle>Akses Cepat</CardTitle>
-                <CardDescription>Pintasan ke fitur yang paling sering Anda gunakan.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-                 {role === 'guruBk' && (
-                    <Link href="/dashboard/laporan/guru-bk">
-                        <Button className="w-full justify-start text-base py-6">
-                            <FileText className="mr-4 h-5 w-5"/> Buat Laporan BK
+const GeneralUserDashboard = ({ role }: { role: string }) => {
+    const quickLinks = {
+        guruBk: {
+            primary: { href: "/dashboard/laporan/guru-bk", label: "Buat Laporan BK", icon: FileText },
+            secondary: [
+                { href: "/dashboard/manajemen-siswa", label: "Lihat Data Siswa", icon: Users },
+                { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
+            ]
+        },
+        guruMapel: {
+            primary: { href: "/dashboard/laporan/guru-mapel", label: "Buat Laporan Mapel", icon: FileText },
+            secondary: [
+                { href: "/dashboard/jadwal-pelajaran", label: "Lihat Jadwal", icon: Calendar },
+                { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
+            ]
+        },
+        guruPiket: {
+            primary: { href: "/dashboard/laporan/guru-piket", label: "Buat Laporan Piket", icon: FileText },
+            secondary: [
+                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
+            ]
+        },
+        guruPendamping: {
+            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendamping", icon: FileText },
+            secondary: [
+                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
+            ]
+        },
+    };
+
+    const links = quickLinks[role as keyof typeof quickLinks] || quickLinks.guruPiket; // Default case
+
+    return (
+        <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                    title="Siswa Ditangani"
+                    value="12"
+                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                    description="Total siswa bimbingan Anda"
+                />
+                <StatCard
+                    title="Laporan Dibuat"
+                    value="5"
+                    icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+                    description="Laporan bulan ini"
+                />
+                 <StatCard
+                    title="Jadwal Anda"
+                    value="3 Sesi"
+                    icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
+                    description="Jadwal minggu ini"
+                />
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Akses Cepat</CardTitle>
+                    <CardDescription>Pintasan ke fitur yang paling sering Anda gunakan.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                    <Link href={links.primary.href}>
+                        <Button className="w-full justify-start text-base py-6 h-auto">
+                            <links.primary.icon className="mr-4 h-5 w-5"/> {links.primary.label}
                         </Button>
                     </Link>
-                )}
-                 {role === 'guruMapel' && (
-                    <Link href="/dashboard/laporan/guru-mapel">
-                        <Button className="w-full justify-start text-base py-6">
-                            <FileText className="mr-4 h-5 w-5"/> Buat Laporan Mapel
-                        </Button>
-                    </Link>
-                )}
-                 {role === 'guruPiket' && (
-                    <Link href="/dashboard/laporan/guru-piket">
-                        <Button className="w-full justify-start text-base py-6">
-                            <FileText className="mr-4 h-5 w-5"/> Buat Laporan Piket
-                        </Button>
-                    </Link>
-                )}
-                 {role === 'guruPendamping' && (
-                    <Link href="/dashboard/laporan/guru-pendamping">
-                        <Button className="w-full justify-start text-base py-6">
-                            <FileText className="mr-4 h-5 w-5"/> Buat Laporan Pendamping
-                        </Button>
-                    </Link>
-                )}
-                 {(role === 'guruBk') && (
-                    <Link href="/dashboard/manajemen-siswa">
-                        <Button variant="secondary" className="w-full justify-start text-base py-6">
-                            <Users className="mr-4 h-5 w-5"/> Lihat Data Siswa
-                        </Button>
-                    </Link>
-                )}
-                 <Link href="/dashboard/tata-tertib">
-                    <Button variant="secondary" className="w-full justify-start text-base py-6">
-                        <ShieldAlert className="mr-4 h-5 w-5"/> Lihat Tata Tertib
-                    </Button>
-                </Link>
-            </CardContent>
-        </Card>
-    </>
-);
+                    {links.secondary.map(link => (
+                         <Link href={link.href} key={link.href}>
+                            <Button variant="secondary" className="w-full justify-start text-base py-6 h-auto">
+                                <link.icon className="mr-4 h-5 w-5"/> {link.label}
+                            </Button>
+                        </Link>
+                    ))}
+                </CardContent>
+            </Card>
+        </>
+    );
+};
+
 
 const renderDashboardByRole = (role: string) => {
     switch (role) {
@@ -327,16 +333,30 @@ export default function DashboardPage() {
     }, []);
 
     if (!userRole) {
-        return <div>Loading...</div>; // Atau tampilkan skeleton loader
+        return (
+            <div className="flex-1 space-y-6">
+                <div className="space-y-2">
+                    <h2 className="text-3xl font-bold tracking-tight">Memuat Dasbor...</h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                    <Card><CardHeader><CardTitle className="h-5 w-3/4 bg-muted rounded"></CardTitle></CardHeader><CardContent><div className="h-8 w-1/2 bg-muted rounded"></div></CardContent></Card>
+                </div>
+            </div>
+        );
     }
     
     return (
         <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard {getRoleDisplayName(userRole)}</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Dasbor {getRoleDisplayName(userRole)}</h2>
             </div>
             
             {renderDashboardByRole(userRole)}
         </div>
     );
 }
+
