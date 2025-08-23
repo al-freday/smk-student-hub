@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -11,6 +12,7 @@ import {
   ShieldAlert,
   School,
   UserPlus,
+  FileText,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -29,6 +31,7 @@ const navItems = [
   { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
   { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
   { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+  { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
   { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
 ];
 
