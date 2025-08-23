@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2, CalendarIcon, Check, X } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 // Data Types
 interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
@@ -70,8 +73,9 @@ export default function LaporanWaliKelasPage() {
       { id: 1, nis: "12345", nama: "Ahmad Budi", tanggal: "2024-06-15", penerima: "Orang Tua" },
   ]);
   const [pembayaranKomite, setPembayaranKomite] = useState<Komite[]>([
-      { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-07-10" },
-      { id: 2, nis: "12346", nama: "Citra Dewi", status: "Belum Lunas", tanggal: "-" },
+      { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-01-10" },
+      { id: 2, nis: "12346", nama: "Citra Dewi", status: "Lunas", tanggal: "2024-02-15" },
+      { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-03-10" },
   ]);
 
   // Generic state for handling dialogs
@@ -82,6 +86,29 @@ export default function LaporanWaliKelasPage() {
   
   // Generic form state
   const [formData, setFormData] = useState<any>({});
+  
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
+
+  const paymentRecap = useMemo(() => {
+    const recap: { [nis: string]: { nama: string, payments: (boolean | null)[] } } = {};
+    
+    identitasSiswa.forEach(siswa => {
+      recap[siswa.nis] = { nama: siswa.nama, payments: Array(12).fill(null) };
+    });
+
+    pembayaranKomite
+      .filter(p => new Date(p.tanggal).getFullYear().toString() === selectedYear)
+      .forEach(payment => {
+        if (recap[payment.nis]) {
+          const month = new Date(payment.tanggal).getMonth();
+          recap[payment.nis].payments[month] = payment.status === 'Lunas';
+        }
+      });
+      
+    return Object.entries(recap).map(([nis, data]) => ({ nis, ...data }));
+  }, [pembayaranKomite, identitasSiswa, selectedYear]);
+
 
   useEffect(() => {
     const data = localStorage.getItem("kehadiranSiswa");
@@ -113,7 +140,11 @@ export default function LaporanWaliKelasPage() {
   const handleOpenDialog = (section: string, item: any | null = null) => {
     setCurrentSection(section);
     setEditingItem(item);
-    setFormData(item || {});
+    if (item && (section === 'mutasiSiswa' || section === 'terimaRapor' || section === 'pembayaranKomite')) {
+        setFormData({...item, tanggal: item.tanggal ? new Date(item.tanggal) : undefined });
+    } else {
+        setFormData(item || {});
+    }
     setDialogOpen(true);
   };
   
@@ -143,8 +174,14 @@ export default function LaporanWaliKelasPage() {
   
   const handleSave = () => {
     if (!currentSection) return;
+    
+    let dataToSave = { ...formData };
+    if (dataToSave.tanggal && dataToSave.tanggal instanceof Date) {
+        dataToSave.tanggal = format(dataToSave.tanggal, "yyyy-MM-dd");
+    }
+
     const id = editingItem ? editingItem.id : Date.now();
-    const newItem = { ...formData, id };
+    const newItem = { ...dataToSave, id };
     
     const updaters: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
         identitasSiswa: setIdentitasSiswa,
@@ -200,7 +237,7 @@ export default function LaporanWaliKelasPage() {
         );
         case 'mutasiSiswa': return (
              <>
-                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal ? format(new Date(formData.tanggal), 'yyyy-MM-dd') : ""} onChange={e => setFormData({...formData, tanggal: e.target.value ? new Date(e.target.value) : undefined})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="jenis" className="text-right">Jenis</Label><Select value={formData.jenis || ""} onValueChange={value => setFormData({...formData, jenis: value})}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Masuk">Masuk</SelectItem><SelectItem value="Keluar">Keluar</SelectItem></SelectContent></Select></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="keterangan" className="text-right">Keterangan</Label><Input id="keterangan" value={formData.keterangan || ""} onChange={e => setFormData({...formData, keterangan: e.target.value})} className="col-span-3" /></div>
@@ -247,7 +284,7 @@ export default function LaporanWaliKelasPage() {
             <>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={formData.nis || ""} onChange={e => setFormData({...formData, nis: e.target.value})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
-                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal ? format(new Date(formData.tanggal), 'yyyy-MM-dd') : ""} onChange={e => setFormData({...formData, tanggal: e.target.value ? new Date(e.target.value) : undefined})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="penerima" className="text-right">Penerima</Label><Input id="penerima" value={formData.penerima || ""} onChange={e => setFormData({...formData, penerima: e.target.value})} className="col-span-3" /></div>
             </>
         );
@@ -256,7 +293,27 @@ export default function LaporanWaliKelasPage() {
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={formData.nis || ""} onChange={e => setFormData({...formData, nis: e.target.value})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="status" className="text-right">Status</Label><Select value={formData.status || ""} onValueChange={value => setFormData({...formData, status: value})}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Lunas">Lunas</SelectItem><SelectItem value="Belum Lunas">Belum Lunas</SelectItem></SelectContent></Select></div>
-                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="tanggal" className="text-right">Tanggal</Label>
+                   <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn( "col-span-3 justify-start text-left font-normal", !formData.tanggal && "text-muted-foreground" )}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.tanggal ? format(formData.tanggal, "PPP") : <span>Pilih tanggal</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <CalendarPicker
+                            mode="single"
+                            selected={formData.tanggal}
+                            onSelect={(date) => setFormData({...formData, tanggal: date})}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                </div>
             </>
         );
         default: return <p>Form tidak tersedia untuk seksi ini.</p>;
@@ -434,6 +491,48 @@ export default function LaporanWaliKelasPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                         <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Rekapitulasi Pembayaran Komite Tahunan</CardTitle>
+                            <CardDescription>Status pembayaran siswa untuk tahun ajaran yang dipilih.</CardDescription>
+                        </div>
+                        <Select value={selectedYear} onValueChange={setSelectedYear}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Pilih Tahun" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(year => <SelectItem key={year} value={year}>{year}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="sticky left-0 bg-card">Nama Siswa</TableHead>
+                                {[...Array(12)].map((_, i) => <TableHead key={i} className="text-center">{new Date(0, i).toLocaleString('id-ID', { month: 'short' })}</TableHead>)}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {paymentRecap.map(({ nis, nama, payments }) => (
+                                <TableRow key={nis}>
+                                    <TableCell className="font-medium sticky left-0 bg-card">{nama}</TableCell>
+                                    {payments.map((status, index) => (
+                                        <TableCell key={index} className="text-center">
+                                            {status === true && <Check className="h-5 w-5 text-green-500 mx-auto" />}
+                                            {status === false && <X className="h-5 w-5 text-red-500 mx-auto" />}
+                                            {status === null && <span className="text-muted-foreground">-</span>}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody>
                     </Table>
                 </CardContent>
             </Card>

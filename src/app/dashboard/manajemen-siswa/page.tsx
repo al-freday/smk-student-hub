@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +46,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface Siswa {
   id: number;
@@ -92,7 +95,7 @@ export default function ManajemenSiswaPage() {
   const [openKehadiran, setOpenKehadiran] = useState(false);
   const [siswaKehadiran, setSiswaKehadiran] = useState<Siswa | null>(null);
   const [statusKehadiran, setStatusKehadiran] = useState<Kehadiran['status']>('Hadir');
-  const today = format(new Date(), "yyyy-MM-dd");
+  const [tanggalKehadiran, setTanggalKehadiran] = useState<Date | undefined>(new Date());
 
   const resetForm = () => {
     setNis("");
@@ -116,6 +119,7 @@ export default function ManajemenSiswaPage() {
   const handleOpenKehadiranDialog = (siswa: Siswa) => {
       setSiswaKehadiran(siswa);
       setStatusKehadiran('Hadir'); // Reset to default
+      setTanggalKehadiran(new Date());
       setOpenKehadiran(true);
   };
 
@@ -136,20 +140,21 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleSaveKehadiran = () => {
-    if (!siswaKehadiran || !statusKehadiran) return;
+    if (!siswaKehadiran || !statusKehadiran || !tanggalKehadiran) return;
     
+    const tanggalFormatted = format(tanggalKehadiran, "yyyy-MM-dd");
     const dataKehadiran = localStorage.getItem("kehadiranSiswa");
     const riwayat: Kehadiran[] = dataKehadiran ? JSON.parse(dataKehadiran) : [];
 
     // Hapus catatan lama untuk siswa ini pada hari ini jika ada
-    const riwayatBaru = riwayat.filter(k => !(k.nis === siswaKehadiran.nis && k.tanggal === today));
+    const riwayatBaru = riwayat.filter(k => !(k.nis === siswaKehadiran.nis && k.tanggal === tanggalFormatted));
     
     const catatanBaru: Kehadiran = {
-      id: `${siswaKehadiran.nis}-${today}`,
+      id: `${siswaKehadiran.nis}-${tanggalFormatted}`,
       nis: siswaKehadiran.nis,
       nama: siswaKehadiran.nama,
       kelas: siswaKehadiran.kelas,
-      tanggal: today,
+      tanggal: tanggalFormatted,
       status: statusKehadiran,
     };
     
@@ -158,7 +163,7 @@ export default function ManajemenSiswaPage() {
     
     toast({
       title: "Kehadiran Disimpan",
-      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk hari ini.`,
+      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk tanggal ${tanggalFormatted}.`,
     });
 
     setOpenKehadiran(false);
@@ -294,9 +299,34 @@ export default function ManajemenSiswaPage() {
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Catat Kehadiran untuk {siswaKehadiran?.nama}</DialogTitle>
-                <DialogDescription>Pilih status kehadiran untuk tanggal {today}.</DialogDescription>
+                <DialogDescription>Pilih tanggal dan status kehadiran.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="tanggal-kehadiran" className="text-right">Tanggal</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "col-span-3 justify-start text-left font-normal",
+                            !tanggalKehadiran && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {tanggalKehadiran ? format(tanggalKehadiran, "PPP") : <span>Pilih tanggal</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar
+                            mode="single"
+                            selected={tanggalKehadiran}
+                            onSelect={setTanggalKehadiran}
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status-kehadiran" className="text-right">Status</Label>
                     <Select onValueChange={(value) => setStatusKehadiran(value as Kehadiran['status'])} defaultValue={statusKehadiran}>
