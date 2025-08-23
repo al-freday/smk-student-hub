@@ -60,6 +60,17 @@ const userRoles: { [email: string]: string } = {
     ...generateUserRoles(40, "guruPendamping", "gurupendamping"),
 };
 
+const getRoleDisplayName = (role: string) => {
+    switch (role) {
+        case 'waliKelas': return 'Wali Kelas';
+        case 'guruBk': return 'Guru BK';
+        case 'guruMapel': return 'Guru Mata Pelajaran';
+        case 'guruPiket': return 'Guru Piket';
+        case 'guruPendamping': return 'Guru Pendamping';
+        case 'wakasek': return 'Wakasek Kesiswaan';
+        default: return 'Pengguna';
+    }
+};
 
 export function LoginForm() {
   const router = useRouter();
@@ -78,23 +89,40 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const role = userRoles[values.email.toLowerCase()] || 'wakasek'; // Default ke wakasek jika tidak ditemukan
-
-    // Simulasikan panggilan API
+    const roleKey = userRoles[values.email.toLowerCase()] || 'wakasek'; 
+    const roleName = getRoleDisplayName(roleKey);
+    const userName = roleName; // For simplicity, use role name as user name
+    
     setTimeout(() => {
       setIsLoading(false);
-      // Simpan peran di localStorage untuk disimulasikan di seluruh aplikasi
-      localStorage.setItem('userRole', role);
+      localStorage.setItem('userRole', roleKey);
+      
+      const userForSettings = {
+          nama: userName,
+          role: roleName,
+          email: values.email.toLowerCase(),
+      };
+      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+
       router.push("/dashboard");
     }, 1500);
   }
 
   function onGoogleSignIn() {
     setIsGoogleLoading(true);
-    // Simulate Google Sign-In
     setTimeout(() => {
       setIsGoogleLoading(false);
-       localStorage.setItem('userRole', 'wakasek'); // Default Google sign in as wakasek
+      const roleKey = 'wakasek';
+      const roleName = getRoleDisplayName(roleKey);
+      localStorage.setItem('userRole', roleKey);
+      
+      const userForSettings = {
+          nama: roleName,
+          role: roleName,
+          email: 'wakasek.google@example.com',
+      };
+      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+      
       router.push("/dashboard");
     }, 1500);
   }
@@ -156,5 +184,3 @@ export function LoginForm() {
     </div>
   );
 }
-
-    

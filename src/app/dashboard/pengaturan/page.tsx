@@ -10,6 +10,18 @@ import { Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
+const getRoleDisplayName = (role: string) => {
+    switch (role) {
+        case 'waliKelas': return 'Wali Kelas';
+        case 'guruBk': return 'Guru BK';
+        case 'guruMapel': return 'Guru Mata Pelajaran';
+        case 'guruPiket': return 'Guru Piket';
+        case 'guruPendamping': return 'Guru Pendamping';
+        case 'wakasek': return 'Wakasek Kesiswaan';
+        default: return 'Pengguna';
+    }
+};
+
 export default function PengaturanPage() {
   const { toast } = useToast();
   // State untuk data sekolah (read-only)
@@ -18,8 +30,7 @@ export default function PengaturanPage() {
   const [logo, setLogo] = useState("https://placehold.co/80x80.png");
 
   // State untuk Pengaturan Akun (bisa diubah pengguna)
-  const [accountName, setAccountName] = useState("Wakasek Kesiswaan");
-  const [accountEmail, setAccountEmail] = useState("wakasek@email.com");
+  const [currentUser, setCurrentUser] = useState<{nama: string; role: string; email: string} | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,13 +44,38 @@ export default function PengaturanPage() {
       setHeadmasterName(headmasterName);
       setLogo(logo);
     }
+    
+    // Muat informasi pengguna dari localStorage
+    const savedUser = localStorage.getItem("currentUser");
+    if(savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+    } else {
+        // Fallback jika tidak ada data pengguna (misal: login pertama kali)
+        const role = localStorage.getItem('userRole') || 'wakasek';
+        setCurrentUser({
+            nama: getRoleDisplayName(role),
+            email: `${role}@schoolemail.com`,
+            role: getRoleDisplayName(role)
+        });
+    }
+
   }, []);
 
-  const handleSaveChanges = (title: string, description: string) => {
-      toast({
-          title: title,
-          description: description,
-      });
+  const handleSaveChanges = () => {
+      if(currentUser){
+        localStorage.setItem("currentUser", JSON.stringify(currentUser));
+        toast({
+            title: "Pengaturan Akun Disimpan",
+            description: "Perubahan informasi akun Anda telah berhasil disimpan.",
+        });
+      }
+  };
+  
+  const handleAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if(currentUser) {
+        const { id, value } = e.target;
+        setCurrentUser(prev => prev ? { ...prev, [id]: value } : null);
+    }
   };
 
   return (
@@ -102,12 +138,12 @@ export default function PengaturanPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="account-name">Nama Pengguna</Label>
-                <Input id="account-name" value={accountName} onChange={(e) => setAccountName(e.target.value)} />
+                <Label htmlFor="nama">Nama Pengguna</Label>
+                <Input id="nama" value={currentUser?.nama || ''} onChange={handleAccountChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="account-email">Email</Label>
-                <Input id="account-email" type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={currentUser?.email || ''} onChange={handleAccountChange} />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="current-password">Password Saat Ini</Label>
@@ -121,7 +157,7 @@ export default function PengaturanPage() {
                 <Label htmlFor="confirm-password">Konfirmasi Password Baru</Label>
                 <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
               </div>
-              <Button onClick={() => handleSaveChanges("Pengaturan Akun Disimpan", "Perubahan informasi akun Anda telah berhasil disimpan.")}>
+              <Button onClick={handleSaveChanges}>
                  <Save className="mr-2 h-4 w-4"/>
                  Simpan Perubahan Akun
               </Button>

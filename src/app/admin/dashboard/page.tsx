@@ -25,8 +25,15 @@ const getRoleName = (roleKey: string) => {
         guruMapel: 'Guru Mapel',
         guruPiket: 'Guru Piket',
         guruPendamping: 'Guru Pendamping',
+        wakasek: 'Wakasek Kesiswaan',
     };
     return roles[roleKey] || 'Guru';
+};
+
+const createEmailFromName = (name: string, roleKey: string, id: number | string) => {
+    const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+    const roleInitial = roleKey.replace('guru', '').charAt(0);
+    return `${namePart}${id}@schoolemail.com`;
 };
 
 export default function AdminDashboardPage() {
@@ -86,6 +93,14 @@ export default function AdminDashboardPage() {
     const userToImpersonate = allUsers.find(u => u.id.toString() === selectedUser);
     if (userToImpersonate) {
         localStorage.setItem('userRole', userToImpersonate.roleKey);
+
+        const userForSettings = {
+            nama: userToImpersonate.nama,
+            role: userToImpersonate.roleName,
+            email: createEmailFromName(userToImpersonate.nama, userToImpersonate.roleKey, userToImpersonate.id),
+        };
+        localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+
         toast({
             title: "Login Berhasil",
             description: `Anda sekarang login sebagai ${userToImpersonate.nama} (${userToImpersonate.roleName}).`,
@@ -96,6 +111,8 @@ export default function AdminDashboardPage() {
   
   const handleLogout = () => {
     sessionStorage.removeItem("admin_logged_in");
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
     router.push("/admin");
   };
 
