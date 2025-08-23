@@ -14,6 +14,7 @@ import {
   UserPlus,
   FileText,
   Users,
+  UserCog,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -33,6 +34,7 @@ const navItemsByRole = {
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
+    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
@@ -100,7 +102,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
           {navItems.map((item) => (
             <SidebarMenuItem key={item.label}>
               <Link href={item.href}>
-                <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== "/dashboard" || pathname === "/dashboard")}>
                     <item.icon className="size-4" />
                     <span className="group-data-[collapsible=icon]:hidden">
                       {item.label}
@@ -116,7 +118,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
           <SidebarMenu>
             <SidebarMenuItem>
                 <Link href="/dashboard/pengaturan">
-                  <SidebarMenuButton tooltip="Pengaturan">
+                  <SidebarMenuButton tooltip="Pengaturan" isActive={pathname.startsWith('/dashboard/pengaturan')}>
                     <Settings className="size-4" />
                     <span className="group-data-[collapsible=icon]:hidden">Pengaturan</span>
                   </SidebarMenuButton>

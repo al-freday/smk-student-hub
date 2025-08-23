@@ -202,11 +202,9 @@ const WaliKelasDashboard = () => {
                     </Table>
                 </CardContent>
             </Card>
-
         </>
     );
 };
-
 
 const GeneralUserDashboard = ({ role }: { role: string }) => {
     const quickLinks = {
