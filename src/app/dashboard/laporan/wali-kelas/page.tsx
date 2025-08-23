@@ -95,9 +95,6 @@ export default function LaporanWaliKelasPage() {
         rekap.izin = kehadiranHariIni.filter(k => k.status === 'Izin').length;
         rekap.alpa = kehadiranHariIni.filter(k => k.status === 'Alpa').length;
     }
-    // Jika ingin menghitung yang belum diabsen sebagai alpa
-    // rekap.alpa += rekap.totalSiswa - (rekap.hadir + rekap.sakit + rekap.izin + rekap.alpa);
-
     setKehadiranSiswa(rekap);
   }, []);
   
@@ -142,6 +139,7 @@ export default function LaporanWaliKelasPage() {
   };
   
   const handleSave = () => {
+    if (!currentSection) return;
     const id = editingItem ? editingItem.id : Date.now();
     const newItem = { ...formData, id };
     
@@ -157,8 +155,8 @@ export default function LaporanWaliKelasPage() {
         jadwalPiket: setJadwalPiket,
     };
 
-    if (updaters[currentSection!]) {
-      updaters[currentSection!]((prev: any[]) => 
+    if (updaters[currentSection]) {
+      updaters[currentSection]((prev: any[]) => 
         editingItem ? prev.map(i => i.id === id ? newItem : i) : [...prev, newItem]
       );
     } else if (currentSection === 'strukturOrganisasi') {
@@ -258,7 +256,7 @@ export default function LaporanWaliKelasPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - X OT 1</h2>
           <p className="text-muted-foreground">
-            Rekapitulasi lengkap data kelas binaan. Klik pada data untuk mengedit.
+            Rekapitulasi lengkap data kelas binaan.
           </p>
         </div>
         <div className="flex gap-2">

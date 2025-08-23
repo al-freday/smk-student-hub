@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Kehadiran {
   id: string;
@@ -19,6 +20,7 @@ interface Kehadiran {
 
 export default function KehadiranSiswaPage() {
   const [riwayatKehadiran, setRiwayatKehadiran] = useState<Kehadiran[]>([]);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const data = localStorage.getItem("kehadiranSiswa");
@@ -42,12 +44,13 @@ export default function KehadiranSiswaPage() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus catatan kehadiran ini?")) {
-      const updatedRiwayat = riwayatKehadiran.filter(item => item.id !== id);
-      setRiwayatKehadiran(updatedRiwayat);
-      localStorage.setItem("kehadiranSiswa", JSON.stringify(updatedRiwayat));
-    }
+  const handleDelete = () => {
+    if (itemToDelete === null) return;
+    
+    const updatedRiwayat = riwayatKehadiran.filter(item => item.id !== itemToDelete);
+    setRiwayatKehadiran(updatedRiwayat);
+    localStorage.setItem("kehadiranSiswa", JSON.stringify(updatedRiwayat));
+    setItemToDelete(null);
   };
 
   return (
@@ -89,9 +92,25 @@ export default function KehadiranSiswaPage() {
                       <Badge variant={getBadgeVariant(item.status)}>{item.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                             <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tindakan ini tidak dapat dibatalkan. Catatan kehadiran akan dihapus secara permanen.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => setItemToDelete(item.id)}>Hapus</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))
@@ -106,6 +125,19 @@ export default function KehadiranSiswaPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Konfirmasi Penghapusan</AlertDialogTitle>
+                <AlertDialogDescription>Anda yakin ingin menghapus catatan kehadiran ini?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setItemToDelete(null)}>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Ya, Hapus</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
