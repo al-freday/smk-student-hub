@@ -1,19 +1,10 @@
+
 "use client";
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 interface Kelas {
   id: number;
@@ -37,29 +26,45 @@ interface Kelas {
   jumlahSiswa: number;
 }
 
-export default function ManajemenKelasPage() {
-  const [kelas, setKelas] = useState<Kelas[]>([
-    { id: 1, nama: "X TKJ 1", jumlahSiswa: 32 },
-    { id: 2, nama: "XI AKL 2", jumlahSiswa: 35 },
-    { id: 3, nama: "XII TSM 3", jumlahSiswa: 30 },
-  ]);
-  const [namaKelas, setNamaKelas] = useState("");
-  const [jumlahSiswa, setJumlahSiswa] = useState("");
-  const [open, setOpen] = useState(false);
+const initialKelas: Kelas[] = [
+  { id: 1, nama: "X OT 1", jumlahSiswa: 40 },
+  { id: 2, nama: "X OT 2", jumlahSiswa: 40 },
+  { id: 3, nama: "X OT 3", jumlahSiswa: 40 },
+  { id: 4, nama: "X TKR", jumlahSiswa: 40 },
+  { id: 5, nama: "X AKL", jumlahSiswa: 40 },
+  { id: 6, nama: "X TM", jumlahSiswa: 40 },
+  { id: 7, nama: "XI TAB 1", jumlahSiswa: 40 },
+  { id: 8, nama: "XI TAB 2", jumlahSiswa: 40 },
+  { id: 9, nama: "XI TKR", jumlahSiswa: 40 },
+  { id: 10, nama: "XI AKL", jumlahSiswa: 40 },
+  { id: 11, nama: "XI TM", jumlahSiswa: 40 },
+  { id: 12, nama: "XII TAB 1", jumlahSiswa: 40 },
+  { id: 13, nama: "XII TAB 2", jumlahSiswa: 40 },
+  { id: 14, nama: "XII TKR", jumlahSiswa: 40 },
+  { id: 15, nama: "XII AKL", jumlahSiswa: 40 },
+  { id: 16, nama: "XII TM", jumlahSiswa: 40 },
+];
 
-  const handleTambahKelas = () => {
-    if (namaKelas && jumlahSiswa) {
-      const newKelas: Kelas = {
-        id: kelas.length > 0 ? Math.max(...kelas.map((k) => k.id)) + 1 : 1,
-        nama: namaKelas,
-        jumlahSiswa: parseInt(jumlahSiswa, 10),
-      };
-      setKelas([...kelas, newKelas]);
-      setNamaKelas("");
-      setJumlahSiswa("");
-      setOpen(false); // Close the dialog
-    }
-  };
+export default function ManajemenKelasPage() {
+  const [kelas, setKelas] = useState<Kelas[]>(initialKelas);
+  // Fungsionalitas tambah kelas disembunyikan untuk menjaga daftar kelas tetap standar
+  // const [namaKelas, setNamaKelas] = useState("");
+  // const [jumlahSiswa, setJumlahSiswa] = useState("");
+  // const [open, setOpen] = useState(false);
+
+  // const handleTambahKelas = () => {
+  //   if (namaKelas && jumlahSiswa) {
+  //     const newKelas: Kelas = {
+  //       id: kelas.length > 0 ? Math.max(...kelas.map((k) => k.id)) + 1 : 1,
+  //       nama: namaKelas,
+  //       jumlahSiswa: parseInt(jumlahSiswa, 10),
+  //     };
+  //     setKelas([...kelas, newKelas]);
+  //     setNamaKelas("");
+  //     setJumlahSiswa("");
+  //     setOpen(false); // Close the dialog
+  //   }
+  // };
 
   return (
     <div className="flex-1 space-y-6">
@@ -67,9 +72,10 @@ export default function ManajemenKelasPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Kelas</h2>
           <p className="text-muted-foreground">
-            Kelola data kelas dan jumlah siswa di setiap kelas.
+            Daftar kelas yang tersedia di sekolah.
           </p>
         </div>
+        {/* Tombol Tambah Kelas disembunyikan
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -122,6 +128,7 @@ export default function ManajemenKelasPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        */}
       </div>
 
       <Card>
