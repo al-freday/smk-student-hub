@@ -66,46 +66,58 @@ const WakasekDashboard = () => {
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <StatCard
-                    title="Total Siswa Aktif"
-                    value={stats.totalSiswa.toLocaleString()}
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    description="Data dari Manajemen Siswa"
-                />
-                <StatCard
-                    title="Total Guru"
-                    value={stats.totalGuru.toLocaleString()}
-                    icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
-                    description="Data dari Manajemen Guru"
-                />
-                <StatCard
-                    title="Jumlah Kelas"
-                    value={stats.totalKelas.toLocaleString()}
-                    icon={<School className="h-4 w-4 text-muted-foreground" />}
-                    description="Data dari Manajemen Kelas"
-                />
-                <StatCard
-                    title="Kehadiran Hari Ini"
-                    value={stats.kehadiranHariIni}
-                    icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-                    description="Berdasarkan data absensi"
-                />
-                <StatCard
-                    title="Pelanggaran Hari Ini"
-                    value={stats.pelanggaranHariIni.toLocaleString()}
-                    icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
-                    description="Data dari Tata Tertib"
-                    isNegative={stats.pelanggaranHariIni > 0}
-                />
+                <Link href="/dashboard/manajemen-siswa">
+                    <StatCard
+                        title="Total Siswa Aktif"
+                        value={stats.totalSiswa.toLocaleString()}
+                        icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                        description="Data dari Manajemen Siswa"
+                    />
+                </Link>
+                 <Link href="/dashboard/manajemen-guru">
+                    <StatCard
+                        title="Total Guru"
+                        value={stats.totalGuru.toLocaleString()}
+                        icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
+                        description="Data dari Manajemen Guru"
+                    />
+                </Link>
+                <Link href="/dashboard/manajemen-kelas">
+                    <StatCard
+                        title="Jumlah Kelas"
+                        value={stats.totalKelas.toLocaleString()}
+                        icon={<School className="h-4 w-4 text-muted-foreground" />}
+                        description="Data dari Manajemen Kelas"
+                    />
+                </Link>
+                <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
+                    <StatCard
+                        title="Kehadiran Hari Ini"
+                        value={stats.kehadiranHariIni}
+                        icon={<Activity className="h-4 w-4 text-muted-foreground" />}
+                        description="Berdasarkan data absensi"
+                    />
+                </Link>
+                <Link href="/dashboard/tata-tertib">
+                    <StatCard
+                        title="Pelanggaran Hari Ini"
+                        value={stats.pelanggaranHariIni.toLocaleString()}
+                        icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
+                        description="Data dari Tata Tertib"
+                        isNegative={stats.pelanggaranHariIni > 0}
+                    />
+                </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Laporan Terbaru</CardTitle>
-                            <CardDescription>Daftar pelanggaran dan prestasi siswa yang baru saja dicatat.</CardDescription>
-                        </CardHeader>
+                         <Link href="/dashboard/laporan">
+                            <CardHeader>
+                                <CardTitle>Laporan Terbaru</CardTitle>
+                                <CardDescription>Daftar pelanggaran dan prestasi siswa yang baru saja dicatat.</CardDescription>
+                            </CardHeader>
+                        </Link>
                         <CardContent>
                             <RecentReportsTable />
                         </CardContent>
