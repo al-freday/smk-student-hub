@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+// Mendefinisikan laporan yang tersedia untuk setiap peran.
+// Kunci objek (misal: 'wakasek', 'waliKelas') harus cocok dengan nilai peran yang disimpan di localStorage saat login.
 const reportTypesByRole = {
   wakasek: [
     { title: "Laporan Guru Pendamping", href: "/dashboard/laporan/guru-pendamping", description: "Rekapitulasi catatan pendampingan siswa." },
@@ -39,14 +41,15 @@ export default function LaporanPage() {
   const [userRole, setUserRole] = useState<keyof typeof reportTypesByRole | null>(null);
 
   useEffect(() => {
-    // Ambil peran dari localStorage saat komponen dimuat di client-side
-    // Default ke 'wakasek' jika tidak ada peran yang tersimpan
+    // Ambil peran dari localStorage saat komponen dimuat di client-side.
+    // Ini mensimulasikan sesi login pengguna.
+    // Default ke 'wakasek' jika tidak ada peran yang tersimpan untuk tujuan demonstrasi.
     const role = (localStorage.getItem('userRole') as keyof typeof reportTypesByRole) || 'wakasek';
     setUserRole(role);
   }, []);
 
+  // Menampilkan state loading saat peran pengguna sedang diambil dari localStorage.
   if (!userRole) {
-    // Tampilkan loading state jika peran belum ter-load
     return (
         <div className="flex-1 space-y-6">
             <div>
@@ -64,7 +67,8 @@ export default function LaporanPage() {
     );
   }
 
-  const reportTypes = reportTypesByRole[userRole] || [];
+  // Ambil daftar laporan yang sesuai dengan peran pengguna, atau array kosong jika tidak ada.
+  const availableReports = reportTypesByRole[userRole] || [];
 
   return (
     <div className="flex-1 space-y-6">
@@ -75,8 +79,8 @@ export default function LaporanPage() {
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {reportTypes.length > 0 ? (
-          reportTypes.map((report) => (
+        {availableReports.length > 0 ? (
+          availableReports.map((report) => (
             <Card key={report.title} className="flex flex-col">
               <CardHeader>
                 <CardTitle>{report.title}</CardTitle>
