@@ -10,8 +10,6 @@ import { Save, ArrowLeft, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 interface SchoolInfo {
   schoolName: string;
@@ -96,11 +94,9 @@ export default function AdminPengaturanPage() {
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4">
-        <Link href="/admin/dashboard">
-            <Button variant="outline" size="icon">
-                <ArrowLeft />
-            </Button>
-        </Link>
+        <Button variant="outline" size="icon" onClick={() => router.push('/admin/dashboard')}>
+            <ArrowLeft />
+        </Button>
         <div>
             <h2 className="text-3xl font-bold tracking-tight">Pengaturan Global</h2>
             <p className="text-muted-foreground">
