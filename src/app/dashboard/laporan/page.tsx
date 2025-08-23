@@ -11,7 +11,7 @@ const reportTypesByRole = {
     { title: "Laporan Guru Pendamping", href: "/dashboard/laporan/guru-pendamping" },
     { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel" },
     { title: "Laporan Guru Piket", href: "/dashboard/laporan/guru-piket" },
-    { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas" },
+    { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek" },
     { title: "Laporan Guru BK", href: "/dashboard/laporan/guru-bk" },
   ],
   waliKelas: [
