@@ -4,15 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  BookUser,
   CalendarClock,
-  FileText,
-  GanttChartSquare,
   LayoutDashboard,
   LogOut,
   Settings,
   ShieldAlert,
-  Users,
   School,
   UserPlus,
 } from "lucide-react";
@@ -32,11 +28,7 @@ const navItems = [
   { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
   { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
   { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-  { href: "/dashboard/kinerja-guru", icon: BookUser, label: "Kinerja Guru" },
-  { href: "/dashboard/kinerja-siswa", icon: Users, label: "Kinerja Siswa" },
   { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
-  { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
-  { href: "/dashboard/supervisi", icon: GanttChartSquare, label: "Supervisi" },
   { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
 ];
 
