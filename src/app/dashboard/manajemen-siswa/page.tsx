@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -66,17 +65,32 @@ interface Kehadiran {
   status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
-const initialSiswa: Siswa[] = [
-    { id: 1, nis: "1234567890", nama: "Ahmad Budi", kelas: "X OT 1" },
-    { id: 2, nis: "0987654321", nama: "Citra Dewi", kelas: "XI AKL" },
-    { id: 3, nis: "1122334455", nama: "Eka Putra", kelas: "XII TKR" },
-];
-
 const daftarKelas = [
   "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
   "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
   "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
 ];
+
+const generateInitialSiswa = (): Siswa[] => {
+  const siswaList: Siswa[] = [];
+  let id = 1;
+  daftarKelas.forEach(kelas => {
+    // Generate 2 students for each class for demonstration
+    for (let i = 1; i <= 2; i++) {
+      const nis = `${1000 + id}`.padEnd(10, '0');
+      siswaList.push({
+        id: id++,
+        nis: nis,
+        nama: `Siswa ${i} ${kelas}`,
+        kelas: kelas,
+      });
+    }
+  });
+  return siswaList;
+};
+
+
+const initialSiswa: Siswa[] = generateInitialSiswa();
 
 
 export default function ManajemenSiswaPage() {
