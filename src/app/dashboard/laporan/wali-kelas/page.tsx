@@ -3,10 +3,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, User, Box, Calendar, CheckCircle, TrendingUp, Users, ArrowRightLeft, FileText, DollarSign, Armchair } from "lucide-react";
+import { Printer, User, Box, Calendar, CheckCircle, TrendingUp, Users, ArrowRightLeft, FileText, DollarSign, Armchair, Send } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample Data
 const identitasSiswa = [
@@ -74,8 +75,17 @@ const pembayaranKomite = [
 
 
 export default function LaporanWaliKelasPage() {
+  const { toast } = useToast();
+
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendReport = () => {
+    toast({
+      title: "Laporan Terkirim",
+      description: "Laporan bulanan kelas X OT 1 telah berhasil dikirim ke Wakasek Kesiswaan.",
+    });
   };
 
   return (
@@ -84,13 +94,19 @@ export default function LaporanWaliKelasPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - X OT 1</h2>
           <p className="text-muted-foreground">
-            Rekapitulasi lengkap data kelas binaan.
+            Rekapitulasi lengkap data kelas binaan. Klik pada data untuk mengedit.
           </p>
         </div>
-        <Button onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Cetak Laporan
-        </Button>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak Laporan
+            </Button>
+            <Button onClick={handleSendReport}>
+                <Send className="mr-2 h-4 w-4" />
+                Kirim Laporan ke Wakasek
+            </Button>
+        </div>
       </div>
       
       <Tabs defaultValue="dataSiswa">
@@ -244,3 +260,5 @@ export default function LaporanWaliKelasPage() {
     </div>
   );
 }
+
+    
