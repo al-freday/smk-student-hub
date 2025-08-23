@@ -110,32 +110,40 @@ const WaliKelasDashboard = () => {
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    title="Jumlah Siswa Kelas"
-                    value="40"
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    description="Kelas X OT 1"
-                />
-                <StatCard
-                    title="Kehadiran Rata-rata"
-                    value="97%"
-                    icon={<UserCheck className="h-4 w-4 text-muted-foreground" />}
-                    description="Bulan ini"
-                />
-                <StatCard
-                    title="Total Pelanggaran"
-                    value="15"
-                    icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
-                    description="Bulan ini"
-                    isNegative
-                />
-                 <StatCard
-                    title="Siswa Bermasalah"
-                    value="3"
-                    icon={<UserX className="h-4 w-4 text-muted-foreground" />}
-                    description="Perlu perhatian khusus"
-                    isNegative
-                />
+                <Link href="/dashboard/laporan/wali-kelas">
+                    <StatCard
+                        title="Jumlah Siswa Kelas"
+                        value="40"
+                        icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                        description="Kelas X OT 1"
+                    />
+                </Link>
+                 <Link href="/dashboard/laporan/wali-kelas">
+                    <StatCard
+                        title="Kehadiran Rata-rata"
+                        value="97%"
+                        icon={<UserCheck className="h-4 w-4 text-muted-foreground" />}
+                        description="Bulan ini"
+                    />
+                </Link>
+                 <Link href="/dashboard/laporan/wali-kelas">
+                    <StatCard
+                        title="Total Pelanggaran"
+                        value="15"
+                        icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
+                        description="Bulan ini"
+                        isNegative
+                    />
+                </Link>
+                 <Link href="/dashboard/laporan/wali-kelas">
+                    <StatCard
+                        title="Siswa Bermasalah"
+                        value="3"
+                        icon={<UserX className="h-4 w-4 text-muted-foreground" />}
+                        description="Perlu perhatian khusus"
+                        isNegative
+                    />
+                </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -325,4 +333,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
