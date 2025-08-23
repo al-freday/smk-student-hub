@@ -2,9 +2,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,15 +42,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface Siswa {
   id: number;
   nis: string;
   nama: string;
   kelas: string;
+}
+
+interface Kehadiran {
+  id: string;
+  nis: string;
+  nama: string;
+  kelas: string;
+  tanggal: string;
+  status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
 const initialSiswa: Siswa[] = [
@@ -66,15 +76,22 @@ const daftarKelas = [
 
 
 export default function ManajemenSiswaPage() {
+  const { toast } = useToast();
   const [siswa, setSiswa] = useState<Siswa[]>(initialSiswa);
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
 
-  // Form states
+  // Form states for siswa
   const [nis, setNis] = useState("");
   const [nama, setNama] = useState("");
   const [kelas, setKelas] = useState("");
 
   const [open, setOpen] = useState(false);
+  
+  // State for attendance
+  const [openKehadiran, setOpenKehadiran] = useState(false);
+  const [siswaKehadiran, setSiswaKehadiran] = useState<Siswa | null>(null);
+  const [statusKehadiran, setStatusKehadiran] = useState<Kehadiran['status']>('Hadir');
+  const today = format(new Date(), "yyyy-MM-dd");
 
   const resetForm = () => {
     setNis("");
@@ -94,23 +111,21 @@ export default function ManajemenSiswaPage() {
     }
     setOpen(true);
   };
+  
+  const handleOpenKehadiranDialog = (siswa: Siswa) => {
+      setSiswaKehadiran(siswa);
+      setStatusKehadiran('Hadir'); // Reset to default
+      setOpenKehadiran(true);
+  };
 
   const handleSaveSiswa = () => {
     if (nis && nama && kelas) {
       if (editingSiswa) {
-        // Update existing siswa
-        setSiswa(
-          siswa.map((s) =>
-            s.id === editingSiswa.id ? { ...s, nis, nama, kelas } : s
-          )
-        );
+        setSiswa(siswa.map((s) => s.id === editingSiswa.id ? { ...s, nis, nama, kelas } : s));
       } else {
-        // Add new siswa
         const newSiswa: Siswa = {
           id: siswa.length > 0 ? Math.max(...siswa.map((s) => s.id)) + 1 : 1,
-          nis,
-          nama,
-          kelas,
+          nis, nama, kelas,
         };
         setSiswa([...siswa, newSiswa]);
       }
@@ -118,13 +133,42 @@ export default function ManajemenSiswaPage() {
       setOpen(false);
     }
   };
+  
+  const handleSaveKehadiran = () => {
+    if (!siswaKehadiran || !statusKehadiran) return;
+    
+    const dataKehadiran = localStorage.getItem("kehadiranSiswa");
+    const riwayat: Kehadiran[] = dataKehadiran ? JSON.parse(dataKehadiran) : [];
+
+    // Hapus catatan lama untuk siswa ini pada hari ini jika ada
+    const riwayatBaru = riwayat.filter(k => !(k.nis === siswaKehadiran.nis && k.tanggal === today));
+    
+    const catatanBaru: Kehadiran = {
+      id: `${siswaKehadiran.nis}-${today}`,
+      nis: siswaKehadiran.nis,
+      nama: siswaKehadiran.nama,
+      kelas: siswaKehadiran.kelas,
+      tanggal: today,
+      status: statusKehadiran,
+    };
+    
+    riwayatBaru.push(catatanBaru);
+    localStorage.setItem("kehadiranSiswa", JSON.stringify(riwayatBaru));
+    
+    toast({
+      title: "Kehadiran Disimpan",
+      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk hari ini.`,
+    });
+
+    setOpenKehadiran(false);
+    setSiswaKehadiran(null);
+  };
 
   const handleDeleteSiswa = (id: number) => {
     setSiswa(siswa.filter((s) => s.id !== id));
   };
   
   const handleImport = () => {
-    // Placeholder for excel import functionality
     alert("Fungsionalitas impor dari Excel akan segera tersedia.");
   };
 
@@ -133,9 +177,15 @@ export default function ManajemenSiswaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa</h2>
-          <p className="text-muted-foreground">Kelola data siswa di sekolah.</p>
+          <p className="text-muted-foreground">Kelola data siswa di sekolah dan catat kehadiran harian.</p>
         </div>
         <div className="flex gap-2">
+            <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
+                <Button variant="outline">
+                    <CalendarCheck className="mr-2 h-4 w-4" />
+                    Lihat Riwayat Kehadiran
+                </Button>
+            </Link>
             <Button variant="outline" onClick={handleImport}>
               <Upload className="mr-2 h-4 w-4" />
               Impor dari Excel
@@ -156,52 +206,24 @@ export default function ManajemenSiswaPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nis" className="text-right">
-                      NIS
-                    </Label>
-                    <Input
-                      id="nis"
-                      value={nis}
-                      onChange={(e) => setNis(e.target.value)}
-                      className="col-span-3"
-                      placeholder="Nomor Induk Siswa"
-                    />
+                    <Label htmlFor="nis" className="text-right">NIS</Label>
+                    <Input id="nis" value={nis} onChange={(e) => setNis(e.target.value)} className="col-span-3" placeholder="Nomor Induk Siswa" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nama" className="text-right">
-                      Nama
-                    </Label>
-                    <Input
-                      id="nama"
-                      value={nama}
-                      onChange={(e) => setNama(e.target.value)}
-                      className="col-span-3"
-                      placeholder="Nama Lengkap Siswa"
-                    />
+                    <Label htmlFor="nama" className="text-right">Nama</Label>
+                    <Input id="nama" value={nama} onChange={(e) => setNama(e.target.value)} className="col-span-3" placeholder="Nama Lengkap Siswa" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="kelas" className="text-right">
-                      Kelas
-                    </Label>
+                    <Label htmlFor="kelas" className="text-right">Kelas</Label>
                      <Select onValueChange={setKelas} value={kelas}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Pilih Kelas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {daftarKelas.map(k => (
-                            <SelectItem key={k} value={k}>{k}</SelectItem>
-                          ))}
-                        </SelectContent>
+                        <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
+                        <SelectContent>{daftarKelas.map(k => (<SelectItem key={k} value={k}>{k}</SelectItem>))}</SelectContent>
                       </Select>
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Batal</Button>
-                  </DialogClose>
-                  <Button type="submit" onClick={handleSaveSiswa}>
-                    Simpan
-                  </Button>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button type="submit" onClick={handleSaveSiswa}>Simpan</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -210,9 +232,7 @@ export default function ManajemenSiswaPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Siswa</CardTitle>
-          <CardDescription>
-            Data siswa yang terdaftar akan ditampilkan di sini.
-          </CardDescription>
+          <CardDescription>Data siswa yang terdaftar akan ditampilkan di sini.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -232,32 +252,23 @@ export default function ManajemenSiswaPage() {
                     <TableCell className="font-medium">{s.nama}</TableCell>
                     <TableCell>{s.kelas}</TableCell>
                     <TableCell className="text-right">
+                        <Button variant="outline" size="sm" className="mr-2" onClick={() => handleOpenKehadiranDialog(s)}>
+                            <CalendarCheck className="mr-2 h-4 w-4" /> Catat Kehadiran
+                        </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Buka menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Buka menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(s)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            <span>Edit</span>
-                          </DropdownMenuItem>
-
+                          <DropdownMenuItem onClick={() => handleOpenDialog(s)}><Edit className="mr-2 h-4 w-4" /><span>Edit</span></DropdownMenuItem>
                            <AlertDialog>
                             <AlertDialogTrigger asChild>
-                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>Hapus</span>
-                              </DropdownMenuItem>
+                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /><span>Hapus</span></DropdownMenuItem>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data siswa secara permanen.
-                                </AlertDialogDescription>
+                                <AlertDialogDescription>Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data siswa secara permanen.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Batal</AlertDialogCancel>
@@ -265,23 +276,45 @@ export default function ManajemenSiswaPage() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center h-24">
-                    Belum ada data siswa.
-                  </TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center h-24">Belum ada data siswa.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={openKehadiran} onOpenChange={setOpenKehadiran}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Catat Kehadiran untuk {siswaKehadiran?.nama}</DialogTitle>
+                <DialogDescription>Pilih status kehadiran untuk tanggal {today}.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="status-kehadiran" className="text-right">Status</Label>
+                    <Select onValueChange={(value) => setStatusKehadiran(value as Kehadiran['status'])} defaultValue={statusKehadiran}>
+                        <SelectTrigger className="col-span-3" id="status-kehadiran"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Hadir">Hadir</SelectItem>
+                            <SelectItem value="Sakit">Sakit</SelectItem>
+                            <SelectItem value="Izin">Izin</SelectItem>
+                            <SelectItem value="Alpa">Alpa</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                <Button onClick={handleSaveKehadiran}>Simpan Kehadiran</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

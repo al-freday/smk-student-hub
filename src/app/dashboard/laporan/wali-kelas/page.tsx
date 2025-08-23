@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2 } from "lucide-react";
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-
+import { format } from "date-fns";
 
 // Data Types
 interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
@@ -29,6 +29,7 @@ interface Mutasi { id: number; tanggal: string; nama: string; jenis: 'Masuk' | '
 interface Rapor { id: number; nis: string; nama: string; tanggal: string; penerima: string; }
 interface Komite { id: number; nis: string; nama: string; status: 'Lunas' | 'Belum Lunas'; tanggal: string; }
 interface Kehadiran { totalSiswa: number; hadir: number; sakit: number; izin: number; alpa: number; }
+interface KehadiranSiswa { id: string; nis: string; nama: string; kelas: string; tanggal: string; status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';}
 
 export default function LaporanWaliKelasPage() {
   const { toast } = useToast();
@@ -56,7 +57,7 @@ export default function LaporanWaliKelasPage() {
   const [strukturOrganisasi, setStrukturOrganisasi] = useState<Organisasi>({
       "Ketua Kelas": "Ahmad Budi", "Wakil Ketua Kelas": "Citra Dewi", "Sekretaris": "Fitriani", "Bendahara": "Gunawan"
   });
-  const [kehadiranSiswa, setKehadiranSiswa] = useState<Kehadiran>({ totalSiswa: 40, hadir: 38, sakit: 1, izin: 1, alpa: 0 });
+  const [kehadiranSiswa, setKehadiranSiswa] = useState<Kehadiran>({ totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 });
   const [catatanSiswa, setCatatanSiswa] = useState<Catatan[]>([
       { id: 1, nama: "Eka Putra", catatan: "Perlu bimbingan lebih pada mata pelajaran Bahasa Inggris." },
   ]);
@@ -79,6 +80,26 @@ export default function LaporanWaliKelasPage() {
   
   // Generic form state
   const [formData, setFormData] = useState<any>({});
+
+  useEffect(() => {
+    const data = localStorage.getItem("kehadiranSiswa");
+    const today = format(new Date(), "yyyy-MM-dd");
+    let rekap: Kehadiran = { totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 };
+    
+    if (data) {
+        const riwayat: KehadiranSiswa[] = JSON.parse(data);
+        const kehadiranHariIni = riwayat.filter(k => k.tanggal === today);
+
+        rekap.hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
+        rekap.sakit = kehadiranHariIni.filter(k => k.status === 'Sakit').length;
+        rekap.izin = kehadiranHariIni.filter(k => k.status === 'Izin').length;
+        rekap.alpa = kehadiranHariIni.filter(k => k.status === 'Alpa').length;
+    }
+    // Jika ingin menghitung yang belum diabsen sebagai alpa
+    // rekap.alpa += rekap.totalSiswa - (rekap.hadir + rekap.sakit + rekap.izin + rekap.alpa);
+
+    setKehadiranSiswa(rekap);
+  }, []);
   
   const handlePrint = () => window.print();
 
@@ -261,7 +282,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama</TableHead><TableHead>L/P</TableHead><TableHead>Alamat</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -270,7 +291,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Catatan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'catatanSiswa', id: c.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'catatanSiswa', id: c.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -279,7 +300,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                      <Table>
                         <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Jenis Mutasi</TableHead><TableHead>Keterangan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('mutasiSiswa', m)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'mutasiSiswa', id: m.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('mutasiSiswa', m)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'mutasiSiswa', id: m.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -292,7 +313,7 @@ export default function LaporanWaliKelasPage() {
                     <CardContent>
                          <Table>
                             <TableHeader><TableRow><TableHead>Nama Barang</TableHead><TableHead>Jumlah</TableHead><TableHead>Kondisi</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                            <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('saranaKelas', s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'saranaKelas', id: s.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                            <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('saranaKelas', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'saranaKelas', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                         </Table>
                     </CardContent>
                 </Card>
@@ -315,7 +336,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Siswa Bertugas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{jadwalPiket.map(p => (<TableRow key={p.id}><TableCell className="font-semibold">{p.hari}</TableCell><TableCell>{p.siswa}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPiket', p)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'jadwalPiket', id: p.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{jadwalPiket.map(p => (<TableRow key={p.id}><TableCell className="font-semibold">{p.hari}</TableCell><TableCell>{p.siswa}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPiket', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPiket', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -331,7 +352,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                      <Table>
                         <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead className="text-right">Rata-Rata Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('rekapNilai', n)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'rekapNilai', id: n.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('rekapNilai', n)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'rekapNilai', id: n.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -340,7 +361,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                      <Table>
                         <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Jam</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Guru</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPelajaran', j)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'jadwalPelajaran', id: j.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPelajaran', j)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'jadwalPelajaran', id: j.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -350,8 +371,8 @@ export default function LaporanWaliKelasPage() {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Bulanan)</CardTitle>
-                        <CardDescription>Data ini direkapitulasi secara otomatis.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Hari Ini)</CardTitle>
+                        <CardDescription>Data ini direkapitulasi secara otomatis dari halaman Manajemen Siswa.</CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
@@ -367,7 +388,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Tanggal Terima</TableHead><TableHead>Penerima</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('terimaRapor', r)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'terimaRapor', id: r.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('terimaRapor', r)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'terimaRapor', id: r.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -379,7 +400,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -404,7 +425,7 @@ export default function LaporanWaliKelasPage() {
         </DialogContent>
       </Dialog>
       
-      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
