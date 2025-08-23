@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface Guru {
   id: number;
@@ -79,20 +80,26 @@ export default function ManajemenGuruPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
     const [teacherToDelete, setTeacherToDelete] = useState<Guru | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
     
     // Form state
     const [formData, setFormData] = useState<Partial<Guru>>({});
 
     useEffect(() => {
-        // Load data from localStorage if available
-        const savedTeachers = localStorage.getItem('teachersData');
-        if (savedTeachers) {
-            setTeachers(JSON.parse(savedTeachers));
-        }
+        const role = localStorage.getItem('userRole');
+        setUserRole(role);
+        // Load data using the new data manager
+        const savedTeachers = getSourceData('teachersData', initialTeachers);
+        setTeachers(savedTeachers);
     }, []);
 
-    const saveDataToLocalStorage = (data: typeof teachers) => {
-        localStorage.setItem('teachersData', JSON.stringify(data));
+    const saveData = (data: typeof teachers) => {
+        if (userRole === 'wakasek') {
+            updateSourceData('teachersData', data);
+        }
+        // Non-wakasek users do not write back to the source data to prevent overwrites.
+        // Logic for additions can be handled here if needed.
+        setTeachers(data);
     };
     
     const getRoleName = (tab: TeacherType) => {
@@ -128,8 +135,7 @@ export default function ManajemenGuruPage() {
         }
         
         const updatedTeachers = { ...teachers, [activeTab]: updatedList };
-        setTeachers(updatedTeachers);
-        saveDataToLocalStorage(updatedTeachers);
+        saveData(updatedTeachers);
         
         toast({ title: "Sukses", description: `Data ${getRoleName(activeTab)} berhasil disimpan.` });
         setIsDialogOpen(false);
@@ -140,12 +146,13 @@ export default function ManajemenGuruPage() {
         
         const updatedList = teachers[activeTab].filter(t => t.id !== teacherToDelete.id);
         const updatedTeachers = { ...teachers, [activeTab]: updatedList };
-        setTeachers(updatedTeachers);
-        saveDataToLocalStorage(updatedTeachers);
+        saveData(updatedTeachers);
 
         toast({ title: "Data Dihapus", description: `${teacherToDelete.nama} telah dihapus.` });
         setTeacherToDelete(null);
     };
+    
+    const canEdit = userRole === 'wakasek';
 
     const renderFormFields = () => (
         <>
@@ -179,14 +186,20 @@ export default function ManajemenGuruPage() {
              <div>
                 <h2 className="text-3xl font-bold tracking-tight">Manajemen Guru</h2>
                 <p className="text-muted-foreground">
-                    Kelola data guru berdasarkan perannya. Data ini akan menjadi acuan untuk manajemen pengguna.
+                    {canEdit
+                        ? "Kelola data guru. Perubahan di sini akan menjadi acuan untuk semua pengguna."
+                        : "Lihat data guru yang telah diatur oleh administrator."
+                    }
                 </p>
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Daftar Guru</CardTitle>
                     <CardDescription>
-                        Berikut adalah daftar guru yang terdaftar di sistem. Perubahan di sini akan memengaruhi data pengguna.
+                       {canEdit 
+                            ? "Perubahan di sini akan memengaruhi data pengguna secara otomatis."
+                            : "Data ini dikelola oleh Wakasek Kesiswaan."
+                       }
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -202,10 +215,12 @@ export default function ManajemenGuruPage() {
                         {Object.keys(teachers).map((key) => (
                             <TabsContent value={key} key={key} className="mt-4">
                                 <div className="flex justify-end mb-4">
-                                    <Button onClick={() => handleOpenDialog()}>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Tambah {getRoleName(key as TeacherType)}
-                                    </Button>
+                                    {canEdit && (
+                                        <Button onClick={() => handleOpenDialog()}>
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Tambah {getRoleName(key as TeacherType)}
+                                        </Button>
+                                    )}
                                 </div>
                                 <Table>
                                     <TableHeader>
@@ -214,7 +229,7 @@ export default function ManajemenGuruPage() {
                                             {key === 'waliKelas' && <TableHead>Kelas Binaan</TableHead>}
                                             {key === 'guruMapel' && <TableHead>Mata Pelajaran</TableHead>}
                                             {key === 'guruPiket' && <TableHead>Hari Piket</TableHead>}
-                                            <TableHead className="text-right">Aksi</TableHead>
+                                            {canEdit && <TableHead className="text-right">Aksi</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -225,19 +240,21 @@ export default function ManajemenGuruPage() {
                                                     {key === 'waliKelas' && <TableCell>{guru.kelas}</TableCell>}
                                                     {key === 'guruMapel' && <TableCell>{guru.mapel}</TableCell>}
                                                     {key === 'guruPiket' && <TableCell>{guru.hariPiket}</TableCell>}
-                                                    <TableCell className="text-right">
-                                                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(guru)}>
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => setTeacherToDelete(guru)}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </TableCell>
+                                                    {canEdit && (
+                                                        <TableCell className="text-right">
+                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(guru)}>
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => setTeacherToDelete(guru)}>
+                                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    )}
                                                 </TableRow>
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={3} className="h-24 text-center">
+                                                <TableCell colSpan={canEdit ? 3 : 2} className="h-24 text-center">
                                                     Belum ada data.
                                                 </TableCell>
                                             </TableRow>
@@ -282,3 +299,5 @@ export default function ManajemenGuruPage() {
         </div>
     );
 }
+
+    
