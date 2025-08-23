@@ -41,12 +41,15 @@ const roleOptions: { value: TeacherType; label: string }[] = [
 ];
 
 const getRoleName = (roleKey: TeacherType | string) => {
-    return roleOptions.find(r => r.value === roleKey)?.label || 'Pengguna';
+    const role = roleOptions.find(r => r.value === roleKey);
+    return role ? role.label : 'Pengguna';
 };
 
+
 const createEmailFromName = (name: string, roleKey: string, id: number) => {
-    const namePart = name.toLowerCase().replace(/\s/g, '.').replace(/[^a-z0-9.]/g, '');
-    return `${namePart}${id}@email.com`;
+    const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+    const roleInitial = roleKey.replace('guru', '').charAt(0);
+    return `${namePart}${id}@schoolemail.com`;
 };
 
 export default function ManajemenPenggunaPage() {
@@ -56,36 +59,52 @@ export default function ManajemenPenggunaPage() {
   });
   const [activeTab, setActiveTab] = useState<TeacherType>('waliKelas');
 
+  // This function loads data from localStorage, simulating a data fetch from a central source.
   const loadDataFromStorage = () => {
-    const savedTeachers = localStorage.getItem('teachersData');
-    if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
-        const usersData = { waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [] };
-        
-        for (const roleKey in teachersData) {
-            if (usersData.hasOwnProperty(roleKey)) {
-                usersData[roleKey as TeacherType] = teachersData[roleKey].map((guru: Guru) => ({
-                    ...guru,
-                    role: getRoleName(roleKey),
-                    email: createEmailFromName(guru.nama, roleKey, guru.id),
-                    password: "password123",
-                }));
+    try {
+        const savedTeachers = localStorage.getItem('teachersData');
+        if (savedTeachers) {
+            const teachersData = JSON.parse(savedTeachers);
+            const usersData = { waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [] };
+            
+            // Iterate over all teacher roles and create user accounts
+            for (const roleKey in teachersData) {
+                if (usersData.hasOwnProperty(roleKey)) {
+                    usersData[roleKey as TeacherType] = teachersData[roleKey].map((guru: Guru) => ({
+                        ...guru,
+                        role: getRoleName(roleKey),
+                        email: createEmailFromName(guru.nama, roleKey, guru.id),
+                        password: "password123", // Default password for all users
+                    }));
+                }
             }
+            setUsers(usersData);
         }
-        setUsers(usersData);
+    } catch (error) {
+        console.error("Failed to parse teachers data from localStorage", error);
+        toast({
+            title: "Gagal Memuat Data",
+            description: "Data guru tidak dapat dimuat. Coba muat ulang halaman.",
+            variant: "destructive"
+        })
     }
   };
   
   useEffect(() => {
+    // Initial data load
     loadDataFromStorage();
     
-    // Add event listener to update user data when teacher data changes
-    const handleStorageChange = () => {
-        loadDataFromStorage();
+    // This function handles updates if another tab changes the teacher data
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === 'teachersData') {
+            loadDataFromStorage();
+        }
     };
     
+    // Listen for storage changes to keep data in sync
     window.addEventListener('storage', handleStorageChange);
     
+    // Cleanup listener on component unmount
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
@@ -143,8 +162,9 @@ export default function ManajemenPenggunaPage() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.role}</TableCell>
                           <TableCell className="text-right">
-                             <Button variant="ghost" size="icon" onClick={() => handleShowPassword(user.password || "")}>
-                                <Eye className="h-4 w-4" />
+                             <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Lihat Password
                              </Button>
                           </TableCell>
                         </TableRow>
@@ -152,7 +172,7 @@ export default function ManajemenPenggunaPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={4} className="h-24 text-center">
-                          Belum ada data pengguna. Tambahkan guru di halaman Manajemen Guru.
+                          Belum ada data pengguna untuk peran ini. Tambahkan guru di halaman Manajemen Guru.
                         </TableCell>
                       </TableRow>
                     )}
