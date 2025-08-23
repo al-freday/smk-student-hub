@@ -163,6 +163,12 @@ export default function JadwalPelajaranPage() {
                       <AccordionItem value={`${hari}-${kelas}`} key={`${hari}-${kelas}`}>
                         <AccordionTrigger>{kelas}</AccordionTrigger>
                         <AccordionContent>
+                            <div className="flex justify-end mb-2">
+                                <Button variant="outline" size="sm" onClick={() => handleOpenDialog(null, { hari, kelas })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Tambah Jadwal
+                                </Button>
+                            </div>
                           {jadwalKelas.length > 0 ? (
                             <Table>
                               <TableHeader>
@@ -194,10 +200,6 @@ export default function JadwalPelajaranPage() {
                            ) : (
                             <div className="text-center text-sm text-muted-foreground py-4">
                                 <p>Belum ada jadwal untuk kelas ini.</p>
-                                <Button variant="link" size="sm" className="mt-2" onClick={() => handleOpenDialog(null, { hari, kelas })}>
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Tambah Jadwal
-                                </Button>
                             </div>
                            )}
                         </AccordionContent>
