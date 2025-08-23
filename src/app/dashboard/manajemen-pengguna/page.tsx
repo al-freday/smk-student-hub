@@ -105,7 +105,7 @@ export default function ManajemenPenggunaPage() {
                     ...guru,
                     role: getRoleName(roleKey),
                     email: createEmailFromName(guru.nama, roleKey, guru.id),
-                    password: "password123",
+                    password: "password123", // Password dibuat otomatis
                 }));
             }
         }
@@ -136,7 +136,7 @@ export default function ManajemenPenggunaPage() {
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [toast]);
   
   const canEdit = userRole === 'wakasek';
 
@@ -224,7 +224,7 @@ export default function ManajemenPenggunaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            {canEdit ? "Kelola data pengguna sistem." : "Lihat daftar pengguna yang terdaftar."}
+            {canEdit ? "Kelola data pengguna sistem, termasuk pembuatan password otomatis." : "Lihat daftar pengguna yang terdaftar."}
           </p>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function ManajemenPenggunaPage() {
           <CardTitle>Daftar Pengguna</CardTitle>
           <CardDescription>
             {canEdit 
-              ? "Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna."
+              ? "Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna. Password dibuat otomatis dan dapat dilihat."
               : "Data ini dikelola oleh Wakasek Kesiswaan."
             }
           </CardDescription>
@@ -274,12 +274,12 @@ export default function ManajemenPenggunaPage() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.role}</TableCell>
                           <TableCell className="text-right">
-                             <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2">
-                                <Eye className="mr-2 h-4 w-4" />
-                                Password
-                             </Button>
                              {canEdit && (
                                 <>
+                                  <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2">
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      Password
+                                  </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
                                       <Edit className="h-4 w-4" />
                                   </Button>
@@ -327,7 +327,7 @@ export default function ManajemenPenggunaPage() {
       <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
           <AlertDialogContent>
               <AlertDialogHeader>
-                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <DialogTitle>Apakah Anda yakin?</DialogTitle>
                   <AlertDialogDescription>
                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen.
                   </AlertDialogDescription>
@@ -341,3 +341,5 @@ export default function ManajemenPenggunaPage() {
     </div>
   );
 }
+
+    
