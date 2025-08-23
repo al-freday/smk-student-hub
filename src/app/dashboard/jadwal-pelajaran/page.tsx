@@ -91,12 +91,13 @@ export default function JadwalPelajaranPage() {
     setEditingJadwal(null);
   };
 
-  const handleOpenDialog = (jadwalItem: Jadwal | null = null) => {
+  const handleOpenDialog = (jadwalItem: Jadwal | null = null, defaultValues: Partial<Jadwal> = {}) => {
     if (jadwalItem) {
       setEditingJadwal(jadwalItem);
       setFormData(jadwalItem);
     } else {
       resetForm();
+      setFormData(defaultValues);
     }
     setIsDialogOpen(true);
   };
@@ -154,51 +155,56 @@ export default function JadwalPelajaranPage() {
               <CardTitle>{hari}</CardTitle>
             </CardHeader>
             <CardContent>
-              {jadwalHari.length > 0 ? (
                 <Accordion type="multiple" className="w-full">
                   {daftarKelas.map(kelas => {
                     const jadwalKelas = jadwalHari.filter(j => j.kelas === kelas).sort((a,b) => a.jamMulai.localeCompare(b.jamMulai));
-                    if (jadwalKelas.length === 0) return null;
                     
                     return (
-                      <AccordionItem value={kelas} key={kelas}>
+                      <AccordionItem value={`${hari}-${kelas}`} key={`${hari}-${kelas}`}>
                         <AccordionTrigger>{kelas}</AccordionTrigger>
                         <AccordionContent>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Jam</TableHead>
-                                <TableHead>Mata Pelajaran</TableHead>
-                                <TableHead>Guru</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {jadwalKelas.map((j) => (
-                                <TableRow key={j.id}>
-                                  <TableCell>{j.jamMulai} - {j.jamSelesai}</TableCell>
-                                  <TableCell className="font-medium">{j.mataPelajaran}</TableCell>
-                                  <TableCell>{j.guru}</TableCell>
-                                  <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(j)}>
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setJadwalToDelete(j)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </TableCell>
+                          {jadwalKelas.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Jam</TableHead>
+                                  <TableHead>Mata Pelajaran</TableHead>
+                                  <TableHead>Guru</TableHead>
+                                  <TableHead className="text-right">Aksi</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {jadwalKelas.map((j) => (
+                                  <TableRow key={j.id}>
+                                    <TableCell>{j.jamMulai} - {j.selesai}</TableCell>
+                                    <TableCell className="font-medium">{j.mataPelajaran}</TableCell>
+                                    <TableCell>{j.guru}</TableCell>
+                                    <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(j)}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => setJadwalToDelete(j)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                           ) : (
+                            <div className="text-center text-sm text-muted-foreground py-4">
+                                <p>Belum ada jadwal untuk kelas ini.</p>
+                                <Button variant="link" size="sm" className="mt-2" onClick={() => handleOpenDialog(null, { hari, kelas })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Tambah Jadwal
+                                </Button>
+                            </div>
+                           )}
                         </AccordionContent>
                       </AccordionItem>
                     );
                   })}
                 </Accordion>
-              ) : (
-                <p className="text-center text-sm text-muted-foreground py-8">Belum ada jadwal untuk hari ini.</p>
-              )}
             </CardContent>
           </Card>
         ))}
@@ -224,15 +230,21 @@ export default function JadwalPelajaranPage() {
                 <SelectContent>{daftarKelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <Label htmlFor="jamMulai">Jam Mulai</Label>
-                <Input id="jamMulai" type="time" value={formData.jamMulai || ""} onChange={(e) => setFormData({ ...formData, jamMulai: e.target.value })} />
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="jamSelesai">Jam Selesai</Label>
-                <Input id="jamSelesai" type="time" value={formData.jamSelesai || ""} onChange={(e) => setFormData({ ...formData, jamSelesai: e.target.value })} />
-              </div>
+             <div className="space-y-2">
+                <Label htmlFor="jam">Sesi Jam Pelajaran</Label>
+                <Select onValueChange={value => {
+                    const [jamMulai, jamSelesai] = value.split('-');
+                    setFormData({ ...formData, jamMulai, jamSelesai });
+                }}>
+                    <SelectTrigger id="jam"><SelectValue placeholder="Pilih Jam" /></SelectTrigger>
+                    <SelectContent>
+                        {jamPelajaran.map(jam => (
+                            <SelectItem key={jam.mulai} value={`${jam.mulai}-${jam.selesai}`}>
+                                {jam.mulai} - {jam.selesai}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="mapel">Mata Pelajaran & Guru</Label>
@@ -269,3 +281,5 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
+
+    
