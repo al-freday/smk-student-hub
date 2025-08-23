@@ -15,23 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { MoreHorizontal, Edit, Trash2, PlusCircle, Upload, Save } from "lucide-react";
+import { Upload, Save } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,7 +35,6 @@ export default function PengaturanPage() {
   const [schoolName, setSchoolName] = useState("SMKN 2 Tana Toraja");
   const [headmasterName, setHeadmasterName] = useState("Nama Kepala Sekolah");
   const [logo, setLogo] = useState("https://placehold.co/80x80.png");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State for Account Settings
   const [accountName, setAccountName] = useState("Wakasek Kesiswaan");
@@ -69,27 +52,7 @@ export default function PengaturanPage() {
     guruPendamping: [{ id: 1, nama: "Rina Kartika, S.Pd." }],
   });
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
   const [activeTab, setActiveTab] = useState<TeacherType>('waliKelas');
-  
-  // Form states
-  const [namaGuru, setNamaGuru] = useState("");
-  const [detail, setDetail] = useState(""); // Bisa untuk kelas, mapel, atau hari piket
-
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target && typeof e.target.result === 'string') {
-          setLogo(e.target.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
   
   const handleThemeChange = (newTheme: { [key: string]: string }) => {
     Object.entries(newTheme).forEach(([property, value]) => {
@@ -115,72 +78,6 @@ export default function PengaturanPage() {
     orange: { "--primary": "25 95% 53%", "--accent": "25 90% 65%" },
   };
 
-  const resetForm = () => {
-    setNamaGuru("");
-    setDetail("");
-    setEditingTeacher(null);
-  };
-  
-  const handleOpenDialog = (teacherToEdit: Guru | null = null) => {
-    if (teacherToEdit) {
-      setEditingTeacher(teacherToEdit);
-      setNamaGuru(teacherToEdit.nama);
-      switch(activeTab) {
-        case 'waliKelas': setDetail(teacherToEdit.kelas || ""); break;
-        case 'guruMapel': setDetail(teacherToEdit.mapel || ""); break;
-        case 'guruPiket': setDetail(teacherToEdit.hariPiket || ""); break;
-        default: setDetail("");
-      }
-    } else {
-      resetForm();
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveTeacher = () => {
-    if (!namaGuru) return;
-    
-    const teacherList = teachers[activeTab];
-    const newTeacherData: Guru = {
-        id: editingTeacher ? editingTeacher.id : (teacherList.length > 0 ? Math.max(...teacherList.map(t => t.id)) + 1 : 1),
-        nama: namaGuru,
-        ...(activeTab === 'waliKelas' && { kelas: detail }),
-        ...(activeTab === 'guruMapel' && { mapel: detail }),
-        ...(activeTab === 'guruPiket' && { hariPiket: detail }),
-    };
-
-    let updatedList;
-    if (editingTeacher) {
-      updatedList = teacherList.map(t => t.id === editingTeacher.id ? newTeacherData : t);
-    } else {
-      updatedList = [...teacherList, newTeacherData];
-    }
-
-    setTeachers(prev => ({ ...prev, [activeTab]: updatedList }));
-    resetForm();
-    setIsDialogOpen(false);
-  };
-
-  const handleDeleteTeacher = (id: number) => {
-    setTeachers(prev => ({
-      ...prev,
-      [activeTab]: prev[activeTab].filter(t => t.id !== id)
-    }));
-  };
-
-  const getDialogDetails = () => {
-    switch (activeTab) {
-      case 'waliKelas': return { title: 'Wali Kelas', label: 'Kelas Binaan', placeholder: 'Contoh: X TKJ 1' };
-      case 'guruMapel': return { title: 'Guru Mapel', label: 'Mata Pelajaran', placeholder: 'Contoh: Matematika' };
-      case 'guruPiket': return { title: 'Guru Piket', label: 'Hari Piket', placeholder: 'Contoh: Senin' };
-      case 'guruBk': return { title: 'Guru BK', label: null, placeholder: '' };
-      case 'guruPendamping': return { title: 'Guru Pendamping', label: null, placeholder: '' };
-      default: return { title: 'Guru', label: null, placeholder: '' };
-    }
-  };
-  
-  const { title, label, placeholder } = getDialogDetails();
-
   return (
     <div className="flex-1 space-y-6">
       <div>
@@ -197,17 +94,17 @@ export default function PengaturanPage() {
             <CardHeader>
               <CardTitle>Informasi Sekolah</CardTitle>
               <CardDescription>
-                Ubah detail dasar mengenai sekolah Anda.
+                Informasi ini dikelola oleh Wakasek Kesiswaan.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="school-name">Nama Sekolah</Label>
-                <Input id="school-name" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} />
+                <Input id="school-name" value={schoolName} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="headmaster-name">Nama Kepala Sekolah</Label>
-                <Input id="headmaster-name" value={headmasterName} onChange={(e) => setHeadmasterName(e.target.value)} />
+                <Input id="headmaster-name" value={headmasterName} disabled />
               </div>
               <div className="space-y-2">
                  <Label>Logo Sekolah</Label>
@@ -216,17 +113,8 @@ export default function PengaturanPage() {
                        <AvatarImage src={logo} alt="Logo Sekolah" data-ai-hint="school building" />
                        <AvatarFallback>LOGO</AvatarFallback>
                     </Avatar>
-                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="mr-2 h-4 w-4"/>
-                        Ganti Logo
-                    </Button>
-                    <Input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoChange}/>
                  </div>
               </div>
-               <Button onClick={() => handleSaveChanges("Informasi Sekolah Disimpan", "Perubahan informasi sekolah telah berhasil disimpan.")}>
-                    <Save className="mr-2 h-4 w-4"/>
-                    Simpan Perubahan
-               </Button>
             </CardContent>
           </Card>
           
@@ -286,7 +174,7 @@ export default function PengaturanPage() {
             <CardHeader>
               <CardTitle>Manajemen Guru</CardTitle>
               <CardDescription>
-                Kelola daftar guru berdasarkan perannya masing-masing.
+                Daftar guru berdasarkan perannya. Data ini dikelola oleh Wakasek.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -301,37 +189,6 @@ export default function PengaturanPage() {
 
                 {Object.keys(teachers).map((key) => (
                   <TabsContent value={key} key={key} className="mt-4">
-                      <div className="flex justify-end mb-4">
-                        <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) resetForm(); }}>
-                              <DialogTrigger asChild>
-                                <Button onClick={() => handleOpenDialog()}>
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Tambah {getDialogDetails().title}
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                  <DialogTitle>{editingTeacher ? 'Edit' : 'Tambah'} {title}</DialogTitle>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                  <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="nama-guru" className="text-right">Nama</Label>
-                                    <Input id="nama-guru" value={namaGuru} onChange={(e) => setNamaGuru(e.target.value)} className="col-span-3" placeholder="Nama lengkap guru" />
-                                  </div>
-                                  {label && (
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="detail-guru" className="text-right">{label}</Label>
-                                        <Input id="detail-guru" value={detail} onChange={(e) => setDetail(e.target.value)} className="col-span-3" placeholder={placeholder} />
-                                    </div>
-                                  )}
-                                </div>
-                                <DialogFooter>
-                                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                                  <Button onClick={handleSaveTeacher}>Simpan</Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                      </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -339,7 +196,6 @@ export default function PengaturanPage() {
                           {key === 'waliKelas' && <TableHead>Kelas Binaan</TableHead>}
                           {key === 'guruMapel' && <TableHead>Mata Pelajaran</TableHead>}
                           {key === 'guruPiket' && <TableHead>Hari Piket</TableHead>}
-                          <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -350,22 +206,11 @@ export default function PengaturanPage() {
                               {key === 'waliKelas' && <TableCell>{guru.kelas}</TableCell>}
                               {key === 'guruMapel' && <TableCell>{guru.mapel}</TableCell>}
                               {key === 'guruPiket' && <TableCell>{guru.hariPiket}</TableCell>}
-                              <TableCell className="text-right">
-                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => handleOpenDialog(guru)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                                      <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTeacher(guru.id)}><Trash2 className="mr-2 h-4 w-4" /> Hapus</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                              </TableCell>
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={3} className="h-24 text-center">
+                            <TableCell colSpan={2} className="h-24 text-center">
                               Belum ada data.
                             </TableCell>
                           </TableRow>
@@ -382,5 +227,3 @@ export default function PengaturanPage() {
     </div>
   );
 }
-
-    
