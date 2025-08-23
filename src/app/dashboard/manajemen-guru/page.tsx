@@ -58,19 +58,11 @@ const daftarKelas = [
 const hariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
 const initialTeachers: { [key in TeacherType]: Guru[] } = {
-    waliKelas: daftarKelas.map((kelas, i) => ({ 
-        id: i + 1, 
-        nama: `Wali Kelas ${i + 1}`, 
-        kelas: kelas 
-    })),
-    guruBk: Array.from({ length: 3 }, (_, i) => ({ id: i + 1, nama: `Guru BK ${i + 1}` })),
-    guruMapel: Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nama: `Guru Mapel ${i + 1}`, mapel: `Mapel ${i + 1}` })),
-    guruPiket: Array.from({ length: 40 }, (_, i) => ({ 
-        id: i + 1, 
-        nama: `Guru Piket ${i + 1}`, 
-        hariPiket: hariPiket[i % hariPiket.length] 
-    })),
-    guruPendamping: Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nama: `Guru Pendamping ${i + 1}` })),
+    waliKelas: [],
+    guruBk: [],
+    guruMapel: [],
+    guruPiket: [],
+    guruPendamping: [],
 };
 
 export default function ManajemenGuruPage() {
@@ -84,21 +76,20 @@ export default function ManajemenGuruPage() {
     
     // Form state
     const [formData, setFormData] = useState<Partial<Guru>>({});
+    
+    const loadData = () => {
+        const savedTeachers = getSourceData('teachersData', initialTeachers);
+        setTeachers(savedTeachers);
+    };
 
     useEffect(() => {
         const role = localStorage.getItem('userRole');
         setUserRole(role);
-        // Load data using the new data manager
-        const savedTeachers = getSourceData('teachersData', initialTeachers);
-        setTeachers(savedTeachers);
+        loadData();
     }, []);
 
     const saveData = (data: typeof teachers) => {
-        if (userRole === 'wakasek') {
-            updateSourceData('teachersData', data);
-        }
-        // Non-wakasek users do not write back to the source data to prevent overwrites.
-        // Logic for additions can be handled here if needed.
+        updateSourceData('teachersData', data);
         setTeachers(data);
     };
     
@@ -299,5 +290,3 @@ export default function ManajemenGuruPage() {
         </div>
     );
 }
-
-    
