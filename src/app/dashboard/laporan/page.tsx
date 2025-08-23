@@ -80,7 +80,7 @@ export default function LaporanPage() {
   const handleDownloadRekap = () => {
     toast({
       title: "Rekapitulasi Diunduh",
-      description: "Semua laporan telah ditandai sebagai 'diterima'. Notifikasi akan dikirimkan ke pengguna terkait.",
+      description: "File rekapitulasi semua laporan sedang disiapkan.",
     });
   };
   
@@ -124,7 +124,7 @@ export default function LaporanPage() {
                     <span>Rekapitulasi Laporan Masuk</span>
                      <Button onClick={handleDownloadRekap}>
                         <Download className="mr-2 h-4 w-4" />
-                        Unduh Rekapitulasi & Tandai Diterima
+                        Unduh Rekapitulasi
                     </Button>
                 </CardTitle>
                 <CardDescription>Ringkasan jumlah laporan yang telah dikirim oleh setiap peran guru.</CardDescription>
