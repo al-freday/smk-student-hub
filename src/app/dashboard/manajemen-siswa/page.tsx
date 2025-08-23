@@ -76,9 +76,10 @@ const generateInitialSiswa = (): Siswa[] => {
   const siswaList: Siswa[] = [];
   let id = 1;
   daftarKelas.forEach(kelas => {
-    // Generate 2 students for each class for demonstration
-    for (let i = 1; i <= 2; i++) {
-      const nis = `${1000 + id}`.padEnd(10, '0');
+    // Generate 40 students for each class to match class management data
+    for (let i = 1; i <= 40; i++) {
+      const nisSuffix = id.toString().padStart(4, '0');
+      const nis = `24${nisSuffix}`;
       siswaList.push({
         id: id++,
         nis: nis,
