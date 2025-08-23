@@ -41,6 +41,17 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
+  admin: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
+    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
+    { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
+    { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
+  ],
   waliKelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },

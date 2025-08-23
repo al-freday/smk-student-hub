@@ -22,6 +22,7 @@ const getRoleDisplayName = (role: string) => {
         case 'guruPiket': return 'Guru Piket';
         case 'guruPendamping': return 'Guru Pendamping';
         case 'wakasek': return 'Wakasek Kesiswaan';
+        case 'admin': return 'Administrator';
         default: return 'Pengguna';
     }
 };
@@ -339,6 +340,8 @@ const GeneralUserDashboard = ({ role }: { role: string }) => {
 const renderDashboardByRole = (role: string) => {
     switch (role) {
         case 'wakasek':
+            return <WakasekDashboard />;
+        case 'admin': // Admin gets the same dashboard as Wakasek
             return <WakasekDashboard />;
         case 'waliKelas':
             return <WaliKelasDashboard />;
