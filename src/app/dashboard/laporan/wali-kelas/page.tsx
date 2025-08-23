@@ -2,26 +2,27 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, User, Box, Calendar, CheckCircle, TrendingUp, Users, ArrowRightLeft, FileText, DollarSign, Armchair, Send, MoreHorizontal, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Printer, Users, Box, Calendar, CheckCircle, TrendingUp, ArrowRightLeft, FileText, DollarSign, Armchair, Send, PlusCircle, Edit, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 // Data Types
 interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
 interface Sarana { id: number; nama: string; jumlah: number; kondisi: string; }
 interface Nilai { id: number; mapel: string; rataRata: number; }
 interface Jadwal { id: number; hari: string; jam: string; mapel: string; guru: string; }
-interface Piket { id: number; hari: string; siswa: string[]; }
+interface Piket { id: number; hari: string; siswa: string; }
 interface Organisasi { [key: string]: string; }
 interface Catatan { id: number; nama: string; catatan: string; }
 interface Mutasi { id: number; tanggal: string; nama: string; jenis: 'Masuk' | 'Keluar'; keterangan: string; }
@@ -49,8 +50,8 @@ export default function LaporanWaliKelasPage() {
       { id: 1, hari: "Senin", jam: "07:30-09:00", mapel: "Matematika", guru: "Drs. Budi Santoso" },
   ]);
   const [jadwalPiket, setJadwalPiket] = useState<Piket[]>([
-      { id: 1, hari: "Senin", siswa: ["Ahmad", "Budi", "Citra", "Dewi"] },
-      { id: 2, hari: "Selasa", siswa: ["Eka", "Fitri", "Gunawan", "Hana"] },
+      { id: 1, hari: "Senin", siswa: "Ahmad, Budi, Citra, Dewi" },
+      { id: 2, hari: "Selasa", siswa: "Eka, Fitri, Gunawan, Hana" },
   ]);
   const [strukturOrganisasi, setStrukturOrganisasi] = useState<Organisasi>({
       "Ketua Kelas": "Ahmad Budi", "Wakil Ketua Kelas": "Citra Dewi", "Sekretaris": "Fitriani", "Bendahara": "Gunawan"
@@ -74,6 +75,7 @@ export default function LaporanWaliKelasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{section: string; id: number} | null>(null);
   
   // Generic form state
   const [formData, setFormData] = useState<any>({});
@@ -94,33 +96,52 @@ export default function LaporanWaliKelasPage() {
     setDialogOpen(true);
   };
   
-  const handleDelete = (section: string, id: number) => {
-    switch(section) {
-        case 'identitasSiswa': setIdentitasSiswa(prev => prev.filter(i => i.id !== id)); break;
-        case 'catatanSiswa': setCatatanSiswa(prev => prev.filter(i => i.id !== id)); break;
-        case 'mutasiSiswa': setMutasiSiswa(prev => prev.filter(i => i.id !== id)); break;
-        case 'saranaKelas': setSaranaKelas(prev => prev.filter(i => i.id !== id)); break;
-        case 'jadwalPelajaran': setJadwalPelajaran(prev => prev.filter(i => i.id !== id)); break;
-        case 'rekapNilai': setRekapNilai(prev => prev.filter(i => i.id !== id)); break;
-        case 'terimaRapor': setTerimaRapor(prev => prev.filter(i => i.id !== id)); break;
-        case 'pembayaranKomite': setPembayaranKomite(prev => prev.filter(i => i.id !== id)); break;
-        case 'jadwalPiket': setJadwalPiket(prev => prev.filter(i => i.id !== id)); break;
+  const handleDelete = () => {
+    if (!itemToDelete) return;
+    const { section, id } = itemToDelete;
+
+    const setters: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+        identitasSiswa: setIdentitasSiswa,
+        catatanSiswa: setCatatanSiswa,
+        mutasiSiswa: setMutasiSiswa,
+        saranaKelas: setSaranaKelas,
+        jadwalPelajaran: setJadwalPelajaran,
+        rekapNilai: setRekapNilai,
+        terimaRapor: setTerimaRapor,
+        pembayaranKomite: setPembayaranKomite,
+        jadwalPiket: setJadwalPiket,
+    };
+    
+    if (setters[section]) {
+        setters[section]((prev: any[]) => prev.filter(i => i.id !== id));
     }
+    
     toast({ title: "Data Dihapus", description: "Data telah berhasil dihapus." });
+    setItemToDelete(null);
   };
   
   const handleSave = () => {
     const id = editingItem ? editingItem.id : Date.now();
     const newItem = { ...formData, id };
     
-    switch(currentSection) {
-        case 'identitasSiswa': 
-            setIdentitasSiswa(prev => editingItem ? prev.map(i => i.id === id ? newItem : i) : [...prev, newItem]);
-            break;
-        case 'catatanSiswa':
-            setCatatanSiswa(prev => editingItem ? prev.map(i => i.id === id ? newItem : i) : [...prev, newItem]);
-            break;
-        // ... add cases for other sections ...
+    const updaters: { [key: string]: React.Dispatch<React.SetStateAction<any[]>> } = {
+        identitasSiswa: setIdentitasSiswa,
+        catatanSiswa: setCatatanSiswa,
+        mutasiSiswa: setMutasiSiswa,
+        saranaKelas: setSaranaKelas,
+        jadwalPelajaran: setJadwalPelajaran,
+        rekapNilai: setRekapNilai,
+        terimaRapor: setTerimaRapor,
+        pembayaranKomite: setPembayaranKomite,
+        jadwalPiket: setJadwalPiket,
+    };
+
+    if (updaters[currentSection!]) {
+      updaters[currentSection!]((prev: any[]) => 
+        editingItem ? prev.map(i => i.id === id ? newItem : i) : [...prev, newItem]
+      );
+    } else if (currentSection === 'strukturOrganisasi') {
+      setStrukturOrganisasi(formData);
     }
     
     toast({ title: "Data Tersimpan", description: "Perubahan telah berhasil disimpan." });
@@ -145,11 +166,70 @@ export default function LaporanWaliKelasPage() {
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="catatan" className="text-right">Catatan</Label><Textarea id="catatan" value={formData.catatan || ""} onChange={e => setFormData({...formData, catatan: e.target.value})} className="col-span-3" /></div>
             </>
         );
-        // Add more cases for other editable sections
+        case 'mutasiSiswa': return (
+             <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="jenis" className="text-right">Jenis</Label><Select value={formData.jenis || ""} onValueChange={value => setFormData({...formData, jenis: value})}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Masuk">Masuk</SelectItem><SelectItem value="Keluar">Keluar</SelectItem></SelectContent></Select></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="keterangan" className="text-right">Keterangan</Label><Input id="keterangan" value={formData.keterangan || ""} onChange={e => setFormData({...formData, keterangan: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
+        case 'saranaKelas': return (
+             <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama Barang</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="jumlah" className="text-right">Jumlah</Label><Input id="jumlah" type="number" value={formData.jumlah || ""} onChange={e => setFormData({...formData, jumlah: parseInt(e.target.value)})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kondisi" className="text-right">Kondisi</Label><Input id="kondisi" value={formData.kondisi || ""} onChange={e => setFormData({...formData, kondisi: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
+        case 'strukturOrganisasi': return (
+            <>
+              {Object.keys(strukturOrganisasi).map(jabatan => (
+                  <div className="grid grid-cols-4 items-center gap-4" key={jabatan}>
+                    <Label htmlFor={jabatan} className="text-right">{jabatan}</Label>
+                    <Input id={jabatan} value={formData[jabatan] || ""} onChange={e => setFormData({...formData, [jabatan]: e.target.value})} className="col-span-3" />
+                  </div>
+              ))}
+            </>
+        );
+         case 'jadwalPiket': return (
+            <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="hari" className="text-right">Hari</Label><Input id="hari" value={formData.hari || ""} onChange={e => setFormData({...formData, hari: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="siswa" className="text-right">Siswa</Label><Textarea id="siswa" placeholder="Pisahkan nama dengan koma" value={formData.siswa || ""} onChange={e => setFormData({...formData, siswa: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
+         case 'rekapNilai': return (
+            <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label><Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({...formData, mapel: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="rataRata" className="text-right">Rata-rata</Label><Input id="rataRata" type="number" step="0.1" value={formData.rataRata || ""} onChange={e => setFormData({...formData, rataRata: parseFloat(e.target.value)})} className="col-span-3" /></div>
+            </>
+        );
+        case 'jadwalPelajaran': return (
+            <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="hari" className="text-right">Hari</Label><Input id="hari" value={formData.hari || ""} onChange={e => setFormData({...formData, hari: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="jam" className="text-right">Jam</Label><Input id="jam" value={formData.jam || ""} onChange={e => setFormData({...formData, jam: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="mapel" className="text-right">Mapel</Label><Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({...formData, mapel: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="guru" className="text-right">Guru</Label><Input id="guru" value={formData.guru || ""} onChange={e => setFormData({...formData, guru: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
+        case 'terimaRapor': return (
+            <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={formData.nis || ""} onChange={e => setFormData({...formData, nis: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="penerima" className="text-right">Penerima</Label><Input id="penerima" value={formData.penerima || ""} onChange={e => setFormData({...formData, penerima: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
+        case 'pembayaranKomite': return (
+            <>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={formData.nis || ""} onChange={e => setFormData({...formData, nis: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="status" className="text-right">Status</Label><Select value={formData.status || ""} onValueChange={value => setFormData({...formData, status: value})}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Lunas">Lunas</SelectItem><SelectItem value="Belum Lunas">Belum Lunas</SelectItem></SelectContent></Select></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="tanggal" className="text-right">Tanggal</Label><Input id="tanggal" type="date" value={formData.tanggal || ""} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="col-span-3" /></div>
+            </>
+        );
         default: return <p>Form tidak tersedia untuk seksi ini.</p>;
     }
   }
-
 
   return (
     <div className="flex-1 space-y-6">
@@ -181,7 +261,7 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama</TableHead><TableHead>L/P</TableHead><TableHead>Alamat</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => handleDelete('identitasSiswa', s.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -190,16 +270,16 @@ export default function LaporanWaliKelasPage() {
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Catatan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                        <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => handleDelete('catatanSiswa', c.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{catatanSiswa.map(c => (<TableRow key={c.id}><TableCell className="font-medium">{c.nama}</TableCell><TableCell>{c.catatan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('catatanSiswa', c)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'catatanSiswa', id: c.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Daftar Mutasi Siswa</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><ArrowRightLeft /> Daftar Mutasi Siswa</CardTitle><Button size="sm" onClick={() => handleOpenDialog('mutasiSiswa')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
                      <Table>
-                        <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Jenis Mutasi</TableHead><TableHead>Keterangan</TableHead></TableRow></TableHeader>
-                        <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell></TableRow>))}</TableBody>
+                        <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Jenis Mutasi</TableHead><TableHead>Keterangan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{mutasiSiswa.map(m => (<TableRow key={m.id}><TableCell>{m.tanggal}</TableCell><TableCell>{m.nama}</TableCell><TableCell><Badge variant={m.jenis === 'Masuk' ? 'default' : 'destructive'}>{m.jenis}</Badge></TableCell><TableCell>{m.keterangan}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('mutasiSiswa', m)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'mutasiSiswa', id: m.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -208,16 +288,16 @@ export default function LaporanWaliKelasPage() {
         <TabsContent value="administrasi" className="space-y-6">
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2"><Box /> Sarana Kelas</CardTitle></CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Box /> Sarana Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('saranaKelas')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                     <CardContent>
                          <Table>
-                            <TableHeader><TableRow><TableHead>No</TableHead><TableHead>Nama Barang</TableHead><TableHead>Jumlah</TableHead><TableHead>Kondisi</TableHead></TableRow></TableHeader>
-                            <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.id}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell></TableRow>))}</TableBody>
+                            <TableHeader><TableRow><TableHead>Nama Barang</TableHead><TableHead>Jumlah</TableHead><TableHead>Kondisi</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                            <TableBody>{saranaKelas.map(s => (<TableRow key={s.id}><TableCell>{s.nama}</TableCell><TableCell>{s.jumlah}</TableCell><TableCell>{s.kondisi}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('saranaKelas', s)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'saranaKelas', id: s.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                         </Table>
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2"><Users /> Struktur Organisasi Kelas</CardTitle></CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Users /> Struktur Organisasi Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('strukturOrganisasi', strukturOrganisasi)}><Edit className="mr-2 h-4 w-4" /> Edit</Button></CardHeader>
                     <CardContent>
                         <ul className="space-y-2 text-sm">
                             {Object.entries(strukturOrganisasi).map(([jabatan, nama]) => (
@@ -231,18 +311,12 @@ export default function LaporanWaliKelasPage() {
                 </Card>
             </div>
              <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Piket Kelas</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Piket Kelas</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPiket')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {jadwalPiket.map(piket => (
-                            <div key={piket.id}>
-                                <h4 className="font-semibold mb-2">{piket.hari}</h4>
-                                <ul className="list-disc list-inside text-muted-foreground text-sm">
-                                    {piket.siswa.map(s => <li key={s}>{s}</li>)}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Siswa Bertugas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{jadwalPiket.map(p => (<TableRow key={p.id}><TableCell className="font-semibold">{p.hari}</TableCell><TableCell>{p.siswa}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPiket', p)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'jadwalPiket', id: p.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
+                    </Table>
                 </CardContent>
             </Card>
              <Card>
@@ -253,20 +327,20 @@ export default function LaporanWaliKelasPage() {
 
         <TabsContent value="akademik" className="space-y-6">
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp /> Rekap Nilai Rata-Rata Guru Mapel</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><TrendingUp /> Rekap Nilai Rata-Rata</CardTitle><Button size="sm" onClick={() => handleOpenDialog('rekapNilai')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
                      <Table>
-                        <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead className="text-right">Nilai Rata-Rata Kelas</TableHead></TableRow></TableHeader>
-                        <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell></TableRow>))}</TableBody>
+                        <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead className="text-right">Rata-Rata Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{rekapNilai.map(n => (<TableRow key={n.id}><TableCell className="font-medium">{n.mapel}</TableCell><TableCell className="text-right">{n.rataRata.toFixed(1)}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('rekapNilai', n)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'rekapNilai', id: n.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Pelajaran</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><Calendar /> Jadwal Pelajaran</CardTitle><Button size="sm" onClick={() => handleOpenDialog('jadwalPelajaran')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
                      <Table>
-                        <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Jam</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Guru</TableHead></TableRow></TableHeader>
-                        <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell></TableRow>))}</TableBody>
+                        <TableHeader><TableRow><TableHead>Hari</TableHead><TableHead>Jam</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Guru</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{jadwalPelajaran.map((j) => (<TableRow key={j.id}><TableCell>{j.hari}</TableCell><TableCell>{j.jam}</TableCell><TableCell>{j.mapel}</TableCell><TableCell>{j.guru}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('jadwalPelajaran', j)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'jadwalPelajaran', id: j.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -274,7 +348,12 @@ export default function LaporanWaliKelasPage() {
         
         <TabsContent value="kehadiran" className="space-y-6">
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Bulanan)</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2"><CheckCircle /> Rekap Kehadiran Siswa (Bulanan)</CardTitle>
+                        <CardDescription>Data ini direkapitulasi secara otomatis.</CardDescription>
+                    </div>
+                </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                     <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Total Siswa</p><p className="text-2xl font-bold">{kehadiranSiswa.totalSiswa}</p></div>
                     <div className="p-4 bg-secondary rounded-lg"><p className="text-sm text-muted-foreground">Hadir</p><p className="text-2xl font-bold">{kehadiranSiswa.hadir}</p></div>
@@ -284,11 +363,11 @@ export default function LaporanWaliKelasPage() {
                 </CardContent>
             </Card>
              <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><FileText /> Daftar Penerimaan Rapor</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><FileText /> Daftar Penerimaan Rapor</CardTitle><Button size="sm" onClick={() => handleOpenDialog('terimaRapor')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Tanggal Terima</TableHead><TableHead>Penerima</TableHead></TableRow></TableHeader>
-                        <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell></TableRow>))}</TableBody>
+                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Tanggal Terima</TableHead><TableHead>Penerima</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{terimaRapor.map(r => (<TableRow key={r.id}><TableCell>{r.nis}</TableCell><TableCell>{r.nama}</TableCell><TableCell>{r.tanggal}</TableCell><TableCell>{r.penerima}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('terimaRapor', r)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'terimaRapor', id: r.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -296,11 +375,11 @@ export default function LaporanWaliKelasPage() {
 
         <TabsContent value="keuangan" className="space-y-6">
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign /> Daftar Pembayaran Komite</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="flex items-center gap-2"><DollarSign /> Daftar Pembayaran Komite</CardTitle><Button size="sm" onClick={() => handleOpenDialog('pembayaranKomite')}><PlusCircle className="mr-2 h-4 w-4" /> Tambah</Button></CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead></TableRow></TableHeader>
-                        <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell></TableRow>))}</TableBody>
+                        <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead>Tanggal Bayar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                        <TableBody>{pembayaranKomite.map(p => (<TableRow key={p.id}><TableCell>{p.nis}</TableCell><TableCell>{p.nama}</TableCell><TableCell><Badge variant={p.status === 'Lunas' ? 'default' : 'destructive'}>{p.status}</Badge></TableCell><TableCell>{p.tanggal}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('pembayaranKomite', p)}><Edit className="h-4 w-4"/></Button><Button variant="ghost" size="icon" onClick={() => setItemToDelete({section: 'pembayaranKomite', id: p.id})}><Trash2 className="h-4 w-4 text-destructive"/></Button></TableCell></TableRow>))}</TableBody>
                     </Table>
                 </CardContent>
             </Card>
@@ -324,8 +403,19 @@ export default function LaporanWaliKelasPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                <AlertDialogDescription>Tindakan ini tidak dapat dibatalkan. Data akan dihapus secara permanen.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setItemToDelete(null)}>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    
