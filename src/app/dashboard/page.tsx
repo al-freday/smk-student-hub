@@ -55,7 +55,7 @@ const WakasekDashboard = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold"><div className="h-8 w-16 bg-muted rounded"></div></div>
-                            <p className="text-xs text-muted-foreground"><div className="h-3 w-32 bg-muted rounded mt-1"></div></p>
+                            <div className="text-xs text-muted-foreground"><div className="h-3 w-32 bg-muted rounded mt-1"></div></div>
                         </CardContent>
                     </Card>
                 ))}
