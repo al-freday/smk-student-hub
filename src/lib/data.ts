@@ -31,10 +31,11 @@ export const getDashboardStats = () => {
     // 2. Total Guru
     const teachersData = getDataFromLocalStorage('teachersData', {});
     let totalGuru = 0;
-    if (teachersData) {
-        Object.values(teachersData).forEach((role: any) => {
-            if (Array.isArray(role)) {
-                totalGuru += role.length;
+    if (teachersData && typeof teachersData === 'object') {
+        // Correctly iterate over the values of the teachersData object
+        Object.values(teachersData).forEach((roleArray: unknown) => {
+            if (Array.isArray(roleArray)) {
+                totalGuru += roleArray.length;
             }
         });
     }
