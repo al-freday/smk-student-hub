@@ -128,7 +128,7 @@ export default function ManajemenGuruPage() {
         setTeacherToDelete(null);
     };
     
-    const canEdit = userRole === 'wakasek_kesiswaan' || userRole === 'admin';
+    const canEdit = userRole === 'admin';
 
     return (
         <div className="flex-1 space-y-6">
@@ -144,18 +144,18 @@ export default function ManajemenGuruPage() {
 
             <Card>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                        <div className="mb-4 sm:mb-0">
                             <CardTitle>Daftar Guru</CardTitle>
                             <CardDescription>
                                {canEdit 
                                     ? "Data ini akan menjadi sumber bagi halaman Manajemen Pengguna Admin dan fitur lainnya."
-                                    : "Data ini dikelola oleh Administrator atau Wakasek Kesiswaan."
+                                    : "Data ini dikelola oleh Administrator dan otomatis muncul dari daftar pengguna."
                                }
                             </CardDescription>
                         </div>
                          {canEdit && (
-                            <Button onClick={() => handleOpenDialog()}>
+                            <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Tambah Guru
                             </Button>
