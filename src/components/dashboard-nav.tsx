@@ -16,6 +16,12 @@ import {
   Users,
   UserCog,
   User,
+  BookUser,
+  ClipboardCheck,
+  HeartHandshake,
+  UsersRound,
+  Presentation,
+  AreaChart,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -24,6 +30,11 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
@@ -44,12 +55,7 @@ const navItemsByRole = {
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [], // Admin tidak memiliki menu navigasi di dasbor utama
-  waliKelas: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
-    { href: "/dashboard/laporan/wali-kelas", icon: FileText, label: "Laporan Wali Kelas" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
-  ],
+  waliKelas: [], // Akan menggunakan struktur custom di bawah
   guruBk: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
@@ -70,6 +76,93 @@ const navItemsByRole = {
     { href: "/dashboard/laporan/guru-pendamping", icon: FileText, label: "Laporan Pendamping" },
   ],
 };
+
+const WaliKelasNav = ({pathname}: {pathname: string}) => (
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <Link href="/dashboard">
+        <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
+          <LayoutDashboard />
+          <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
+        </SidebarMenuButton>
+      </Link>
+    </SidebarMenuItem>
+
+    <SidebarGroup>
+      <SidebarGroupLabel>Menu Wali Kelas</SidebarGroupLabel>
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Administrasi" isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>
+          <BookUser />
+          <span className="group-data-[collapsible=icon]:hidden">Administrasi & Perencanaan</span>
+        </SidebarMenuButton>
+        <SidebarMenuSub>
+          <SidebarMenuSubItem>
+            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>Administrasi Kelas</SidebarMenuSubButton></Link>
+          </SidebarMenuSubItem>
+        </SidebarMenuSub>
+      </SidebarMenuItem>
+      
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Disiplin" isActive={pathname.startsWith('/dashboard/tata-tertib')}>
+          <ShieldAlert />
+          <span className="group-data-[collapsible=icon]:hidden">Pembinaan Disiplin</span>
+        </SidebarMenuButton>
+         <SidebarMenuSub>
+          <SidebarMenuSubItem>
+            <Link href="/dashboard/tata-tertib"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/tata-tertib')}>Catat Pelanggaran & Prestasi</SidebarMenuSubButton></Link>
+          </SidebarMenuSubItem>
+        </SidebarMenuSub>
+      </SidebarMenuItem>
+
+       <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Pembinaan Karakter">
+          <HeartHandshake />
+          <span className="group-data-[collapsible=icon]:hidden">Pembinaan Karakter</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Kesejahteraan Siswa">
+          <Users />
+          <span className="group-data-[collapsible=icon]:hidden">Kesejahteraan Siswa</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Hubungan Ortu">
+          <UsersRound />
+          <span className="group-data-[collapsible=icon]:hidden">Hubungan Orang Tua</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Pengawasan">
+          <Presentation />
+          <span className="group-data-[collapsible=icon]:hidden">Pengawasan & Evaluasi</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+       <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Koordinasi">
+          <ClipboardCheck />
+          <span className="group-data-[collapsible=icon]:hidden">Koordinasi Internal</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      
+      <SidebarMenuItem>
+        <SidebarMenuButton tooltip="Laporan" isActive={pathname.startsWith('/dashboard/laporan')}>
+          <AreaChart />
+          <span className="group-data-[collapsible=icon]:hidden">Laporan Program Kelas</span>
+        </SidebarMenuButton>
+         <SidebarMenuSub>
+          <SidebarMenuSubItem>
+            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>Kirim Laporan Bulanan</SidebarMenuSubButton></Link>
+          </SidebarMenuSubItem>
+        </SidebarMenuSub>
+      </SidebarMenuItem>
+    </SidebarGroup>
+  </SidebarMenu>
+);
 
 
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
@@ -95,9 +188,34 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const navItems = navItemsByRole[userRole] || [];
   const containerClass = isMobile ? "flex flex-col h-full" : "";
 
-  if (userRole === 'admin' || navItems.length === 0) {
-    return null; // Jangan render apapun untuk admin atau jika tidak ada item nav
+  if (userRole === 'admin' && !isMobile) {
+    return null; // Jangan render apapun untuk admin di sidebar utama
   }
+  
+  const renderNavItems = () => {
+    if (userRole === 'waliKelas') {
+      return <WaliKelasNav pathname={pathname} />;
+    }
+
+    if (navItems.length === 0) return null;
+
+    return (
+      <SidebarMenu>
+        {navItems.map((item) => (
+          <SidebarMenuItem key={item.label}>
+            <Link href={item.href}>
+              <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== "/dashboard" || pathname === "/dashboard")}>
+                  <item.icon className="size-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    {item.label}
+                  </span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    );
+  };
 
   return (
     <div className={containerClass}>
@@ -118,20 +236,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent className="p-2 flex-1">
-        <SidebarMenu>
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.label}>
-              <Link href={item.href}>
-                <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== "/dashboard" || pathname === "/dashboard")}>
-                    <item.icon className="size-4" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      {item.label}
-                    </span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+        {renderNavItems()}
       </SidebarContent>
 
       <SidebarFooter className="p-2">
