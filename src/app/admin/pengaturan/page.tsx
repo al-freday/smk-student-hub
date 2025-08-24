@@ -32,7 +32,7 @@ export default function AdminPengaturanPage() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMKN 2 Tana Toraja",
     headmasterName: "Nama Kepala Sekolah",
-    logo: "https://placehold.co/80x80.png",
+    logo: "",
   });
   
   useEffect(() => {

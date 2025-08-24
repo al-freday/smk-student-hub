@@ -28,6 +28,7 @@ import {
 import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 // Definisikan item menu untuk setiap peran
 const navItemsByRole = {
@@ -74,10 +75,17 @@ const navItemsByRole = {
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<keyof typeof navItemsByRole>('wakasek');
+  const [schoolInfo, setSchoolInfo] = useState({ name: "SMKN 2 Tana Toraja", logo: "" });
   
   useEffect(() => {
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek';
     setUserRole(role);
+
+    const savedSchoolInfo = localStorage.getItem("schoolInfo");
+    if (savedSchoolInfo) {
+      const info = JSON.parse(savedSchoolInfo);
+      setSchoolInfo({ name: info.schoolName, logo: info.logo });
+    }
   }, []);
 
   const handleLogout = () => {
@@ -95,9 +103,16 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     <div className={containerClass}>
       <SidebarHeader className="hidden md:flex">
          <Link href="/dashboard" className="flex items-center gap-2">
-           <Icons.logo className="h-7 w-7 text-primary"/>
+           {schoolInfo.logo ? (
+             <Avatar className="h-8 w-8">
+                <AvatarImage src={schoolInfo.logo} alt="School Logo" />
+                <AvatarFallback>S</AvatarFallback>
+             </Avatar>
+           ) : (
+             <Icons.logo className="h-7 w-7 text-primary"/>
+           )}
            <span className="text-lg font-semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
-            SMKN 2 Tana Toraja
+            {schoolInfo.name}
            </span>
          </Link>
       </SidebarHeader>

@@ -146,13 +146,11 @@ export default function AdminDashboardPage() {
           </Button>
           
           <div className="flex justify-between items-center pt-4 border-t">
-              <Link href="/admin/pengaturan">
-                <Button variant="outline">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Pengaturan Global
-                </Button>
-              </Link>
-              <Button variant="destructive" onClick={handleLogout}>
+             <Button variant="outline" onClick={() => router.push('/admin/pengaturan')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Pengaturan Global
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout Admin
             </Button>
