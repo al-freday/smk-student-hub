@@ -82,6 +82,7 @@ const navItemsByRole = {
     { href: "/dashboard/laporan", icon: ClipboardList, label: "Laporan Bulanan" },
   ],
   guru_bk: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dasbor Layanan BK" },
     { href: "/dashboard/tata-tertib", icon: BadgeHelp, label: "Data Masalah Siswa" },
     { href: "/dashboard/laporan/guru-bk", icon: MessageSquare, label: "Layanan Konseling" },
     { href: "/dashboard/laporan", icon: Handshake, label: "Kolaborasi & Laporan" },
@@ -129,20 +130,26 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const renderNavItems = () => {
     if (!userRole) return null;
     
+    // For guru_bk, we already have a dashboard link in its specific nav items.
+    // For other roles, we add it manually if it doesn't exist.
+    const hasDashboardLink = (navItemsByRole[userRole] || []).some(item => item.href === "/dashboard");
+
     const navItems = navItemsByRole[userRole] || [];
 
     if (navItems.length === 0) return null;
 
     return (
       <SidebarMenu>
-        <SidebarMenuItem>
-          <Link href="/dashboard">
-            <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
-              <LayoutDashboard className="size-4" />
-              <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
-            </SidebarMenuButton>
-          </Link>
-        </SidebarMenuItem>
+        {!hasDashboardLink && (
+          <SidebarMenuItem>
+            <Link href="/dashboard">
+              <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
+                <LayoutDashboard className="size-4" />
+                <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        )}
         {navItems.map((item) => (
           'href' in item ? (
             <SidebarMenuItem key={item.label}>
