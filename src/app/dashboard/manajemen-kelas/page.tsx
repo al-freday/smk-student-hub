@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Edit, Trash2, PlusCircle } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, PlusCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,7 +38,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,45 +46,45 @@ import { Label } from "@/components/ui/label";
 interface Kelas {
   id: number;
   nama: string;
-  jumlahSiswa: number;
 }
 
-const initialKelas: Kelas[] = [
-  { id: 1, nama: "X OT 1", jumlahSiswa: 40 },
-  { id: 2, nama: "X OT 2", jumlahSiswa: 40 },
-  { id: 3, nama: "X OT 3", jumlahSiswa: 40 },
-  { id: 4, nama: "X TKR", jumlahSiswa: 40 },
-  { id: 5, nama: "X AKL", jumlahSiswa: 40 },
-  { id: 6, nama: "X TM", jumlahSiswa: 40 },
-  { id: 7, nama: "XI TAB 1", jumlahSiswa: 40 },
-  { id: 8, nama: "XI TAB 2", jumlahSiswa: 40 },
-  { id: 9, nama: "XI TKR", jumlahSiswa: 40 },
-  { id: 10, nama: "XI AKL", jumlahSiswa: 40 },
-  { id: 11, nama: "XI TM", jumlahSiswa: 40 },
-  { id: 12, nama: "XII TAB 1", jumlahSiswa: 40 },
-  { id: 13, nama: "XII TAB 2", jumlahSiswa: 40 },
-  { id: 14, nama: "XII TKR", jumlahSiswa: 40 },
-  { id: 15, nama: "XII AKL", jumlahSiswa: 40 },
-  { id: 16, nama: "XII TM", jumlahSiswa: 40 },
+interface Siswa {
+    id: number;
+    kelas: string;
+}
+
+const initialKelas: Omit<Kelas, 'id'>[] = [
+  { nama: "X OT 1" }, { nama: "X OT 2" }, { nama: "X OT 3" },
+  { nama: "X TKR" }, { nama: "X AKL" }, { nama: "X TM" },
+  { nama: "XI TAB 1" }, { nama: "XI TAB 2" }, { nama: "XI TKR" },
+  { nama: "XI AKL" }, { nama: "XI TM" }, { nama: "XII TAB 1" },
+  { nama: "XII TAB 2" }, { nama: "XII TKR" }, { nama: "XII AKL" },
+  { nama: "XII TM" },
 ];
 
 export default function ManajemenKelasPage() {
   const [kelas, setKelas] = useState<Kelas[]>([]);
+  const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [editingKelas, setEditingKelas] = useState<Kelas | null>(null);
   
-  // Form states for adding/editing
   const [namaKelas, setNamaKelas] = useState("");
-  const [jumlahSiswa, setJumlahSiswa] = useState("");
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [kelasToDelete, setKelasToDelete] = useState<Kelas | null>(null);
 
   useEffect(() => {
     const savedKelas = localStorage.getItem('kelasData');
     if (savedKelas) {
       setKelas(JSON.parse(savedKelas));
     } else {
-      setKelas(initialKelas);
-      localStorage.setItem('kelasData', JSON.stringify(initialKelas));
+      const formattedInitialKelas = initialKelas.map((k, index) => ({ ...k, id: index + 1 }));
+      setKelas(formattedInitialKelas);
+      localStorage.setItem('kelasData', JSON.stringify(formattedInitialKelas));
+    }
+    
+    const savedSiswa = localStorage.getItem('siswaData');
+    if(savedSiswa) {
+        setSiswa(JSON.parse(savedSiswa));
     }
   }, []);
 
@@ -93,10 +92,12 @@ export default function ManajemenKelasPage() {
     localStorage.setItem('kelasData', JSON.stringify(data));
   };
 
+  const getJumlahSiswaByKelas = (namaKelas: string) => {
+    return siswa.filter(s => s.kelas === namaKelas).length;
+  };
 
   const resetForm = () => {
     setNamaKelas("");
-    setJumlahSiswa("");
     setEditingKelas(null);
   };
 
@@ -104,7 +105,6 @@ export default function ManajemenKelasPage() {
     if (kelasToEdit) {
       setEditingKelas(kelasToEdit);
       setNamaKelas(kelasToEdit.nama);
-      setJumlahSiswa(kelasToEdit.jumlahSiswa.toString());
     } else {
       resetForm();
     }
@@ -112,19 +112,18 @@ export default function ManajemenKelasPage() {
   };
 
   const handleSaveKelas = () => {
-    if (namaKelas && jumlahSiswa) {
+    if (namaKelas) {
         let updatedKelas;
       if (editingKelas) {
         updatedKelas = kelas.map((k) =>
             k.id === editingKelas.id
-              ? { ...k, nama: namaKelas, jumlahSiswa: parseInt(jumlahSiswa, 10) }
+              ? { ...k, nama: namaKelas }
               : k
           );
       } else {
         const newKelas: Kelas = {
           id: kelas.length > 0 ? Math.max(...kelas.map((k) => k.id)) + 1 : 1,
           nama: namaKelas,
-          jumlahSiswa: parseInt(jumlahSiswa, 10),
         };
         updatedKelas = [...kelas, newKelas];
       }
@@ -135,10 +134,12 @@ export default function ManajemenKelasPage() {
     }
   };
 
-  const handleDeleteKelas = (id: number) => {
-    const updatedKelas = kelas.filter((k) => k.id !== id);
+  const handleDeleteKelas = () => {
+    if (!kelasToDelete) return;
+    const updatedKelas = kelas.filter((k) => k.id !== kelasToDelete.id);
     setKelas(updatedKelas);
     saveDataToLocalStorage(updatedKelas);
+    setKelasToDelete(null);
   };
 
 
@@ -148,7 +149,7 @@ export default function ManajemenKelasPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Kelas</h2>
           <p className="text-muted-foreground">
-            Daftar kelas yang tersedia di sekolah.
+            Daftar kelas yang tersedia di sekolah. Jumlah siswa dihitung otomatis dari data Manajemen Siswa.
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) resetForm(); }}>
@@ -162,7 +163,7 @@ export default function ManajemenKelasPage() {
             <DialogHeader>
               <DialogTitle>{editingKelas ? "Edit Kelas" : "Tambah Kelas Baru"}</DialogTitle>
               <DialogDescription>
-                 {editingKelas ? "Ubah informasi kelas." : "Masukkan informasi kelas yang akan ditambahkan."} Klik simpan jika
+                 {editingKelas ? "Ubah nama kelas." : "Masukkan nama kelas yang akan ditambahkan."} Klik simpan jika
                 sudah selesai.
               </DialogDescription>
             </DialogHeader>
@@ -177,19 +178,6 @@ export default function ManajemenKelasPage() {
                   onChange={(e) => setNamaKelas(e.target.value)}
                   className="col-span-3"
                   placeholder="Contoh: X TKJ 1"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="jumlah-siswa" className="text-right">
-                  Jumlah Siswa
-                </Label>
-                <Input
-                  id="jumlah-siswa"
-                  type="number"
-                  value={jumlahSiswa}
-                  onChange={(e) => setJumlahSiswa(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Contoh: 40"
                 />
               </div>
             </div>
@@ -217,7 +205,7 @@ export default function ManajemenKelasPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama Kelas</TableHead>
-                <TableHead className="text-center">Jumlah Siswa</TableHead>
+                <TableHead className="text-center flex items-center justify-center gap-2"><Users className="h-4 w-4"/>Jumlah Siswa</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -226,7 +214,7 @@ export default function ManajemenKelasPage() {
                 kelas.map((k) => (
                   <TableRow key={k.id}>
                     <TableCell className="font-medium">{k.nama}</TableCell>
-                    <TableCell className="text-center">{k.jumlahSiswa}</TableCell>
+                    <TableCell className="text-center">{getJumlahSiswaByKelas(k.nama)}</TableCell>
                     <TableCell className="text-right">
                        <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -240,26 +228,10 @@ export default function ManajemenKelasPage() {
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Edit</span>
                           </DropdownMenuItem>
-                          <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Hapus</span>
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data kelas secara permanen.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteKelas(k.id)}>Hapus</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                          <DropdownMenuItem onSelect={() => setKelasToDelete(k)} className="text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Hapus</span>
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -276,6 +248,21 @@ export default function ManajemenKelasPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!kelasToDelete} onOpenChange={() => setKelasToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data kelas secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteKelas}>Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
