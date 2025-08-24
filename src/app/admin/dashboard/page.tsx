@@ -12,7 +12,7 @@ import { LogIn, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 
 interface User {
-  id: string | number;
+  id: string;
   nama: string;
   roleKey: string;
   roleName: string;
@@ -30,9 +30,10 @@ const getRoleName = (roleKey: string) => {
     return roles[roleKey] || 'Guru';
 };
 
-const createEmailFromName = (name: string, roleKey: string, id: number | string) => {
+const createEmailFromName = (name: string, roleKey: string, id: string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    return `${namePart}${id}@schoolemail.com`;
+    const idPart = id.split('-').pop(); // Ambil bagian numerik dari ID
+    return `${namePart}${idPart}@schoolemail.com`;
 };
 
 export default function AdminDashboardPage() {
@@ -54,7 +55,7 @@ export default function AdminDashboardPage() {
         const users: User[] = [];
         
         users.push({
-            id: 'wakasek_kesiswaan',
+            id: 'wakasek_kesiswaan-0', // ID unik untuk wakasek
             nama: 'Wakasek Kesiswaan',
             roleKey: 'wakasek_kesiswaan',
             roleName: 'Wakasek Kesiswaan'
@@ -62,14 +63,17 @@ export default function AdminDashboardPage() {
 
         Object.keys(teachersData).forEach(roleKey => {
           const formattedRoleKey = roleKey.replace(/([A-Z])/g, '_$1').toLowerCase();
-          teachersData[roleKey].forEach((guru: any) => {
-            users.push({
-              id: `${formattedRoleKey}-${guru.id}`,
-              nama: guru.nama,
-              roleKey: formattedRoleKey,
-              roleName: getRoleName(formattedRoleKey),
+          if (Array.isArray(teachersData[roleKey])) {
+            teachersData[roleKey].forEach((guru: any) => {
+              const uniqueId = `${formattedRoleKey}-${guru.id}`;
+              users.push({
+                id: uniqueId,
+                nama: guru.nama,
+                roleKey: formattedRoleKey,
+                roleName: getRoleName(formattedRoleKey),
+              });
             });
-          });
+          }
         });
         setAllUsers(users);
       }
@@ -88,7 +92,7 @@ export default function AdminDashboardPage() {
         toast({ title: "Pilih Pengguna", description: "Silakan pilih pengguna untuk login.", variant: "destructive" });
         return;
     }
-    const userToImpersonate = allUsers.find(u => u.id.toString() === selectedUser);
+    const userToImpersonate = allUsers.find(u => u.id === selectedUser);
     if (userToImpersonate) {
         localStorage.setItem('userRole', userToImpersonate.roleKey);
 
@@ -103,6 +107,10 @@ export default function AdminDashboardPage() {
             title: "Login Berhasil",
             description: `Anda sekarang login sebagai ${userToImpersonate.nama} (${userToImpersonate.roleName}).`,
         });
+        
+        // Memicu event kustom untuk memberitahu layout bahwa peran telah berubah
+        window.dispatchEvent(new Event('roleChanged'));
+        
         router.push('/dashboard');
     }
   };
@@ -132,7 +140,7 @@ export default function AdminDashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 {allUsers.map(user => (
-                   <SelectItem key={user.id} value={user.id.toString()}>
+                   <SelectItem key={user.id} value={user.id}>
                     {user.nama} ({user.roleName})
                   </SelectItem>
                 ))}
@@ -145,9 +153,11 @@ export default function AdminDashboardPage() {
           </Button>
           
           <div className="flex justify-between items-center pt-4 border-t">
-             <Button variant="outline" onClick={() => router.push('/admin/pengaturan')}>
-                <Settings className="mr-2 h-4 w-4" />
-                Pengaturan Global
+             <Button variant="outline" asChild>
+                <Link href='/admin/pengaturan'>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Pengaturan Global
+                </Link>
             </Button>
             <Button variant="destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

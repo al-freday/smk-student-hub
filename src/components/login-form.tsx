@@ -74,23 +74,29 @@ export function LoginForm() {
 
     const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
     let foundUser = null;
-    let userRoleKey = 'wakasek_kesiswaan';
+    let userRoleKey = '';
     const emailToSearch = values.email.toLowerCase();
 
     for (const role in teachersData) {
+        if (!Array.isArray(teachersData[role])) continue;
+
         const user = teachersData[role].find((u: any) => {
+            if (!u.nama || typeof u.nama !== 'string' || u.id === undefined) return false;
             const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+            // ID bisa berupa angka atau string dari Date.now()
             const expectedEmail = `${namePart}${u.id}@schoolemail.com`;
             return expectedEmail === emailToSearch;
         });
+
         if (user) {
             foundUser = user;
-            userRoleKey = role.replace(/([A-Z])/g, '_$1').toLowerCase();
+            userRoleKey = role;
             break;
         }
     }
     
-    if (emailToSearch === 'wakasek@email.com') {
+    // Hardcoded check for wakasek
+    if (emailToSearch === 'wakasek@schoolemail.com' || emailToSearch === 'wakasek@email.com') { // Added alias for backward compatibility
         foundUser = { nama: 'Wakasek Kesiswaan' };
         userRoleKey = 'wakasek_kesiswaan';
     }
@@ -102,7 +108,7 @@ export function LoginForm() {
       } else {
          toast({
           title: "Login Gagal",
-          description: "Pengguna tidak ditemukan. Silakan hubungi admin.",
+          description: "Pengguna tidak ditemukan atau password salah. Silakan hubungi admin.",
           variant: "destructive",
         });
       }
@@ -129,7 +135,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@example.com" {...field} disabled={isLoading || isGoogleLoading}/>
+                  <Input placeholder="email@schoolemail.com" {...field} disabled={isLoading || isGoogleLoading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
