@@ -4,214 +4,227 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw } from "lucide-react";
+import { Printer, UserCheck, PlusCircle, Send } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
-interface GuruPiket {
+// Data Types
+interface GuruMapel {
   id: number;
   nama: string;
-  hariPiket?: string;
+  mapel?: string;
 }
 
-type ReportStatus = 'Terkirim' | 'Diproses' | 'Diterima';
-
-interface ReceivedReport {
+interface TeacherAttendanceRecord {
   id: number;
-  guru: string;
   tanggal: string;
-  hari: string;
-  catatan: string;
-  status: ReportStatus;
+  namaGuru: string;
+  mataPelajaran: string;
+  status: 'Hadir' | 'Tidak Hadir' | 'Sakit' | 'Izin';
+  keterangan: string;
+  dicatatOleh: string;
 }
+
+const statusOptions: TeacherAttendanceRecord['status'][] = ['Hadir', 'Tidak Hadir', 'Sakit', 'Izin'];
 
 export default function LaporanGuruPiketPage() {
-  const [receivedReports, setReceivedReports] = useState<ReceivedReport[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState({ nama: "Guru Piket" });
+  const [daftarGuruMapel, setDaftarGuruMapel] = useState<GuruMapel[]>([]);
+  const [laporanHariIni, setLaporanHariIni] = useState<TeacherAttendanceRecord[]>([]);
+  const [riwayatLaporan, setRiwayatLaporan] = useState<TeacherAttendanceRecord[]>([]);
+
+  // Form state
+  const [selectedGuru, setSelectedGuru] = useState<GuruMapel | null>(null);
+  const [statusKehadiran, setStatusKehadiran] = useState<TeacherAttendanceRecord['status']>('Hadir');
+  const [keterangan, setKeterangan] = useState("");
   
-  const reportStorageKey = 'guruPiketReportsStatus';
+  const attendanceStorageKey = 'teacherAttendanceData';
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
+    // Muat data guru mapel dari localStorage
+    try {
+      const savedTeachers = localStorage.getItem('teachersData');
+      if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        setDaftarGuruMapel(teachersData.guru_mapel || []);
+      }
+      
+      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if(user.nama) setCurrentUser(user);
 
-    if (role === 'wakasek_kesiswaan') {
-        try {
-          const savedTeachers = localStorage.getItem('teachersData');
-          const savedStatuses = localStorage.getItem(reportStorageKey);
-          const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+      const savedAttendance = localStorage.getItem(attendanceStorageKey);
+      const allRecords: TeacherAttendanceRecord[] = savedAttendance ? JSON.parse(savedAttendance) : [];
+      setRiwayatLaporan(allRecords);
 
-          if (savedTeachers) {
-            const teachersData = JSON.parse(savedTeachers);
-            const guruPiketList: GuruPiket[] = teachersData.guru_piket || [];
+      const today = format(new Date(), "yyyy-MM-dd");
+      setLaporanHariIni(allRecords.filter(rec => rec.tanggal === today));
 
-            const reports = guruPiketList.map((guru, index) => ({
-              id: guru.id,
-              guru: guru.nama,
-              tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
-              hari: guru.hariPiket || "Senin",
-              catatan: `Laporan piket rutin oleh ${guru.nama}.`,
-              status: statuses[guru.id] || 'Terkirim',
-            }));
-            setReceivedReports(reports);
-          }
-        } catch (error) {
-          console.error("Gagal memuat data guru piket:", error);
-        } finally {
-          setIsLoading(false);
-        }
-    } else {
-        // Data default untuk tampilan non-wakasek (tampilan asli)
-        setReceivedReports([
-          { id: 1, tanggal: "2024-07-22", hari: "Senin", guru: "Joko Susilo, S.Pd.", catatan: "Situasi sekolah kondusif. Ditemukan 2 siswa terlambat.", status: 'Terkirim' },
-          { id: 2, tanggal: "2024-07-23", hari: "Selasa", guru: "Rina Kartika, S.Pd.", catatan: "Aman, gerbang ditutup tepat waktu.", status: 'Terkirim' },
-        ]);
-        setIsLoading(false);
+    } catch (error) {
+      console.error("Gagal memuat data guru:", error);
+      toast({
+        title: "Gagal Memuat Data",
+        description: "Tidak dapat memuat daftar guru dari penyimpanan.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [toast]);
+
+  const handleTambahCatatan = () => {
+    if (!selectedGuru) {
+      toast({ title: "Gagal", description: "Silakan pilih guru terlebih dahulu.", variant: "destructive" });
+      return;
+    }
+
+    const newRecord: TeacherAttendanceRecord = {
+      id: Date.now(),
+      tanggal: format(new Date(), "yyyy-MM-dd"),
+      namaGuru: selectedGuru.nama,
+      mataPelajaran: selectedGuru.mapel || "N/A",
+      status: statusKehadiran,
+      keterangan: keterangan || "-",
+      dicatatOleh: currentUser.nama,
+    };
+    
+    const updatedRiwayat = [...riwayatLaporan, newRecord];
+    const updatedLaporanHariIni = [...laporanHariIni, newRecord];
+
+    setRiwayatLaporan(updatedRiwayat);
+    setLaporanHariIni(updatedLaporanHariIni);
+    localStorage.setItem(attendanceStorageKey, JSON.stringify(updatedRiwayat));
+
+    toast({ title: "Sukses", description: `Kehadiran untuk ${selectedGuru.nama} telah dicatat.` });
+    
+    // Reset form
+    setSelectedGuru(null);
+    setStatusKehadiran('Hadir');
+    setKeterangan("");
+  };
 
   const handlePrint = () => {
     window.print();
   };
   
-  const handleStatusChange = (id: number, status: ReportStatus) => {
-    const updatedReports = receivedReports.map(report =>
-      report.id === id ? { ...report, status } : report
-    );
-    setReceivedReports(updatedReports);
-
-    const savedStatuses = localStorage.getItem(reportStorageKey);
-    const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
-    statuses[id] = status;
-    localStorage.setItem(reportStorageKey, JSON.stringify(statuses));
-    
+  const handleSendReport = () => {
     toast({
-        title: "Status Diperbarui",
-        description: `Laporan telah ditandai sebagai ${status}.`,
+      title: "Laporan Terkirim",
+      description: "Laporan piket dan absensi guru hari ini telah dikirim ke Wakasek Kesiswaan.",
     });
   };
-
-  const getStatusBadgeVariant = (status: ReportStatus) => {
-    switch (status) {
-      case 'Diterima': return 'default';
-      case 'Diproses': return 'secondary';
-      case 'Terkirim': return 'outline';
-      default: return 'outline';
-    }
-  };
-
-
-  if (isLoading) {
-      return (
-         <div className="flex-1 space-y-6">
-             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="ml-4 text-muted-foreground">Memuat data laporan...</p>
-            </div>
-         </div>
-      );
-  }
-
-  const isWakasekView = userRole === 'wakasek_kesiswaan';
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-             {isWakasekView ? "Laporan Guru Piket (Diterima)" : "Laporan Guru Piket"}
-          </h2>
-          <p className="text-muted-foreground">
-            {isWakasekView 
-                ? "Rekapitulasi laporan yang diterima dari semua guru piket."
-                : "Rekapitulasi laporan harian dari guru piket."
-            }
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Guru Piket</h2>
+          <p className="text-muted-foreground">Catat kehadiran guru mengajar dan laporkan kejadian penting selama piket.</p>
         </div>
-        <Button onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Cetak Laporan
-        </Button>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Cetak
+            </Button>
+            <Button onClick={handleSendReport}>
+              <Send className="mr-2 h-4 w-4" />
+              Kirim Laporan ke Wakasek
+            </Button>
+        </div>
       </div>
-       <Card>
+
+      <Card>
         <CardHeader>
-          <CardTitle>Detail Laporan</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <UserCheck />
+            Pencatatan Kehadiran Guru Mengajar
+          </CardTitle>
           <CardDescription>
-            {isWakasekView
-                ? "Berikut adalah daftar laporan yang telah diterima. Kelola status setiap laporan melalui menu Aksi."
-                : "Berikut adalah catatan kejadian selama jam piket."
-            }
+            Pilih guru, status kehadiran, dan tambahkan keterangan jika perlu.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Hari</TableHead>
-                <TableHead>Guru Piket</TableHead>
-                <TableHead>Catatan Kejadian</TableHead>
-                {isWakasekView && <TableHead>Status</TableHead>}
-                {isWakasekView && <TableHead className="text-right">Aksi</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receivedReports.length > 0 ? (
-                 receivedReports.map((laporan) => (
-                    <TableRow key={laporan.id}>
-                      <TableCell>{laporan.tanggal}</TableCell>
-                      <TableCell>{laporan.hari}</TableCell>
-                      <TableCell className="font-medium">{laporan.guru}</TableCell>
-                      <TableCell>{laporan.catatan}</TableCell>
-                      {isWakasekView && (
-                          <TableCell>
-                              <Badge variant={getStatusBadgeVariant(laporan.status)}>{laporan.status}</Badge>
-                          </TableCell>
-                      )}
-                      {isWakasekView && (
-                        <TableCell className="text-right">
-                           <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Buka menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem asChild>
-                                        <Link href="/dashboard/laporan/guru-piket"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diproses')}>
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Tandai Diproses
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diterima')}>
-                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                        Tandai Diterima
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                      )}
+        <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                 <div className="space-y-2 md:col-span-1">
+                    <Label htmlFor="guru-select">Pilih Guru & Mata Pelajaran</Label>
+                    <Select
+                        onValueChange={(value) => {
+                            const guru = daftarGuruMapel.find(g => g.id.toString() === value);
+                            setSelectedGuru(guru || null);
+                        }}
+                        value={selectedGuru?.id.toString()}
+                    >
+                        <SelectTrigger id="guru-select"><SelectValue placeholder="Pilih Guru..." /></SelectTrigger>
+                        <SelectContent>
+                        {daftarGuruMapel.map(guru => (
+                            <SelectItem key={guru.id} value={guru.id.toString()}>
+                                {guru.nama} ({guru.mapel})
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="status-select">Status Kehadiran</Label>
+                    <Select onValueChange={(value) => setStatusKehadiran(value as any)} value={statusKehadiran}>
+                        <SelectTrigger id="status-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {statusOptions.map(status => (
+                                <SelectItem key={status} value={status}>{status}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="keterangan">Keterangan</Label>
+                    <Input id="keterangan" value={keterangan} onChange={e => setKeterangan(e.target.value)} placeholder="Contoh: Digantikan oleh..." />
+                </div>
+                 <Button onClick={handleTambahCatatan}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah Catatan
+                </Button>
+            </div>
+          <Separator className="my-6"/>
+           <div>
+              <h3 className="text-lg font-medium mb-2">Laporan Kehadiran Hari Ini ({format(new Date(), "eeee, dd MMMM yyyy")})</h3>
+               <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama Guru</TableHead>
+                      <TableHead>Mata Pelajaran</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Keterangan</TableHead>
                     </TableRow>
-                  ))
-              ) : (
-                <TableRow>
-                    <TableCell colSpan={isWakasekView ? 6 : 4} className="h-24 text-center">
-                        {isWakasekView ? "Belum ada laporan yang diterima." : "Belum ada data laporan."}
-                    </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {laporanHariIni.length > 0 ? (
+                      laporanHariIni.map((laporan) => (
+                        <TableRow key={laporan.id}>
+                          <TableCell className="font-medium">{laporan.namaGuru}</TableCell>
+                          <TableCell>{laporan.mataPelajaran}</TableCell>
+                          <TableCell>{laporan.status}</TableCell>
+                          <TableCell>{laporan.keterangan}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          Belum ada catatan kehadiran guru untuk hari ini.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
