@@ -1,4 +1,6 @@
 
+"use client"
+
 import {
   Table,
   TableBody,
@@ -8,51 +10,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
 
-const reports = [
-  {
-    studentName: "Ahmad Budi",
-    class: "XII TKJ 1",
-    infraction: "Terlambat masuk sekolah",
-    points: 5,
-    reporter: "Bu Siti (Wali Kelas)",
-    date: "2024-07-22",
-  },
-  {
-    studentName: "Citra Dewi",
-    class: "XI AKL 2",
-    infraction: "Juara 1 Lomba Cerdas Cermat",
-    points: -20,
-    reporter: "Pak Eko (Guru Mapel)",
-    date: "2024-07-21",
-  },
-  {
-    studentName: "Eka Putra",
-    class: "X TSM 3",
-    infraction: "Tidak mengerjakan PR",
-    points: 10,
-    reporter: "Pak Joko (Guru BK)",
-    date: "2024-07-21",
-  },
-  {
-    studentName: "Fitriani",
-    class: "XII TKJ 1",
-    infraction: "Merokok di lingkungan sekolah",
-    points: 75,
-    reporter: "Pak Dedi (Wakasek)",
-    date: "2024-07-20",
-  },
-  {
-    studentName: "Gunawan",
-    class: "XI OTKP 1",
-    infraction: "Membantu guru membawa buku",
-    points: -5,
-    reporter: "Bu Rina (Wali Kelas)",
-    date: "2024-07-19",
-  },
-];
+interface CatatanSiswa {
+    id: number;
+    siswa: string;
+    kelas: string;
+    deskripsi: string;
+    poin: number;
+    waliKelas: string; // Used as reporter
+    tanggal: string;
+    tipe: 'pelanggaran' | 'prestasi';
+}
 
 export default function RecentReportsTable() {
+  const [reports, setReports] = useState<CatatanSiswa[]>([]);
+
+  useEffect(() => {
+    const savedRiwayat = localStorage.getItem('riwayatCatatan');
+    if (savedRiwayat) {
+      const allReports: CatatanSiswa[] = JSON.parse(savedRiwayat);
+      // Sort by date descending and take the first 5
+      const sortedReports = allReports
+        .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+        .slice(0, 5);
+      setReports(sortedReports);
+    }
+  }, []);
+
   return (
     <Table>
       <TableHeader>
@@ -66,22 +51,30 @@ export default function RecentReportsTable() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {reports.map((report) => (
-          <TableRow key={report.studentName + report.date}>
-            <TableCell>
-              <div className="font-medium">{report.studentName}</div>
+        {reports.length > 0 ? (
+          reports.map((report) => (
+            <TableRow key={report.id}>
+              <TableCell>
+                <div className="font-medium">{report.siswa}</div>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">{report.kelas}</TableCell>
+              <TableCell>{report.deskripsi}</TableCell>
+              <TableCell className="text-right">
+                <Badge variant={report.tipe === 'pelanggaran' ? "destructive" : "default"}>
+                  {report.poin > 0 ? `+${report.poin}` : report.poin}
+                </Badge>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">{report.waliKelas}</TableCell>
+              <TableCell className="hidden lg:table-cell text-right">{report.tanggal}</TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={6} className="text-center h-24">
+              Belum ada laporan yang tercatat.
             </TableCell>
-            <TableCell className="hidden sm:table-cell">{report.class}</TableCell>
-            <TableCell>{report.infraction}</TableCell>
-            <TableCell className="text-right">
-              <Badge variant={report.points > 0 ? "destructive" : "default"}>
-                {report.points > 0 ? `+${report.points}` : report.points}
-              </Badge>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">{report.reporter}</TableCell>
-            <TableCell className="hidden lg:table-cell text-right">{report.date}</TableCell>
           </TableRow>
-        ))}
+        )}
       </TableBody>
     </Table>
   );

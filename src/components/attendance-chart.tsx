@@ -1,3 +1,4 @@
+
 "use client"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import {
@@ -8,14 +9,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { useState, useEffect } from "react";
+import { format, subDays } from "date-fns";
+import { id } from "date-fns/locale";
 
-const chartData = [
-  { day: "Senin", hadir: 92, alpa: 3, izin: 5 },
-  { day: "Selasa", hadir: 95, alpa: 1, izin: 4 },
-  { day: "Rabu", hadir: 94, alpa: 2, izin: 4 },
-  { day: "Kamis", hadir: 96, alpa: 1, izin: 3 },
-  { day: "Jumat", hadir: 91, alpa: 4, izin: 5 },
-];
+interface Kehadiran {
+  tanggal: string;
+  status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
+}
 
 const chartConfig = {
   hadir: {
@@ -33,6 +34,38 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function AttendanceChart() {
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const rawData = localStorage.getItem("kehadiranSiswa");
+    if (rawData) {
+      const kehadiranSiswa: Kehadiran[] = JSON.parse(rawData);
+      
+      const attendanceByDay: { [key: string]: { hadir: number; alpa: number; izin: number } } = {};
+
+      kehadiranSiswa.forEach(item => {
+        if (!attendanceByDay[item.tanggal]) {
+          attendanceByDay[item.tanggal] = { hadir: 0, alpa: 0, izin: 0 };
+        }
+        if (item.status === 'Hadir') attendanceByDay[item.tanggal].hadir++;
+        else if (item.status === 'Alpa') attendanceByDay[item.tanggal].alpa++;
+        else if (item.status === 'Izin' || item.status === 'Sakit') attendanceByDay[item.tanggal].izin++;
+      });
+
+      const sortedDays = Object.keys(attendanceByDay).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      
+      const lastFiveDaysWithData = sortedDays.slice(0, 5);
+
+      const formattedData = lastFiveDaysWithData.map(day => ({
+        day: format(new Date(day), "EEEE", { locale: id }),
+        ...attendanceByDay[day]
+      })).reverse(); // Reverse to show chronologically
+
+      setChartData(formattedData);
+    }
+  }, []);
+
+
   return (
     <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
       <BarChart accessibilityLayer data={chartData}>
