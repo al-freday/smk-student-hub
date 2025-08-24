@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, UserCheck, PlusCircle, Send } from "lucide-react";
+import { Printer, UserCheck, PlusCircle, Send, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { getSourceData } from "@/lib/data-manager";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // Data Types
 interface GuruMapel {
@@ -38,6 +40,7 @@ export default function LaporanGuruPiketPage() {
   const [daftarGuruMapel, setDaftarGuruMapel] = useState<GuruMapel[]>([]);
   const [laporanHariIni, setLaporanHariIni] = useState<TeacherAttendanceRecord[]>([]);
   const [riwayatLaporan, setRiwayatLaporan] = useState<TeacherAttendanceRecord[]>([]);
+  const [itemToDelete, setItemToDelete] = useState<TeacherAttendanceRecord | null>(null);
 
   // Form state
   const [selectedGuru, setSelectedGuru] = useState<GuruMapel | null>(null);
@@ -47,33 +50,18 @@ export default function LaporanGuruPiketPage() {
   const attendanceStorageKey = 'teacherAttendanceData';
 
   useEffect(() => {
-    // Muat data guru mapel dari localStorage
-    try {
-      const savedTeachers = localStorage.getItem('teachersData');
-      if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
-        setDaftarGuruMapel(teachersData.guru_mapel || []);
-      }
-      
-      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      if(user.nama) setCurrentUser(user);
+    const teachersData = getSourceData('teachersData', {});
+    setDaftarGuruMapel(teachersData.guru_mapel || []);
+    
+    const user = getSourceData('currentUser', {});
+    if(user.nama) setCurrentUser(user);
 
-      const savedAttendance = localStorage.getItem(attendanceStorageKey);
-      const allRecords: TeacherAttendanceRecord[] = savedAttendance ? JSON.parse(savedAttendance) : [];
-      setRiwayatLaporan(allRecords);
+    const allRecords: TeacherAttendanceRecord[] = getSourceData(attendanceStorageKey, []);
+    setRiwayatLaporan(allRecords);
 
-      const today = format(new Date(), "yyyy-MM-dd");
-      setLaporanHariIni(allRecords.filter(rec => rec.tanggal === today));
-
-    } catch (error) {
-      console.error("Gagal memuat data guru:", error);
-      toast({
-        title: "Gagal Memuat Data",
-        description: "Tidak dapat memuat daftar guru dari penyimpanan.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
+    const today = format(new Date(), "yyyy-MM-dd");
+    setLaporanHariIni(allRecords.filter(rec => rec.tanggal === today));
+  }, []);
 
   const handleTambahCatatan = () => {
     if (!selectedGuru) {
@@ -92,11 +80,12 @@ export default function LaporanGuruPiketPage() {
     };
     
     const updatedRiwayat = [...riwayatLaporan, newRecord];
-    const updatedLaporanHariIni = [...laporanHariIni, newRecord];
-
     setRiwayatLaporan(updatedRiwayat);
-    setLaporanHariIni(updatedLaporanHariIni);
     localStorage.setItem(attendanceStorageKey, JSON.stringify(updatedRiwayat));
+    
+    // Perbarui laporan hari ini juga
+    const today = format(new Date(), "yyyy-MM-dd");
+    setLaporanHariIni(updatedRiwayat.filter(rec => rec.tanggal === today));
 
     toast({ title: "Sukses", description: `Kehadiran untuk ${selectedGuru.nama} telah dicatat.` });
     
@@ -105,6 +94,20 @@ export default function LaporanGuruPiketPage() {
     setStatusKehadiran('Hadir');
     setKeterangan("");
   };
+  
+  const handleDelete = () => {
+      if (!itemToDelete) return;
+      const updatedRiwayat = riwayatLaporan.filter(rec => rec.id !== itemToDelete.id);
+      setRiwayatLaporan(updatedRiwayat);
+      localStorage.setItem(attendanceStorageKey, JSON.stringify(updatedRiwayat));
+      
+      const today = format(new Date(), "yyyy-MM-dd");
+      setLaporanHariIni(updatedRiwayat.filter(rec => rec.tanggal === today));
+      
+      toast({ title: "Dihapus", description: `Catatan untuk ${itemToDelete.namaGuru} telah dihapus.` });
+      setItemToDelete(null);
+  };
+
 
   const handlePrint = () => {
     window.print();
@@ -155,7 +158,7 @@ export default function LaporanGuruPiketPage() {
                             const guru = daftarGuruMapel.find(g => g.id.toString() === value);
                             setSelectedGuru(guru || null);
                         }}
-                        value={selectedGuru?.id.toString()}
+                        value={selectedGuru?.id.toString() || ""}
                     >
                         <SelectTrigger id="guru-select"><SelectValue placeholder="Pilih Guru..." /></SelectTrigger>
                         <SelectContent>
@@ -198,6 +201,7 @@ export default function LaporanGuruPiketPage() {
                       <TableHead>Mata Pelajaran</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Keterangan</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -208,11 +212,16 @@ export default function LaporanGuruPiketPage() {
                           <TableCell>{laporan.mataPelajaran}</TableCell>
                           <TableCell>{laporan.status}</TableCell>
                           <TableCell>{laporan.keterangan}</TableCell>
+                          <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => setItemToDelete(laporan)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                           Belum ada catatan kehadiran guru untuk hari ini.
                         </TableCell>
                       </TableRow>
@@ -223,6 +232,21 @@ export default function LaporanGuruPiketPage() {
           </div>
         </CardContent>
       </Card>
+      
+       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Tindakan ini tidak dapat dibatalkan. Catatan kehadiran untuk <strong>{itemToDelete?.namaGuru}</strong> akan dihapus.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

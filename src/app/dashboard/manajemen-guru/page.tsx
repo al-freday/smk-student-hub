@@ -128,7 +128,7 @@ export default function ManajemenGuruPage() {
         setTeacherToDelete(null);
     };
     
-    const canEdit = userRole === 'wakasek_kesiswaan';
+    const canEdit = userRole === 'wakasek_kesiswaan' || userRole === 'admin';
 
     return (
         <div className="flex-1 space-y-6">
@@ -149,8 +149,8 @@ export default function ManajemenGuruPage() {
                             <CardTitle>Daftar Guru</CardTitle>
                             <CardDescription>
                                {canEdit 
-                                    ? "Perubahan di sini akan memengaruhi data pengguna secara otomatis."
-                                    : "Data ini dikelola oleh Wakasek Kesiswaan."
+                                    ? "Data ini akan menjadi sumber bagi halaman Manajemen Pengguna Admin dan fitur lainnya."
+                                    : "Data ini dikelola oleh Administrator atau Wakasek Kesiswaan."
                                }
                             </CardDescription>
                         </div>
@@ -178,16 +178,14 @@ export default function ManajemenGuruPage() {
                                                 {role.value === 'guru_mapel' && <p className="text-sm text-muted-foreground">Mapel: {guru.mapel}</p>}
                                                 {role.value === 'guru_piket' && <p className="text-sm text-muted-foreground">Hari: {guru.hariPiket}</p>}
                                             </div>
-                                            {canEdit && (
-                                                <div>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({ ...guru, role: role.value })}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(guru, role.value)}>
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            <div>
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({ ...guru, role: role.value })} disabled={!canEdit}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(guru, role.value)} disabled={!canEdit}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
@@ -227,7 +225,7 @@ export default function ManajemenGuruPage() {
                          {formData.role === 'guru_mapel' && (
                              <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-                                <Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" />
+                                <Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" placeholder="Contoh: Matematika - X TKJ 1" />
                             </div>
                         )}
                          {formData.role === 'guru_piket' && (
@@ -261,3 +259,5 @@ export default function ManajemenGuruPage() {
         </div>
     );
 }
+
+    

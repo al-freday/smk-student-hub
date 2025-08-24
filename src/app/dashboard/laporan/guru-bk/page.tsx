@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 type ReportStatus = 'Masuk' | 'Diproses' | 'Selesai';
 
@@ -43,12 +44,9 @@ export default function LaporanGuruBkPage() {
 
   useEffect(() => {
     const loadReports = () => {
-        const savedReports = localStorage.getItem(reportStorageKey);
-        if (savedReports) {
-            setReceivedReports(JSON.parse(savedReports));
-            setIsLoading(false);
-            return;
-        }
+        setIsLoading(true);
+        const savedReports = getSourceData(reportStorageKey, []);
+        setReceivedReports(savedReports);
         setIsLoading(false);
     };
     loadReports();
@@ -67,7 +65,7 @@ export default function LaporanGuruBkPage() {
       report.id === id ? { ...report, status } : report
     );
     setReceivedReports(updatedReports);
-    localStorage.setItem(reportStorageKey, JSON.stringify(updatedReports));
+    updateSourceData(reportStorageKey, updatedReports);
     toast({
         title: "Status Diperbarui",
         description: `Laporan telah ditandai sebagai ${status}.`,
@@ -81,7 +79,7 @@ export default function LaporanGuruBkPage() {
   };
   
   const handleSaveTindakLanjut = (id: number) => {
-      localStorage.setItem(reportStorageKey, JSON.stringify(receivedReports));
+      updateSourceData(reportStorageKey, receivedReports);
       toast({ title: "Catatan Disimpan", description: "Catatan tindak lanjut telah disimpan." });
   };
 
@@ -186,7 +184,7 @@ export default function LaporanGuruBkPage() {
                         <div className="flex items-center gap-2">
                             <Textarea 
                                 placeholder="Tulis catatan di sini..."
-                                value={laporan.tindakLanjut}
+                                value={laporan.tindakLanjut || ""}
                                 onChange={(e) => handleTindakLanjutChange(laporan.id, e.target.value)}
                                 onBlur={() => handleSaveTindakLanjut(laporan.id)}
                                 className="text-xs h-20"

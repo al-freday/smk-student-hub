@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData } from "@/lib/data-manager";
 
 interface GuruPendamping {
   id: number;
@@ -39,37 +40,25 @@ export default function LaporanGuruPendampingPage() {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
 
-    if (role === 'wakasek_kesiswaan') {
-        try {
-          const savedTeachers = localStorage.getItem('teachersData');
-          const savedStatuses = localStorage.getItem(reportStorageKey);
-          const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+    try {
+      const teachersData = getSourceData('teachersData', {});
+      const savedStatuses = getSourceData(reportStorageKey, {});
+      
+      const guruPendampingList: GuruPendamping[] = teachersData.guru_pendamping || [];
 
-          if (savedTeachers) {
-            const teachersData = JSON.parse(savedTeachers);
-            const guruPendampingList: GuruPendamping[] = teachersData.guru_pendamping || [];
+      const reports = guruPendampingList.map((guru, index) => ({
+        id: guru.id,
+        guru: guru.nama,
+        tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
+        catatan: `Laporan pendampingan rutin oleh ${guru.nama}.`,
+        status: savedStatuses[guru.id] || 'Terkirim',
+      }));
+      setReceivedReports(reports);
 
-            const reports = guruPendampingList.map((guru, index) => ({
-              id: guru.id,
-              guru: guru.nama,
-              tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
-              catatan: `Laporan pendampingan rutin oleh ${guru.nama}.`,
-              status: statuses[guru.id] || 'Terkirim',
-            }));
-            setReceivedReports(reports);
-          }
-        } catch (error) {
-          console.error("Gagal memuat data guru pendamping:", error);
-        } finally {
-          setIsLoading(false);
-        }
-    } else {
-        // Data default untuk tampilan non-wakasek (tampilan asli)
-         setReceivedReports([
-            { id: 1, tanggal: "2024-07-20", guru: "Ahmad Budi", catatan: "Siswa menunjukkan perkembangan positif dalam kegiatan ekstrakurikuler.", status: 'Terkirim' },
-            { id: 2, tanggal: "2024-07-21", guru: "Citra Dewi", catatan: "Membutuhkan bimbingan lebih lanjut dalam manajemen waktu.", status: 'Terkirim' },
-        ]);
-        setIsLoading(false);
+    } catch (error) {
+      console.error("Gagal memuat data guru pendamping:", error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -83,9 +72,7 @@ export default function LaporanGuruPendampingPage() {
     );
     setReceivedReports(updatedReports);
 
-    // Save updated status to localStorage
-    const savedStatuses = localStorage.getItem(reportStorageKey);
-    const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
+    const statuses = getSourceData(reportStorageKey, {});
     statuses[id] = status;
     localStorage.setItem(reportStorageKey, JSON.stringify(statuses));
     
@@ -171,7 +158,7 @@ export default function LaporanGuruPendampingPage() {
                 <TableHead>{isWakasekView ? "Nama Guru Pendamping" : "Nama Siswa"}</TableHead>
                 <TableHead>{isGuruPendampingView ? "Catatan Personal (Masalah/Perkembangan)" : "Catatan Pendampingan"}</TableHead>
                 {isWakasekView && <TableHead>Status</TableHead>}
-                {isWakasekView && <TableHead className="text-right">Aksi</TableHead>}
+                <TableHead className="text-right print:hidden">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -186,7 +173,6 @@ export default function LaporanGuruPendampingPage() {
                               <Badge variant={getStatusBadgeVariant(laporan.status)}>{laporan.status}</Badge>
                           </TableCell>
                       )}
-                       {isWakasekView && (
                         <TableCell className="text-right">
                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -199,23 +185,26 @@ export default function LaporanGuruPendampingPage() {
                                     <DropdownMenuItem asChild>
                                         <Link href="/dashboard/laporan/guru-pendamping"><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diproses')}>
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Tandai Diproses
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diterima')}>
-                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                        Tandai Diterima
-                                    </DropdownMenuItem>
+                                    {isWakasekView && (
+                                        <>
+                                            <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diproses')}>
+                                                <RefreshCw className="mr-2 h-4 w-4" />
+                                                Tandai Diproses
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStatusChange(laporan.id, 'Diterima')}>
+                                                <CheckCircle className="mr-2 h-4 w-4" />
+                                                Tandai Diterima
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
-                      )}
                     </TableRow>
                   ))
               ) : (
                 <TableRow>
-                    <TableCell colSpan={isWakasekView ? 5 : 3} className="h-24 text-center">
+                    <TableCell colSpan={isWakasekView ? 5 : 4} className="h-24 text-center">
                         {isWakasekView ? "Belum ada laporan yang diterima." : "Belum ada data laporan."}
                     </TableCell>
                 </TableRow>
@@ -227,3 +216,5 @@ export default function LaporanGuruPendampingPage() {
     </div>
   );
 }
+
+    
