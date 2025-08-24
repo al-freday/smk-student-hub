@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { getSourceData } from "@/lib/data-manager";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 interface SchoolInfo {
   schoolName: string;
@@ -18,12 +20,23 @@ interface SchoolInfo {
   logo: string;
 }
 
-const themes = {
-    default: { name: "Default", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
-    green: { name: "Hijau", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
-    blue: { name: "Biru", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
-    orange: { name: "Oranye", colors: { "--primary": "25 95% 53%", "--accent": "35 91% 65%" } },
+const themes: { [key: string]: { name: string, colors: { [key: string]: string } } } = {
+    default: { name: "Default (Oranye & Biru)", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
+    green: { name: "Hutan (Hijau)", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
+    blue: { name: "Samudera (Biru)", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
+    purple: { name: "Lavender (Ungu)", colors: { "--primary": "262 83% 58%", "--accent": "250 70% 75%" } },
+    pink: { name: "Fajar (Merah Muda)", colors: { "--primary": "340 82% 52%", "--accent": "340 70% 70%" } },
+    teal: { name: "Toska", colors: { "--primary": "173 80% 40%", "--accent": "173 70% 60%" } },
 };
+
+const userRoles = [
+    { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
+    { key: "wali_kelas", name: "Wali Kelas" },
+    { key: "guru_bk", name: "Guru BK" },
+    { key: "guru_mapel", name: "Guru Mapel" },
+    { key: "guru_piket", name: "Guru Piket" },
+    { key: "guru_pendamping", name: "Guru Pendamping" },
+];
 
 export default function AdminPengaturanPage() {
   const router = useRouter();
@@ -37,6 +50,7 @@ export default function AdminPengaturanPage() {
   });
   
   const [totalUsers, setTotalUsers] = useState(0);
+  const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
@@ -59,6 +73,13 @@ export default function AdminPengaturanPage() {
         });
     }
     setTotalUsers(count);
+
+    const loadedThemes: { [key: string]: string } = {};
+    userRoles.forEach(role => {
+        const theme = localStorage.getItem(`appTheme_${role.key}`);
+        loadedThemes[role.key] = theme ? JSON.parse(theme).key : 'default';
+    });
+    setSelectedThemes(loadedThemes);
 
   }, [router]);
   
@@ -92,16 +113,24 @@ export default function AdminPengaturanPage() {
       });
   };
 
-  const handleThemeChange = (newTheme: { [key: string]: string }) => {
-    const themeString = JSON.stringify(newTheme);
-    localStorage.setItem('appTheme', themeString);
-    Object.entries(newTheme).forEach(([property, value]) => {
-      document.documentElement.style.setProperty(property, value);
-    });
+  const handleThemeChange = (roleKey: string, themeKey: string) => {
+    const newSelectedThemes = { ...selectedThemes, [roleKey]: themeKey };
+    setSelectedThemes(newSelectedThemes);
+
+    const themeToSave = { key: themeKey, colors: themes[themeKey].colors };
+    localStorage.setItem(`appTheme_${roleKey}`, JSON.stringify(themeToSave));
+    
     toast({
-        title: "Tema Global Diubah",
-        description: "Tampilan aplikasi untuk semua pengguna telah diperbarui.",
+        title: "Tema Diperbarui",
+        description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
+
+    // Optionally apply theme to current admin view if admin role is changed
+    if (roleKey === 'admin' || roleKey === 'wakasek_kesiswaan') {
+        Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
+            document.documentElement.style.setProperty(property, value);
+        });
+    }
   };
 
   return (
@@ -166,30 +195,36 @@ export default function AdminPengaturanPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Tema Aplikasi Global</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Palette /> Tema Aplikasi per Peran</CardTitle>
                 <CardDescription>
-                  Pilih skema warna default untuk semua pengguna.
+                  Atur skema warna yang berbeda untuk setiap peran pengguna.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                      {Object.values(themes).map((theme) => (
-                          <Button 
-                              key={theme.name}
-                              variant="outline"
-                              className="h-16 justify-start text-left"
-                              onClick={() => handleThemeChange(theme.colors)}
-                          >
-                            <div className="flex items-center gap-4">
-                                <div className="flex -space-x-2">
-                                    <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--primary']})` }} />
-                                    <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--accent']})` }} />
-                                </div>
-                                <span>{theme.name}</span>
+                  {userRoles.map((role) => (
+                      <div key={role.key} className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                                <div className="h-6 w-6 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${themes[selectedThemes[role.key] || 'default'].colors['--primary']})` }} />
+                                <div className="h-6 w-6 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${themes[selectedThemes[role.key] || 'default'].colors['--accent']})` }} />
                             </div>
-                          </Button>
-                      ))}
-                  </div>
+                            <Label htmlFor={`theme-${role.key}`} className="font-medium">{role.name}</Label>
+                         </div>
+                         <Select 
+                            value={selectedThemes[role.key] || 'default'}
+                            onValueChange={(value) => handleThemeChange(role.key, value)}
+                         >
+                            <SelectTrigger id={`theme-${role.key}`} className="w-[180px]">
+                                <SelectValue placeholder="Pilih Tema" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(themes).map(([key, theme]) => (
+                                    <SelectItem key={key} value={key}>{theme.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                         </Select>
+                      </div>
+                  ))}
               </CardContent>
             </Card>
 
