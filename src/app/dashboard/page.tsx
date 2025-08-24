@@ -47,24 +47,6 @@ const WakasekDashboard = () => {
         fetchStats();
     }, []);
 
-    if (isLoading) {
-        return (
-             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                {[...Array(5)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium"><div className="h-4 w-24 bg-muted rounded"></div></CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold"><div className="h-8 w-16 bg-muted rounded"></div></div>
-                            <div className="text-xs text-muted-foreground"><div className="h-3 w-32 bg-muted rounded mt-1"></div></div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        )
-    }
-
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -74,6 +56,7 @@ const WakasekDashboard = () => {
                         value={stats.totalSiswa.toLocaleString()}
                         icon={<Users className="h-4 w-4 text-muted-foreground" />}
                         description="Data dari Manajemen Siswa"
+                        isLoading={isLoading}
                     />
                 </Link>
                  <Link href="/dashboard/manajemen-guru">
@@ -82,6 +65,7 @@ const WakasekDashboard = () => {
                         value={stats.totalGuru.toLocaleString()}
                         icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
                         description="Data dari Manajemen Guru"
+                        isLoading={isLoading}
                     />
                 </Link>
                 <Link href="/dashboard/manajemen-kelas">
@@ -90,6 +74,7 @@ const WakasekDashboard = () => {
                         value={stats.totalKelas.toLocaleString()}
                         icon={<School className="h-4 w-4 text-muted-foreground" />}
                         description="Data dari Manajemen Kelas"
+                        isLoading={isLoading}
                     />
                 </Link>
                 <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
@@ -98,6 +83,7 @@ const WakasekDashboard = () => {
                         value={stats.kehadiranHariIni}
                         icon={<Activity className="h-4 w-4 text-muted-foreground" />}
                         description="Berdasarkan data absensi"
+                        isLoading={isLoading}
                     />
                 </Link>
                 <Link href="/dashboard/tata-tertib">
@@ -107,6 +93,7 @@ const WakasekDashboard = () => {
                         icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
                         description="Data dari Tata Tertib"
                         isNegative={stats.pelanggaranHariIni > 0}
+                        isLoading={isLoading}
                     />
                 </Link>
             </div>
@@ -337,6 +324,27 @@ const GeneralUserDashboard = ({ role }: { role: string }) => {
     );
 };
 
+const AdminDashboard = () => {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Dasbor Admin</CardTitle>
+                <CardDescription>Selamat datang di panel kontrol administrator.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground mb-4">
+                    Gunakan panel admin untuk mengelola pengguna, pengaturan global, dan memantau aktivitas sistem.
+                </p>
+                <div className="flex gap-4">
+                    <Link href="/admin/dashboard" passHref>
+                        <Button>Lanjutkan ke Panel Admin</Button>
+                    </Link>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 
 const renderDashboardByRole = (role: string) => {
     switch (role) {
@@ -344,6 +352,8 @@ const renderDashboardByRole = (role: string) => {
             return <WakasekDashboard />;
         case 'waliKelas':
             return <WaliKelasDashboard />;
+        case 'admin':
+            return <AdminDashboard />;
         default:
             return <GeneralUserDashboard role={role} />;
     }
@@ -352,18 +362,20 @@ const renderDashboardByRole = (role: string) => {
 export default function DashboardPage() {
     const router = useRouter();
     const [userRole, setUserRole] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
-        const role = localStorage.getItem('userRole') || 'wakasek';
-        if (role === 'admin') {
-            router.replace('/admin/dashboard');
+        const role = localStorage.getItem('userRole');
+        if (!role) {
+            router.replace('/');
             return;
         }
         setUserRole(role);
+        setIsLoading(false);
     }, [router]);
 
 
-    if (!userRole || userRole === 'admin') {
+    if (isLoading) {
         return (
             <div className="flex-1 space-y-6">
                 <div className="flex justify-center items-center h-screen">
