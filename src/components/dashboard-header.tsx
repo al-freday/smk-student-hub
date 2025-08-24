@@ -89,7 +89,7 @@ export default function DashboardHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{userInfo?.nama || "Pengguna"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <Link href="/dashboard/pengaturan" passHref>
+            <Link href="/dashboard/profil" passHref>
                 <DropdownMenuItem>Profil</DropdownMenuItem>
             </Link>
              <Link href="/dashboard/pengaturan" passHref>
