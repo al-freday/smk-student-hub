@@ -150,7 +150,7 @@ const WaliKelasNav = ({pathname}: {pathname: string}) => (
       </SidebarMenuItem>
       
       <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Laporan" isActive={pathname.startsWith('/dashboard/laporan')}>
+        <SidebarMenuButton tooltip="Laporan" isActive={pathname.startsWith('/dashboard/laporan') && !pathname.startsWith('/dashboard/laporan/wali-kelas')}>
           <AreaChart />
           <span className="group-data-[collapsible=icon]:hidden">Laporan Program Kelas</span>
         </SidebarMenuButton>
@@ -167,11 +167,11 @@ const WaliKelasNav = ({pathname}: {pathname: string}) => (
 
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole>('wakasek');
+  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
   const [schoolInfo, setSchoolInfo] = useState({ name: "SMKN 2 Tana Toraja", logo: "" });
   
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek';
+    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
     setUserRole(role);
 
     const savedSchoolInfo = localStorage.getItem("schoolInfo");
@@ -185,7 +185,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     localStorage.removeItem('userRole');
   };
 
-  const navItems = navItemsByRole[userRole] || [];
+  const navItems = userRole ? navItemsByRole[userRole] || [] : [];
   const containerClass = isMobile ? "flex flex-col h-full" : "";
 
   if (userRole === 'admin' && !isMobile) {
@@ -193,6 +193,8 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   }
   
   const renderNavItems = () => {
+    if (!userRole) return null;
+
     if (userRole === 'waliKelas') {
       return <WaliKelasNav pathname={pathname} />;
     }
