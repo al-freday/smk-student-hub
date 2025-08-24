@@ -18,6 +18,7 @@ import { Menu, Search } from "lucide-react";
 import { DashboardNav } from "./dashboard-nav";
 import { Icons } from "./icons";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -47,6 +48,7 @@ const getAvatarFallback = (role: string) => {
 
 
 export default function DashboardHeader() {
+  const router = useRouter();
   const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
@@ -57,6 +59,8 @@ export default function DashboardHeader() {
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUser');
+    router.push('/');
   };
 
   return (
@@ -100,14 +104,14 @@ export default function DashboardHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{getRoleDisplayName(userRole)}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profil</DropdownMenuItem>
-             <Link href="/dashboard/pengaturan">
+            <Link href="/dashboard/pengaturan" passHref>
+                <DropdownMenuItem>Profil</DropdownMenuItem>
+            </Link>
+             <Link href="/dashboard/pengaturan" passHref>
                 <DropdownMenuItem>Pengaturan</DropdownMenuItem>
              </Link>
             <DropdownMenuSeparator />
-             <Link href="/" onClick={handleLogout}>
-              <DropdownMenuItem>Logout</DropdownMenuItem>
-            </Link>
+            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
