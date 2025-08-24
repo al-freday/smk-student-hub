@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +72,11 @@ interface Kehadiran {
   status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
+interface WaliKelasInfo {
+    nama: string;
+    kelas: string;
+}
+
 const generateInitialSiswa = (): Siswa[] => {
   const siswaList: Siswa[] = [];
   let id = 1;
@@ -101,6 +105,8 @@ export default function ManajemenSiswaPage() {
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
   const [daftarKelasDinamis, setDaftarKelasDinamis] = useState<Kelas[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [waliKelasInfo, setWaliKelasInfo] = useState<WaliKelasInfo | null>(null);
 
   // Form states for siswa
   const [nis, setNis] = useState("");
@@ -116,12 +122,14 @@ export default function ManajemenSiswaPage() {
   const [tanggalKehadiran, setTanggalKehadiran] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
+      const role = localStorage.getItem('userRole');
+      setUserRole(role);
+
       const savedSiswa = localStorage.getItem('siswaData');
       const savedKelas = localStorage.getItem('kelasData');
 
       if (savedKelas) {
-          const kelasData = JSON.parse(savedKelas);
-          setDaftarKelasDinamis(kelasData);
+          setDaftarKelasDinamis(JSON.parse(savedKelas));
       }
 
       if (savedSiswa) {
@@ -130,6 +138,15 @@ export default function ManajemenSiswaPage() {
           const initialSiswa = generateInitialSiswa();
           setSiswa(initialSiswa);
           localStorage.setItem('siswaData', JSON.stringify(initialSiswa));
+      }
+
+      if (role === 'waliKelas') {
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+          const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+          const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
+          if (waliKelasData) {
+              setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+          }
       }
   }, []);
 
@@ -140,7 +157,7 @@ export default function ManajemenSiswaPage() {
   const resetForm = () => {
     setNis("");
     setNama("");
-    setKelas("");
+    setKelas(waliKelasInfo?.kelas || "");
     setEditingSiswa(null);
   };
 
@@ -221,13 +238,23 @@ export default function ManajemenSiswaPage() {
   const handleImport = () => {
     alert("Fungsionalitas impor dari Excel akan segera tersedia.");
   };
+  
+  const displayedKelas = userRole === 'waliKelas' && waliKelasInfo
+    ? daftarKelasDinamis.filter(k => k.nama === waliKelasInfo.kelas)
+    : daftarKelasDinamis;
+
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa</h2>
-          <p className="text-muted-foreground">Kelola data siswa di sekolah dan catat kehadiran harian.</p>
+          <p className="text-muted-foreground">
+             {userRole === 'waliKelas' && waliKelasInfo 
+                ? `Kelola data siswa di kelas binaan Anda: ${waliKelasInfo.kelas}.`
+                : "Kelola data siswa di sekolah dan catat kehadiran harian."
+             }
+          </p>
         </div>
         <div className="flex gap-2">
             <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
@@ -265,7 +292,7 @@ export default function ManajemenSiswaPage() {
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="kelas" className="text-right">Kelas</Label>
-                     <Select onValueChange={setKelas} value={kelas}>
+                     <Select onValueChange={setKelas} value={kelas} disabled={userRole === 'waliKelas'}>
                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
                         <SelectContent>{daftarKelasDinamis.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent>
                       </Select>
@@ -282,11 +309,16 @@ export default function ManajemenSiswaPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Kelas & Siswa</CardTitle>
-          <CardDescription>Pilih kelas untuk melihat daftar siswa di dalamnya.</CardDescription>
+          <CardDescription>
+             {userRole === 'waliKelas' 
+                ? "Berikut adalah daftar siswa di kelas Anda."
+                : "Pilih kelas untuk melihat daftar siswa di dalamnya."
+             }
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="single" collapsible className="w-full">
-            {daftarKelasDinamis.map((k) => {
+          <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas}>
+            {displayedKelas.map((k) => {
               const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
               return (
                 <AccordionItem value={k.nama} key={k.id}>
@@ -412,3 +444,5 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
+
+    
