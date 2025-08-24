@@ -68,7 +68,7 @@ export default function ProfilPage() {
         telepon: "",
         alamat: "",
         role: basicInfo.role || "Pengguna",
-        avatar: "",
+        avatar: basicInfo.avatar || "",
         subjects: [],
       };
     } else {
@@ -107,12 +107,16 @@ export default function ProfilPage() {
 
   const handleSaveProfile = () => {
       localStorage.setItem(`userProfile_${userProfile.email}`, JSON.stringify(userProfile));
+      
       const currentUser = {
           nama: userProfile.nama,
           role: userProfile.role,
           email: userProfile.email,
+          avatar: userProfile.avatar,
       };
       localStorage.setItem("currentUser", JSON.stringify(currentUser));
+      window.dispatchEvent(new Event('storage')); // Memicu pembaruan header
+
       toast({
           title: "Profil Disimpan",
           description: "Perubahan biodata Anda telah berhasil disimpan.",
@@ -163,7 +167,7 @@ export default function ProfilPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-6">
                 <Avatar className="h-24 w-24">
-                   <AvatarImage src={userProfile.avatar || "https://placehold.co/100x100.png"} alt="Foto Profil" data-ai-hint="person avatar" />
+                   <AvatarImage src={userProfile.avatar} alt="Foto Profil" data-ai-hint="person avatar" />
                    <AvatarFallback>{userProfile.nama.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-4">
@@ -274,5 +278,3 @@ export default function ProfilPage() {
     </div>
   );
 }
-
-    

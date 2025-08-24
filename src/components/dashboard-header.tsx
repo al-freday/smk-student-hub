@@ -17,13 +17,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Search } from "lucide-react";
 import { DashboardNav } from "./dashboard-nav";
 import { Icons } from "./icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface UserInfo {
     nama: string;
     role: string;
     email: string;
+    avatar?: string;
 }
 
 const getAvatarFallbackFromName = (name: string = "") => {
@@ -34,13 +35,28 @@ const getAvatarFallbackFromName = (name: string = "") => {
 export default function DashboardHeader() {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-
-  useEffect(() => {
+  
+  const loadUserInfo = useCallback(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
         setUserInfo(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    loadUserInfo();
+    
+    // Listen for storage changes to update the header in real-time
+    const handleStorageChange = () => {
+        loadUserInfo();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadUserInfo]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -81,7 +97,7 @@ export default function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar>
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
+                <AvatarImage src={userInfo?.avatar} alt="User" data-ai-hint="person avatar" />
                 <AvatarFallback>{getAvatarFallbackFromName(userInfo?.nama)}</AvatarFallback>
               </Avatar>
             </Button>
