@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,13 +20,20 @@ export default function Home() {
     schoolName: "SMK Student Hub",
     logo: "",
   });
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const savedInfo = localStorage.getItem("schoolInfo");
     if (savedInfo) {
       setSchoolInfo(JSON.parse(savedInfo));
     }
   }, []);
+
+  if (!isClient) {
+    // Anda bisa menampilkan skeleton loader di sini jika diinginkan
+    return null;
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -37,7 +43,7 @@ export default function Home() {
             <div className="mx-auto mb-4">
                {schoolInfo.logo ? (
                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={schoolInfo.logo} alt="School Logo" />
+                    <AvatarImage src={schoolInfo.logo} alt="School Logo" data-ai-hint="school building" />
                     <AvatarFallback>S</AvatarFallback>
                  </Avatar>
                ) : (
