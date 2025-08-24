@@ -29,7 +29,10 @@ import {
   MessageSquare,
   ClipboardCheck,
   TrafficCone,
-  Siren
+  Siren,
+  FolderKanban,
+  FileHeart,
+  MessagesSquare
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -60,38 +63,23 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
-  admin: [],
+  admin: [
+     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
+    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
+    { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
+    { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
+  ],
    wali_kelas: [
-    { 
-      label: "Administrasi Kelas", 
-      icon: BookUser, 
-      href: "/dashboard/laporan/wali-kelas"
-    },
-    { 
-      label: "Pembinaan Disiplin", 
-      icon: ShieldAlert, 
-      href: "/dashboard/tata-tertib"
-    },
-    { 
-      label: "Pembinaan Karakter", 
-      icon: Users, 
-      href: "/dashboard/manajemen-siswa"
-    },
-     { 
-      label: "Layanan Siswa", 
-      icon: HeartHandshake, 
-      href: "/dashboard/laporan/wali-kelas"
-    },
-    { 
-      label: "Hubungan Orang Tua", 
-      icon: Handshake, 
-      href: "/dashboard/laporan/wali-kelas"
-    },
-    { 
-      label: "Laporan Bulanan", 
-      icon: ClipboardList, 
-      href: "/dashboard/laporan"
-    },
+    { href: "/dashboard/laporan/wali-kelas", icon: BookUser, label: "Administrasi Kelas" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pembinaan Disiplin" },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Pembinaan Karakter" },
+    { href: "/dashboard/laporan/wali-kelas", icon: HeartHandshake, label: "Kesejahteraan Siswa" },
+    { href: "/dashboard/laporan/wali-kelas", icon: Handshake, label: "Hubungan Orang Tua" },
+    { href: "/dashboard/laporan", icon: ClipboardList, label: "Laporan Bulanan" },
   ],
   guru_bk: [
     { href: "/dashboard/tata-tertib", icon: BadgeHelp, label: "Data Masalah Siswa" },
@@ -104,8 +92,10 @@ const navItemsByRole = {
     { href: "/dashboard/laporan/guru-mapel", icon: FileSignature, label: "Penilaian & Laporan" },
   ],
   guru_pendamping: [
-    { href: "/dashboard/laporan/wali-kelas", icon: BookCopy, label: "Administrasi Kelas" },
-    { href: "/dashboard/laporan/guru-pendamping", icon: HeartHandshake, label: "Pendampingan & Kolaborasi" },
+    { href: "/dashboard/tata-tertib", icon: HeartHandshake, label: "Pembinaan Karakter" },
+    { href: "/dashboard/laporan/guru-pendamping", icon: FileHeart, label: "Catatan Bimbingan" },
+    { href: "/dashboard/laporan/wali-kelas", icon: MessagesSquare, label: "Komunikasi Orang Tua" },
+    { href: "/dashboard/laporan", icon: FolderKanban, label: "Laporan Perkembangan" },
   ],
   guru_piket: [
     { href: "/dashboard/tata-tertib", icon: TrafficCone, label: "Disiplin & Ketertiban" },
@@ -135,10 +125,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   };
 
   const containerClass = isMobile ? "flex flex-col h-full" : "";
-
-  if (userRole === 'admin' && !isMobile) {
-    return null;
-  }
   
   const renderNavItems = () => {
     if (!userRole) return null;
