@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, PlusCircle, Edit, Trash2, UserCheck, BookOpen } from "lucide-react";
+import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, UserCheck, BookOpen } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,6 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -20,12 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 
 // --- Tipe Data untuk Laporan (Wakasek View) ---
-interface GuruMapel { id: number; nama: string; mapel?: string; }
+interface GuruMapelFromWakasek { id: number; nama: string; mapel?: string; }
 type ReportStatus = 'Terkirim' | 'Diproses' | 'Diterima';
 interface ReceivedReport { id: number; guru: string; mapel: string; tanggal: string; catatan: string; status: ReportStatus; }
 
 // --- Tipe Data untuk Manajemen Guru Mapel ---
-interface TeachingData { id: number; mapel: string; kelas: string; }
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface NilaiSiswa { nilaiHarian: string; nilaiUjian: string; catatanMateri: string; }
 interface AbsenSiswa { status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa'; }
@@ -40,18 +38,13 @@ export default function LaporanGuruMapelPage() {
   const reportStatusStorageKey = 'guruMapelReportsStatus';
 
   // --- State untuk Guru Mapel View ---
-  const [teachingData, setTeachingData] = useState<TeachingData[]>([]);
+  const [myTeachingAssignments, setMyTeachingAssignments] = useState<GuruMapelFromWakasek[]>([]);
   const [allSiswa, setAllSiswa] = useState<Siswa[]>([]);
-  const [isDataDialogOpen, setIsDataDialogOpen] = useState(false);
-  const [editingData, setEditingData] = useState<TeachingData | null>(null);
-  const [dataToDelete, setDataToDelete] = useState<TeachingData | null>(null);
-  const [formData, setFormData] = useState<Partial<TeachingData>>({});
-  const teachingDataStorageKey = 'guruMapelTeachingData';
 
   // --- State untuk Dialog Nilai & Absen ---
   const [isNilaiDialogOpen, setIsNilaiDialogOpen] = useState(false);
   const [selectedSiswa, setSelectedSiswa] = useState<Siswa | null>(null);
-  const [selectedTeachingData, setSelectedTeachingData] = useState<TeachingData | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<GuruMapelFromWakasek | null>(null);
   const [nilaiFormData, setNilaiFormData] = useState<Partial<NilaiSiswa>>({});
   const [absenFormData, setAbsenFormData] = useState<Partial<AbsenSiswa>>({});
 
@@ -63,7 +56,7 @@ export default function LaporanGuruMapelPage() {
     if (role === 'wakasek_kesiswaan') {
         loadWakasekData();
     } else if (role === 'guru_mapel') {
-        loadGuruMapelData(currentUser.email);
+        loadGuruMapelData(currentUser.nama);
         const siswaData = localStorage.getItem('siswaData');
         if (siswaData) setAllSiswa(JSON.parse(siswaData));
     } else {
@@ -79,7 +72,7 @@ export default function LaporanGuruMapelPage() {
       const statuses = savedStatuses ? JSON.parse(savedStatuses) : {};
       if (savedTeachers) {
         const teachersData = JSON.parse(savedTeachers);
-        const guruMapelList: GuruMapel[] = teachersData.guru_mapel || [];
+        const guruMapelList: GuruMapelFromWakasek[] = teachersData.guru_mapel || [];
         const reports = guruMapelList.map((guru, index) => ({
           id: guru.id, guru: guru.nama, mapel: guru.mapel || `Mapel ${index + 1}`,
           tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
@@ -111,34 +104,25 @@ export default function LaporanGuruMapelPage() {
   };
 
   // --- Logika untuk Guru Mapel View ---
-  const loadGuruMapelData = (userEmail: string) => {
-    const key = `${teachingDataStorageKey}_${userEmail}`;
-    const data = localStorage.getItem(key);
-    setTeachingData(data ? JSON.parse(data) : []);
+  const loadGuruMapelData = (currentUserName: string) => {
+    try {
+        const savedTeachers = localStorage.getItem('teachersData');
+        if (savedTeachers) {
+            const teachersData = JSON.parse(savedTeachers);
+            const assignments = teachersData.guru_mapel?.filter((guru: GuruMapelFromWakasek) => guru.nama === currentUserName);
+            setMyTeachingAssignments(assignments || []);
+        }
+    } catch (error) {
+        console.error("Gagal memuat data pengajaran:", error);
+    }
     setIsLoading(false);
   };
-
-  const saveGuruMapelData = (data: TeachingData[]) => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (currentUser.email) {
-      const key = `${teachingDataStorageKey}_${currentUser.email}`;
-      localStorage.setItem(key, JSON.stringify(data));
-      setTeachingData(data);
-    }
-  };
-
-  const handleOpenDataDialog = (data: TeachingData | null = null) => {
-    setEditingData(data);
-    setFormData(data || {});
-    setIsDataDialogOpen(true);
-  };
   
-  const handleOpenNilaiDialog = (siswa: Siswa, tData: TeachingData) => {
+  const handleOpenNilaiDialog = (siswa: Siswa, assignment: GuruMapelFromWakasek) => {
     setSelectedSiswa(siswa);
-    setSelectedTeachingData(tData);
-    // Load existing data if any
-    const nilaiKey = `nilai_${tData.id}_${siswa.id}`;
-    const absenKey = `absen_${tData.id}_${siswa.id}`;
+    setSelectedAssignment(assignment);
+    const nilaiKey = `nilai_${assignment.id}_${siswa.id}`;
+    const absenKey = `absen_${assignment.id}_${siswa.id}`;
     const savedNilai = localStorage.getItem(nilaiKey);
     const savedAbsen = localStorage.getItem(absenKey);
     setNilaiFormData(savedNilai ? JSON.parse(savedNilai) : {});
@@ -146,42 +130,14 @@ export default function LaporanGuruMapelPage() {
     setIsNilaiDialogOpen(true);
   };
 
-
-  const handleSaveData = () => {
-    if (!formData.mapel || !formData.kelas) {
-      toast({ title: "Gagal", description: "Mata pelajaran dan kelas harus diisi.", variant: "destructive" });
-      return;
-    }
-    let updatedData;
-    if (editingData) {
-      updatedData = teachingData.map(d => d.id === editingData.id ? { ...editingData, ...formData } : d);
-    } else {
-      const newData: TeachingData = { id: Date.now(), ...formData } as TeachingData;
-      updatedData = [...teachingData, newData];
-    }
-    saveGuruMapelData(updatedData);
-    toast({ title: "Sukses", description: "Data pengajaran berhasil disimpan." });
-    setIsDataDialogOpen(false);
-  };
-  
   const handleSaveNilai = () => {
-    if (!selectedSiswa || !selectedTeachingData) return;
-    const nilaiKey = `nilai_${selectedTeachingData.id}_${selectedSiswa.id}`;
-    const absenKey = `absen_${selectedTeachingData.id}_${selectedSiswa.id}`;
+    if (!selectedSiswa || !selectedAssignment) return;
+    const nilaiKey = `nilai_${selectedAssignment.id}_${selectedSiswa.id}`;
+    const absenKey = `absen_${selectedAssignment.id}_${selectedSiswa.id}`;
     localStorage.setItem(nilaiKey, JSON.stringify(nilaiFormData));
     localStorage.setItem(absenKey, JSON.stringify(absenFormData));
     toast({ title: "Data Disimpan", description: `Nilai dan absen untuk ${selectedSiswa.nama} telah disimpan.` });
     setIsNilaiDialogOpen(false);
-  };
-
-
-  const handleDeleteData = () => {
-    if (dataToDelete) {
-      const updatedData = teachingData.filter(d => d.id !== dataToDelete.id);
-      saveGuruMapelData(updatedData);
-      toast({ title: "Dihapus", description: `Data telah dihapus.` });
-      setDataToDelete(null);
-    }
   };
 
   if (isLoading) {
@@ -197,32 +153,25 @@ export default function LaporanGuruMapelPage() {
   if (userRole === 'guru_mapel') {
     return (
       <div className="flex-1 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Penilaian & Laporan</h2>
-            <p className="text-muted-foreground">Kelola mata pelajaran, kelas, dan input nilai serta absensi siswa.</p>
-          </div>
-          <Button onClick={() => handleOpenDataDialog()}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Mapel & Kelas
-          </Button>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Penilaian & Laporan</h2>
+          <p className="text-muted-foreground">Kelola nilai dan absensi siswa pada kelas dan mata pelajaran yang Anda ajar.</p>
         </div>
         <Card>
-          <CardHeader><CardTitle>Daftar Mata Pelajaran & Kelas</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Daftar Tugas Mengajar Anda</CardTitle>
+            <CardDescription>Data ini diatur oleh Wakasek Kesiswaan. Pilih kelas untuk mulai menginput nilai.</CardDescription>
+          </CardHeader>
           <CardContent>
-            {teachingData.length > 0 ? (
+            {myTeachingAssignments.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
-                    {teachingData.map((tData) => {
-                        const siswaDiKelas = allSiswa.filter(s => s.kelas === tData.kelas);
+                    {myTeachingAssignments.map((assignment) => {
+                        const siswaDiKelas = allSiswa.filter(s => s.kelas === assignment.mapel?.split(" - ")[1]);
+                        const assignmentLabel = `${assignment.mapel}`;
                         return (
-                             <AccordionItem value={`item-${tData.id}`} key={tData.id}>
+                             <AccordionItem value={`item-${assignment.id}`} key={assignment.id}>
                                 <AccordionTrigger>
-                                    <div className="flex justify-between w-full pr-4 items-center">
-                                        <span className="font-semibold text-lg">{tData.mapel} - {tData.kelas}</span>
-                                        <div>
-                                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); handleOpenDataDialog(tData)}}><Edit className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setDataToDelete(tData)}}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </div>
-                                    </div>
+                                    <span className="font-semibold text-lg">{assignmentLabel}</span>
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <Table>
@@ -233,7 +182,7 @@ export default function LaporanGuruMapelPage() {
                                                     <TableCell>{siswa.nis}</TableCell>
                                                     <TableCell className="font-medium">{siswa.nama}</TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button variant="outline" size="sm" onClick={() => handleOpenNilaiDialog(siswa, tData)}>
+                                                        <Button variant="outline" size="sm" onClick={() => handleOpenNilaiDialog(siswa, assignment)}>
                                                             <BookOpen className="mr-2 h-4 w-4" /> Input Nilai & Absen
                                                         </Button>
                                                     </TableCell>
@@ -247,30 +196,19 @@ export default function LaporanGuruMapelPage() {
                     })}
                 </Accordion>
             ) : (
-                <div className="text-center text-muted-foreground py-10">Belum ada data pengajaran. Silakan tambahkan.</div>
+                <div className="text-center text-muted-foreground py-10">
+                    <p>Anda belum memiliki tugas mengajar yang ditetapkan.</p>
+                    <p>Silakan hubungi Wakasek Kesiswaan.</p>
+                </div>
             )}
           </CardContent>
         </Card>
-        
-        <Dialog open={isDataDialogOpen} onOpenChange={setIsDataDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>{editingData ? "Edit" : "Tambah"} Data Pengajaran</DialogTitle></DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2"><Label htmlFor="mapel">Mata Pelajaran</Label><Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({ ...formData, mapel: e.target.value })} /></div>
-              <div className="space-y-2"><Label htmlFor="kelas">Kelas</Label><Input id="kelas" value={formData.kelas || ""} onChange={e => setFormData({ ...formData, kelas: e.target.value })} placeholder="Contoh: X TKJ 1, XI RPL 2"/></div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-              <Button onClick={handleSaveData}>Simpan</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
         
          <Dialog open={isNilaiDialogOpen} onOpenChange={setIsNilaiDialogOpen}>
           <DialogContent>
             <DialogHeader>
                 <DialogTitle>Input Nilai & Absen untuk {selectedSiswa?.nama}</DialogTitle>
-                <DialogDescription>Mapel: {selectedTeachingData?.mapel} | Kelas: {selectedTeachingData?.kelas}</DialogDescription>
+                <DialogDescription>Mapel: {selectedAssignment?.mapel}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
                 <div>
@@ -302,13 +240,7 @@ export default function LaporanGuruMapelPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        
-        <AlertDialog open={!!dataToDelete} onOpenChange={() => setDataToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteData}>Hapus</AlertDialogAction></AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+
       </div>
     );
   }
@@ -363,7 +295,5 @@ export default function LaporanGuruMapelPage() {
     </div>
   );
 }
-
-    
 
     
