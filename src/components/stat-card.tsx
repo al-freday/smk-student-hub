@@ -24,9 +24,9 @@ export default function StatCard({ title, value, icon, description, isNegative =
                 <div className="text-2xl font-bold">
                     {isLoading ? <Skeleton className="h-8 w-16" /> : value}
                 </div>
-                <p className={`text-xs text-muted-foreground ${isNegative ? 'text-destructive' : ''}`}>
+                <div className={`text-xs text-muted-foreground ${isNegative ? 'text-destructive' : ''}`}>
                     {isLoading ? <Skeleton className="h-3 w-32 mt-1" /> : description}
-                </p>
+                </div>
             </CardContent>
         </Card>
     );
