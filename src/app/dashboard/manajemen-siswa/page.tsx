@@ -42,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +49,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Siswa {
   id: number;
@@ -147,6 +147,7 @@ export default function ManajemenSiswaPage() {
           const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
           if (waliKelasData) {
               setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+              setKelas(waliKelasData.kelas);
           }
       }
   }, []);

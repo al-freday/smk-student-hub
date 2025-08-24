@@ -47,8 +47,10 @@ export default function DashboardHeader() {
     loadUserInfo();
     
     // Listen for storage changes to update the header in real-time
-    const handleStorageChange = () => {
-        loadUserInfo();
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === 'currentUser') {
+            loadUserInfo();
+        }
     };
     
     window.addEventListener('storage', handleStorageChange);
