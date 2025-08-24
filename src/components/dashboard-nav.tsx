@@ -15,6 +15,7 @@ import {
   FileText,
   Users,
   UserCog,
+  User,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -121,6 +122,14 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
       <SidebarFooter className="p-2">
           <SidebarMenu>
             <SidebarMenuItem>
+                <Link href="/dashboard/profil">
+                  <SidebarMenuButton tooltip="Profil" isActive={pathname.startsWith('/dashboard/profil')}>
+                    <User className="size-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Profil</span>
+                  </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
                 <Link href="/dashboard/pengaturan">
                   <SidebarMenuButton tooltip="Pengaturan" isActive={pathname.startsWith('/dashboard/pengaturan')}>
                     <Settings className="size-4" />
