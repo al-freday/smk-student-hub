@@ -64,7 +64,7 @@ const navItemsByRole = {
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
-     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
