@@ -32,7 +32,8 @@ import {
   Siren,
   FolderKanban,
   FileHeart,
-  MessagesSquare
+  MessagesSquare,
+  SendToBack
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -82,8 +83,9 @@ const navItemsByRole = {
     { href: "/dashboard/laporan", icon: ClipboardList, label: "Laporan Bulanan" },
   ],
   guru_bk: [
-    { href: "/dashboard/laporan/guru-bk", icon: BadgeHelp, label: "Laporan Guru BK" },
+    { href: "/dashboard/laporan/guru-bk", icon: MessageSquare, label: "Layanan Konseling" },
     { href: "/dashboard/laporan", icon: FileText, label: "Pusat Laporan" },
+    { href: "/dashboard/laporan/guru-bk/rekap", icon: SendToBack, label: "Rekap Program" },
   ],
   guru_mapel: [
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal & Rencana" },

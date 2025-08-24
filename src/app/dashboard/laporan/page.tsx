@@ -23,6 +23,8 @@ const reportTypesByRole = {
     { title: "Layanan Konseling & Tindak Lanjut", href: "/dashboard/laporan/guru-bk", description: "Kelola semua kasus dan catatan tindak lanjut siswa." },
     { title: "Lihat Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Akses rekapitulasi laporan dari para wali kelas." },
     { title: "Lihat Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Akses catatan perkembangan akademik dari guru mapel." },
+    { title: "Lihat Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Pantau laporan harian dari guru yang bertugas piket." },
+    { title: "Rekap Program & Laporan", href: "/dashboard/laporan/guru-bk/rekap", description: "Buat rekapitulasi program untuk dikirim ke Wakasek." },
   ],
   guru_mapel: [
     { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Buat laporan perkembangan akademik siswa." },
@@ -201,5 +203,3 @@ export default function LaporanPage() {
     </div>
   );
 }
-
-    
