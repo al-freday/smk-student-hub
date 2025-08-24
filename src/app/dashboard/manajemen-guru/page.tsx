@@ -178,14 +178,16 @@ export default function ManajemenGuruPage() {
                                                 {role.value === 'guru_mapel' && <p className="text-sm text-muted-foreground">Mapel: {guru.mapel}</p>}
                                                 {role.value === 'guru_piket' && <p className="text-sm text-muted-foreground">Hari: {guru.hariPiket}</p>}
                                             </div>
-                                            <div>
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({ ...guru, role: role.value })} disabled={!canEdit}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(guru, role.value)} disabled={!canEdit}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </div>
+                                            {canEdit && (
+                                                <div>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({ ...guru, role: role.value })}>
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDeleteDialog(guru, role.value)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))
                                 ) : (
@@ -259,5 +261,3 @@ export default function ManajemenGuruPage() {
         </div>
     );
 }
-
-    
