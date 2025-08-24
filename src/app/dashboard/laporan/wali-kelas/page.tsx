@@ -22,6 +22,7 @@ import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 
 // Data Types
@@ -380,32 +381,35 @@ export default function LaporanWaliKelasPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between print:hidden">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {waliKelasInfo?.kelas || 'Kelas Anda'}</h2>
           <p className="text-muted-foreground">
             Rekapitulasi lengkap data kelas binaan.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4 sm:mt-0">
             <Button variant="outline" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak</Button>
             <Button onClick={handleDownloadPDF} disabled={isDownloading}>
               {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Unduh PDF
             </Button>
-            <Button onClick={handleSendReport}><Send className="mr-2 h-4 w-4" /> Kirim Laporan ke Wakasek</Button>
+            <Button onClick={handleSendReport}><Send className="mr-2 h-4 w-4" /> Kirim</Button>
         </div>
       </div>
       
       <div ref={reportRef} className="report-container space-y-6">
         <Tabs defaultValue="dataSiswa">
-            <TabsList className="grid w-full grid-cols-5 print:hidden">
-            <TabsTrigger value="dataSiswa">Data Siswa</TabsTrigger>
-            <TabsTrigger value="administrasi">Administrasi Kelas</TabsTrigger>
-            <TabsTrigger value="akademik">Akademik</TabsTrigger>
-            <TabsTrigger value="kehadiran">Kehadiran & Rapor</TabsTrigger>
-            <TabsTrigger value="keuangan">Keuangan</TabsTrigger>
-            </TabsList>
+            <ScrollArea className="w-full whitespace-nowrap">
+                <TabsList className="print:hidden">
+                    <TabsTrigger value="dataSiswa">Data Siswa</TabsTrigger>
+                    <TabsTrigger value="administrasi">Administrasi Kelas</TabsTrigger>
+                    <TabsTrigger value="akademik">Akademik</TabsTrigger>
+                    <TabsTrigger value="kehadiran">Kehadiran & Rapor</TabsTrigger>
+                    <TabsTrigger value="keuangan">Keuangan</TabsTrigger>
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             <TabsContent value="dataSiswa" className="space-y-6">
                 <Card>

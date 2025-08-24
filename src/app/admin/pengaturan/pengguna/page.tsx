@@ -39,6 +39,8 @@ import { Label } from "@/components/ui/label";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 
 interface Guru {
   id: number;
@@ -306,15 +308,18 @@ export default function AdminManajemenPenggunaPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherRole)}>
-            <TabsList className="grid w-full grid-cols-5">
-              {roleOptions.map(role => (
-                 <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
-              ))}
-            </TabsList>
+             <ScrollArea className="w-full whitespace-nowrap">
+                <TabsList>
+                {roleOptions.map(role => (
+                    <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
+                ))}
+                </TabsList>
+                 <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             {Object.keys(users).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
-                 <div className="flex justify-end mb-4 gap-2">
+                 <div className="flex flex-col sm:flex-row justify-end mb-4 gap-2">
                     <Button variant="outline" onClick={handleExportData}>
                         <Download className="mr-2 h-4 w-4" />
                         Export Data User
@@ -324,45 +329,47 @@ export default function AdminManajemenPenggunaPage() {
                         Tambah {getRoleName(key as TeacherRole)}
                     </Button>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Peran</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users[key as TeacherRole].length > 0 ? (
-                       users[key as TeacherRole].map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.nama}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.role}</TableCell>
-                          <TableCell className="text-right">
-                              <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2">
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Password
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({...user, role: key as TeacherRole})}>
-                                  <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                          </TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Nama</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Peran</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                          Belum ada data pengguna untuk peran ini.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {users[key as TeacherRole].length > 0 ? (
+                        users[key as TeacherRole].map((user) => (
+                            <TableRow key={user.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
+                            <TableCell className="whitespace-nowrap">{user.email}</TableCell>
+                            <TableCell className="whitespace-nowrap">{user.role}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">
+                                <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2 mb-2 sm:mb-0">
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Password
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({...user, role: key as TeacherRole})}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                        ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                            Belum ada data pengguna untuk peran ini.
+                            </TableCell>
+                        </TableRow>
+                        )}
+                    </TableBody>
+                    </Table>
+                </div>
               </TabsContent>
             ))}
           </Tabs>
