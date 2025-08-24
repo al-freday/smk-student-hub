@@ -15,7 +15,9 @@ const getDataFromLocalStorage = (key: string, defaultValue: any) => {
     }
     try {
         const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
+        // Pastikan item yang di-parse tidak null atau undefined sebelum mengembalikannya
+        const parsedItem = item ? JSON.parse(item) : null;
+        return parsedItem !== null ? parsedItem : defaultValue;
     } catch (error) {
         console.warn(`Error reading localStorage key “${key}”:`, error);
         return defaultValue;
@@ -26,12 +28,12 @@ const getDataFromLocalStorage = (key: string, defaultValue: any) => {
 export const getDashboardStats = () => {
     // 1. Total Siswa
     const allSiswa: Siswa[] = getDataFromLocalStorage('siswaData', []);
-    const totalSiswa = allSiswa.length;
+    const totalSiswa = Array.isArray(allSiswa) ? allSiswa.length : 0;
 
     // 2. Total Guru (menghitung semua peran)
     const teachersData = getDataFromLocalStorage('teachersData', {});
     let totalGuru = 0;
-    if (teachersData && typeof teachersData === 'object') {
+    if (teachersData && typeof teachersData === 'object' && !Array.isArray(teachersData)) {
         Object.values(teachersData).forEach((roleArray: any) => {
             if (Array.isArray(roleArray)) {
                 totalGuru += roleArray.length;
@@ -41,20 +43,23 @@ export const getDashboardStats = () => {
 
     // 3. Jumlah Kelas
     const allKelas: Kelas[] = getDataFromLocalStorage('kelasData', []);
-    const totalKelas = allKelas.length;
+    const totalKelas = Array.isArray(allKelas) ? allKelas.length : 0;
     
     // 4. Kehadiran Hari Ini
     const riwayatKehadiran: Kehadiran[] = getDataFromLocalStorage('kehadiranSiswa', []);
     const today = format(new Date(), "yyyy-MM-dd");
-    const kehadiranHariIni = riwayatKehadiran.filter(k => k.tanggal === today);
+    
+    const kehadiranHariIni = Array.isArray(riwayatKehadiran) ? riwayatKehadiran.filter(k => k.tanggal === today) : [];
     const hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
+    
+    // Gunakan totalSiswa yang valid untuk perhitungan persentase
     const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(1) + "%" : "0%";
 
     // 5. Pelanggaran Hari Ini
     const riwayatCatatan: CatatanSiswa[] = getDataFromLocalStorage('riwayatCatatan', []);
-    const pelanggaranHariIni = riwayatCatatan.filter(
+    const pelanggaranHariIni = Array.isArray(riwayatCatatan) ? riwayatCatatan.filter(
         c => c.tanggal === today && c.tipe === 'pelanggaran'
-    ).length;
+    ).length : 0;
 
     return {
         totalSiswa,
