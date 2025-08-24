@@ -89,7 +89,7 @@ const WaliKelasNav = ({pathname}: {pathname: string}) => (
     </SidebarMenuItem>
 
     <SidebarGroup>
-      <SidebarGroupLabel>Menu Wali Kelas</SidebarGroupLabel>
+      <SidebarGroupLabel>Tugas Wali Kelas</SidebarGroupLabel>
       <SidebarMenuItem>
         <SidebarMenuButton tooltip="Administrasi" isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>
           <BookUser />
@@ -98,6 +98,9 @@ const WaliKelasNav = ({pathname}: {pathname: string}) => (
         <SidebarMenuSub>
           <SidebarMenuSubItem>
             <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>Administrasi Kelas</SidebarMenuSubButton></Link>
+          </SidebarMenuSubItem>
+           <SidebarMenuSubItem>
+            <Link href="/dashboard/manajemen-siswa"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/manajemen-siswa')}>Data Siswa</SidebarMenuSubButton></Link>
           </SidebarMenuSubItem>
         </SidebarMenuSub>
       </SidebarMenuItem>

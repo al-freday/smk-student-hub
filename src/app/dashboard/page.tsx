@@ -141,10 +141,44 @@ const WakasekDashboard = () => {
 };
 
 const WaliKelasDashboard = () => {
+    const [stats, setStats] = useState({
+        jumlahSiswa: 0,
+        kehadiranRataRata: "0%",
+        totalPelanggaran: 0,
+        siswaBermasalah: 0,
+        kelasBinaan: "",
+    });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+        const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
+
+        if (waliKelasData) {
+            const kelasBinaan = waliKelasData.kelas;
+            const siswaData = JSON.parse(localStorage.getItem('siswaData') || '[]');
+            const siswaDiKelas = siswaData.filter((s: any) => s.kelas === kelasBinaan);
+            
+            // Logika untuk menghitung statistik spesifik kelas
+            const jumlahSiswa = siswaDiKelas.length;
+            
+            setStats({
+                jumlahSiswa: jumlahSiswa,
+                kehadiranRataRata: "97%", // Contoh statis, bisa dikembangkan
+                totalPelanggaran: 15, // Contoh statis
+                siswaBermasalah: 3, // Contoh statis
+                kelasBinaan: kelasBinaan,
+            });
+        }
+        setIsLoading(false);
+    }, []);
+
+
     const studentsNeedingAttention = [
-        { id: 1, name: "Ahmad Budi", class: "X OT 1", points: 45, reason: "Sering terlambat" },
-        { id: 2, name: "Citra Dewi", class: "X OT 1", points: 30, reason: "Tidak mengerjakan PR 3x" },
-        { id: 3, name: "Eka Putra", class: "X OT 1", points: 25, reason: "Absen tanpa keterangan" },
+        { id: 1, name: "Ahmad Budi", class: stats.kelasBinaan, points: 45, reason: "Sering terlambat" },
+        { id: 2, name: "Citra Dewi", class: stats.kelasBinaan, points: 30, reason: "Tidak mengerjakan PR 3x" },
+        { id: 3, name: "Eka Putra", class: stats.kelasBinaan, points: 25, reason: "Absen tanpa keterangan" },
     ];
 
     return (
@@ -153,35 +187,39 @@ const WaliKelasDashboard = () => {
                 <Link href="/dashboard/laporan/wali-kelas">
                     <StatCard
                         title="Jumlah Siswa Kelas"
-                        value="40"
+                        value={stats.jumlahSiswa.toString()}
                         icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                        description="Kelas X OT 1"
+                        description={`Kelas ${stats.kelasBinaan}`}
+                        isLoading={isLoading}
                     />
                 </Link>
                  <Link href="/dashboard/laporan/wali-kelas">
                     <StatCard
                         title="Kehadiran Rata-rata"
-                        value="97%"
+                        value={stats.kehadiranRataRata}
                         icon={<UserCheck className="h-4 w-4 text-muted-foreground" />}
                         description="Bulan ini"
+                        isLoading={isLoading}
                     />
                 </Link>
                  <Link href="/dashboard/laporan/wali-kelas">
                     <StatCard
                         title="Total Pelanggaran"
-                        value="15"
+                        value={stats.totalPelanggaran.toString()}
                         icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
                         description="Bulan ini"
                         isNegative
+                        isLoading={isLoading}
                     />
                 </Link>
                  <Link href="/dashboard/laporan/wali-kelas">
                     <StatCard
                         title="Siswa Bermasalah"
-                        value="3"
+                        value={stats.siswaBermasalah.toString()}
                         icon={<UserX className="h-4 w-4 text-muted-foreground" />}
                         description="Perlu perhatian khusus"
                         isNegative
+                        isLoading={isLoading}
                     />
                 </Link>
             </div>

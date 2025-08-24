@@ -37,11 +37,13 @@ interface Rapor { id: number; nis: string; nama: string; tanggal: string; peneri
 interface Komite { id: number; nis: string; nama: string; status: 'Lunas' | 'Belum Lunas'; tanggal: string; }
 interface Kehadiran { totalSiswa: number; hadir: number; sakit: number; izin: number; alpa: number; }
 interface KehadiranSiswa { id: string; nis: string; nama: string; kelas: string; tanggal: string; status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';}
+interface WaliKelasInfo { nama: string; kelas: string; }
 
 export default function LaporanWaliKelasPage() {
   const { toast } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [waliKelasInfo, setWaliKelasInfo] = useState<WaliKelasInfo | null>(null);
 
   // States for all data sections
   const [identitasSiswa, setIdentitasSiswa] = useState<Siswa[]>([
@@ -116,6 +118,17 @@ export default function LaporanWaliKelasPage() {
 
 
   useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    if (role === 'waliKelas') {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+        const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
+        if (waliKelasData) {
+            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+        }
+    }
+
+
     const data = localStorage.getItem("kehadiranSiswa");
     const today = format(new Date(), "yyyy-MM-dd");
     let rekap: Kehadiran = { totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 };
@@ -156,7 +169,7 @@ export default function LaporanWaliKelasPage() {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`Laporan Wali Kelas - X OT 1 - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      pdf.save(`Laporan Wali Kelas - ${waliKelasInfo?.kelas || 'Kelas'} - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
       toast({
         title: "Laporan Diunduh",
@@ -178,7 +191,7 @@ export default function LaporanWaliKelasPage() {
   const handleSendReport = () => {
     toast({
       title: "Laporan Terkirim",
-      description: "Laporan bulanan kelas X OT 1 telah berhasil dikirim ke Wakasek Kesiswaan.",
+      description: `Laporan bulanan kelas ${waliKelasInfo?.kelas || ''} telah berhasil dikirim ke Wakasek Kesiswaan.`,
     });
   };
 
@@ -369,7 +382,7 @@ export default function LaporanWaliKelasPage() {
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - X OT 1</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {waliKelasInfo?.kelas || 'Kelas Anda'}</h2>
           <p className="text-muted-foreground">
             Rekapitulasi lengkap data kelas binaan.
           </p>
