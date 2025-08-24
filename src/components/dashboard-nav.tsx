@@ -16,15 +16,6 @@ import {
   Users,
   UserCog,
   User,
-  BookUser,
-  ClipboardCheck,
-  HeartHandshake,
-  UsersRound,
-  Presentation,
-  AreaChart,
-  Handshake,
-  Newspaper,
-  BookCopy,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -33,8 +24,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
@@ -54,75 +43,40 @@ const navItemsByRole = {
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [],
+   wali_kelas: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
+  ],
   guru_bk: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Data Masalah Siswa" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Konseling & Layanan" },
-    { href: "/dashboard/laporan/guru-bk", icon: Handshake, label: "Kolaborasi" },
-    { href: "/dashboard/laporan", icon: FileText, label: "Laporan BK" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Rencana Pembelajaran" },
-    { href: "/dashboard/manajemen-siswa", icon: BookCopy, label: "Pelaksanaan Pembelajaran" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Penilaian" },
-    { href: "/dashboard/laporan/guru-mapel", icon: FileText, label: "Laporan Harian/Mingguan" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
   ],
   guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pendampingan Karakter" },
-    { href: "/dashboard/laporan/guru-pendamping", icon: Handshake, label: "Kolaborasi" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
   ],
   guru_piket: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Absensi & Disiplin" },
-    { href: "/dashboard/laporan/guru-piket", icon: Newspaper, label: "Laporan Piket Harian" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
   ]
 };
 
-const WaliKelasNav = ({pathname}: {pathname: string}) => (
-  <SidebarMenu>
-    <SidebarMenuItem>
-      <Link href="/dashboard"><SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}><LayoutDashboard /><span>Dashboard</span></SidebarMenuButton></Link>
-    </SidebarMenuItem>
-    <SidebarGroup>
-        <SidebarGroupLabel>Tugas Wali Kelas</SidebarGroupLabel>
-        <SidebarMenuItem>
-            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuButton tooltip="Administrasi Kelas" isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}><BookUser /><span>Administrasi Kelas</span></SidebarMenuButton></Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <Link href="/dashboard/tata-tertib"><SidebarMenuButton tooltip="Pembinaan Disiplin" isActive={pathname.startsWith('/dashboard/tata-tertib')}><ShieldAlert /><span>Pembinaan Disiplin</span></SidebarMenuButton></Link>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Pembinaan Karakter"><HeartHandshake /><span>Pembinaan Karakter</span></SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Kesejahteraan Siswa"><Users /><span>Kesejahteraan Siswa</span></SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Hubungan Orang Tua"><UsersRound /><span>Hubungan Orang Tua</span></SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Pengawasan & Evaluasi"><Presentation /><span>Pengawasan & Evaluasi</span></SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Koordinasi Internal"><ClipboardCheck /><span>Koordinasi Internal</span></SidebarMenuButton>
-        </SidebarMenuItem>
-        <SidebarMenuItem>
-            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuButton tooltip="Laporan Kelas"><AreaChart /><span>Laporan Kelas</span></SidebarMenuButton></Link>
-        </SidebarMenuItem>
-    </SidebarGroup>
-  </SidebarMenu>
-);
 
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | 'wali_kelas' | null>(null);
+  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
   const [schoolInfo, setSchoolInfo] = useState({ name: "SMK Student Hub", logo: "" });
   
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole | 'wali_kelas') || null;
+    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
     setUserRole(role);
 
     const savedSchoolInfo = localStorage.getItem("schoolInfo");
@@ -145,12 +99,8 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   
   const renderNavItems = () => {
     if (!userRole) return null;
-
-    if (userRole === 'wali_kelas') {
-      return <WaliKelasNav pathname={pathname} />;
-    }
-
-    const navItems = navItemsByRole[userRole as keyof typeof navItemsByRole] || [];
+    
+    const navItems = navItemsByRole[userRole] || [];
 
     if (navItems.length === 0) return null;
 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2, BookCopy, Handshake, Newspaper } from "lucide-react";
+import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2 } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AttendanceChart from "@/components/attendance-chart";
@@ -256,63 +256,33 @@ const WaliKelasDashboard = () => {
     );
 };
 
-const GeneralUserDashboard = ({ role }: { role: string }) => {
-    const quickLinks = {
-        guru_bk: {
-            primary: { href: "/dashboard/laporan/guru-bk", label: "Lihat Laporan & Kolaborasi", icon: Handshake },
-            secondary: [
-                { href: "/dashboard/tata-tertib", label: "Lihat Data Masalah Siswa", icon: ShieldAlert },
-                { href: "/dashboard/manajemen-siswa", label: "Lihat Data Siswa", icon: Users },
-            ]
-        },
-        guru_mapel: {
-            primary: { href: "/dashboard/laporan/guru-mapel", label: "Buat Laporan Harian", icon: FileText },
-            secondary: [
-                { href: "/dashboard/jadwal-pelajaran", label: "Rencana Pembelajaran", icon: Calendar },
-                { href: "/dashboard/tata-tertib", label: "Lihat Penilaian", icon: ShieldAlert },
-            ]
-        },
-        guru_piket: {
-            primary: { href: "/dashboard/laporan/guru-piket", label: "Buat Laporan Piket", icon: Newspaper },
-            secondary: [
-                 { href: "/dashboard/manajemen-siswa", label: "Cek Absensi & Disiplin", icon: UserCheck },
-                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
-            ]
-        },
-        guru_pendamping: {
-            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendampingan", icon: Handshake },
-            secondary: [
-                 { href: "/dashboard/manajemen-kelas", label: "Manajemen Kelas", icon: School },
-                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
-            ]
-        },
-    };
-
-    const links = quickLinks[role as keyof typeof quickLinks] || quickLinks.guru_piket;
-
+const GeneralUserDashboard = () => {
     return (
-        <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Akses Cepat</CardTitle>
-                    <CardDescription>Pintasan ke fitur yang paling sering Anda gunakan.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <Link href={links.primary.href}>
-                        <Button className="w-full justify-start text-base py-6 h-auto">
-                            <links.primary.icon className="mr-4 h-5 w-5"/> {links.primary.label}
+        <Card>
+            <CardHeader>
+                <CardTitle>Selamat Datang!</CardTitle>
+                <CardDescription>Gunakan menu di sebelah kiri untuk mengakses fitur yang Anda butuhkan.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground mb-4">
+                   Pilih menu Laporan untuk membuat atau melihat laporan, atau pilih menu lainnya sesuai dengan tugas Anda.
+                </p>
+                <div className="flex gap-4">
+                    <Link href="/dashboard/laporan" passHref>
+                        <Button>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Buka Pusat Laporan
                         </Button>
                     </Link>
-                    {links.secondary.map(link => (
-                         <Link href={link.href} key={link.href}>
-                            <Button variant="secondary" className="w-full justify-start text-base py-6 h-auto">
-                                <link.icon className="mr-4 h-5 w-5"/> {link.label}
-                            </Button>
-                        </Link>
-                    ))}
-                </CardContent>
-            </Card>
-        </>
+                     <Link href="/dashboard/jadwal-pelajaran" passHref>
+                        <Button variant="secondary">
+                             <Calendar className="mr-2 h-4 w-4" />
+                            Lihat Jadwal
+                        </Button>
+                    </Link>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -350,7 +320,7 @@ const renderDashboardByRole = (role: string) => {
         case 'guru_mapel':
         case 'guru_piket':
         case 'guru_pendamping':
-            return <GeneralUserDashboard role={role} />;
+            return <GeneralUserDashboard />;
         default:
              return <WakasekDashboard />; 
     }
