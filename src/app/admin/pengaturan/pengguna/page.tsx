@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Eye, Download } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Eye, Download, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -37,6 +37,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { useRouter } from "next/navigation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Guru {
   id: number;
@@ -78,18 +80,18 @@ const initialTeachers: { [key in TeacherRole]: Guru[] } = {
 };
 
 
-export default function ManajemenPenggunaPage() {
+export default function AdminManajemenPenggunaPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [users, setUsers] = useState<{ [key in TeacherRole]: User[] }>({
         wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
   });
   const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
-  const [userRole, setUserRole] = useState<string | null>(null);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [formData, setFormData] = useState<Partial<User>>({});
+  const [formData, setFormData] = useState<Partial<User & {role: TeacherRole}>>({});
 
   const loadDataFromStorage = () => {
     try {
@@ -118,8 +120,10 @@ export default function ManajemenPenggunaPage() {
   };
   
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
+    if (sessionStorage.getItem("admin_logged_in") !== "true") {
+      router.push("/admin");
+      return;
+    }
     loadDataFromStorage();
     
     const handleStorageChange = (event: StorageEvent) => {
@@ -133,9 +137,8 @@ export default function ManajemenPenggunaPage() {
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
-  }, [toast]);
+  }, [router, toast]);
   
-  const canEdit = userRole === 'wakasek_kesiswaan' || userRole === 'admin';
 
   const handleShowPassword = (password: string) => {
     toast({
@@ -144,31 +147,43 @@ export default function ManajemenPenggunaPage() {
     });
   };
 
-  const handleOpenDialog = (user: User | null = null) => {
+  const handleOpenDialog = (user: (User & {role: TeacherRole}) | null = null) => {
       setEditingUser(user);
-      setFormData(user || {});
+      setFormData(user || {role: activeTab});
       setIsDialogOpen(true);
   };
 
   const handleSave = () => {
-      if (!formData.nama) {
-          toast({ title: "Gagal", description: "Nama pengguna harus diisi.", variant: "destructive" });
+      const { role, ...guruData } = formData;
+      if (!guruData.nama || !role) {
+          toast({ title: "Gagal", description: "Nama dan peran pengguna harus diisi.", variant: "destructive" });
           return;
       }
-
+      
       const teachersData = getSourceData('teachersData', initialTeachers);
-      const currentList = teachersData[activeTab];
-      let updatedList;
+      let updatedTeachers = { ...teachersData };
 
-      if (editingUser) {
-          updatedList = currentList.map((t: Guru) => t.id === editingUser.id ? { ...t, ...formData } : t);
-      } else {
-          const newId = currentList.length > 0 ? Math.max(...currentList.map((t: Guru) => t.id)) + 1 : 1;
-          const newUser = { id: newId, nama: formData.nama, kelas: formData.kelas, mapel: formData.mapel, hariPiket: formData.hariPiket };
-          updatedList = [...currentList, newUser];
+      if (editingUser && editingUser.role !== getRoleName(role)) {
+         const oldRoleKey = roleOptions.find(r => r.label === editingUser.role)?.value;
+         if (oldRoleKey) {
+            updatedTeachers[oldRoleKey] = updatedTeachers[oldRoleKey].filter((g: Guru) => g.id !== editingUser.id);
+         }
       }
 
-      const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
+      let currentList = updatedTeachers[role] || [];
+      if (editingUser) {
+          const userIndex = currentList.findIndex((u: Guru) => u.id === editingUser.id);
+          if (userIndex > -1) {
+            currentList[userIndex] = { ...currentList[userIndex], ...guruData };
+          } else {
+            currentList.push({ ...guruData, id: editingUser.id } as Guru);
+          }
+      } else {
+          const newId = Date.now();
+          currentList.push({ ...guruData, id: newId } as Guru);
+      }
+      
+      updatedTeachers[role] = currentList;
       updateSourceData('teachersData', updatedTeachers);
       loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
@@ -177,10 +192,13 @@ export default function ManajemenPenggunaPage() {
 
   const handleDelete = () => {
       if (!userToDelete) return;
+      
+      const roleKey = roleOptions.find(r => r.label === userToDelete.role)?.value;
+      if (!roleKey) return;
 
       const teachersData = getSourceData('teachersData', initialTeachers);
-      const updatedList = teachersData[activeTab].filter((t: Guru) => t.id !== userToDelete.id);
-      const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
+      const updatedList = teachersData[roleKey].filter((t: Guru) => t.id !== userToDelete.id);
+      const updatedTeachers = { ...teachersData, [roleKey]: updatedList };
 
       updateSourceData('teachersData', updatedTeachers);
       loadDataFromStorage(); 
@@ -198,7 +216,7 @@ export default function ManajemenPenggunaPage() {
                 ...guru,
                 role: getRoleName(roleKey),
                 email: createEmailFromName(guru.nama, guru.id),
-                password: "password123", // Password default
+                password: "password123",
             });
         });
     }
@@ -220,9 +238,7 @@ export default function ManajemenPenggunaPage() {
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    if (link.href) {
-        URL.revokeObjectURL(link.href);
-    }
+    if (link.href) URL.revokeObjectURL(link.href);
     const url = URL.createObjectURL(blob);
     link.href = url;
     link.setAttribute('download', 'user_data.csv');
@@ -236,65 +252,47 @@ export default function ManajemenPenggunaPage() {
   const renderFormFields = () => (
     <>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="nama" className="text-right">
-          Nama
-        </Label>
-        <Input
-          id="nama"
-          value={formData.nama || ''}
-          onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-          className="col-span-3"
-        />
+        <Label htmlFor="role" className="text-right">Peran</Label>
+        <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value as TeacherRole })}>
+            <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Peran" /></SelectTrigger>
+            <SelectContent>{roleOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+        </Select>
       </div>
-      {activeTab === 'wali_kelas' && (
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="nama" className="text-right">Nama</Label>
+        <Input id="nama" value={formData.nama || ''} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} className="col-span-3"/>
+      </div>
+      {formData.role === 'wali_kelas' && (
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="kelas" className="text-right">
-            Kelas Binaan
-          </Label>
-          <Input
-            id="kelas"
-            value={formData.kelas || ''}
-            onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
-            className="col-span-3"
-          />
+          <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
+          <Input id="kelas" value={formData.kelas || ''} onChange={(e) => setFormData({ ...formData, kelas: e.target.value })} className="col-span-3"/>
         </div>
       )}
-      {activeTab === 'guru_mapel' && (
+      {formData.role === 'guru_mapel' && (
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="mapel" className="text-right">
-            Mata Pelajaran
-          </Label>
-          <Input
-            id="mapel"
-            value={formData.mapel || ''}
-            onChange={(e) => setFormData({ ...formData, mapel: e.target.value })}
-            className="col-span-3"
-          />
+          <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
+          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3"/>
         </div>
       )}
-      {activeTab === 'guru_piket' && (
+      {formData.role === 'guru_piket' && (
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="hariPiket" className="text-right">
-            Hari Piket
-          </Label>
-          <Input
-            id="hariPiket"
-            value={formData.hariPiket || ''}
-            onChange={(e) => setFormData({ ...formData, hariPiket: e.target.value })}
-            className="col-span-3"
-          />
+          <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
+          <Input id="hariPiket" value={formData.hariPiket || ''} onChange={(e) => setFormData({ ...formData, hariPiket: e.target.value })} className="col-span-3"/>
         </div>
       )}
     </>
   );
 
   return (
-    <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center gap-4">
+         <Button variant="outline" size="icon" onClick={() => router.push('/admin/pengaturan')}>
+            <ArrowLeft />
+        </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            {canEdit ? "Kelola data pengguna sistem, termasuk pembuatan password otomatis." : "Lihat daftar pengguna yang terdaftar."}
+            Kelola data pengguna sistem, termasuk pembuatan password otomatis.
           </p>
         </div>
       </div>
@@ -303,10 +301,7 @@ export default function ManajemenPenggunaPage() {
         <CardHeader>
           <CardTitle>Daftar Pengguna</CardTitle>
           <CardDescription>
-            {canEdit 
-              ? "Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna. Password dibuat otomatis dan dapat dilihat."
-              : "Data ini dikelola oleh Wakasek Kesiswaan."
-            }
+             Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna. Password dibuat otomatis dan dapat dilihat.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -320,18 +315,14 @@ export default function ManajemenPenggunaPage() {
             {Object.keys(users).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
                  <div className="flex justify-end mb-4 gap-2">
-                    {canEdit && (
-                       <>
-                        <Button variant="outline" onClick={handleExportData}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Export Data User
-                        </Button>
-                        <Button onClick={() => handleOpenDialog()}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Tambah {getRoleName(key as TeacherRole)}
-                        </Button>
-                       </>
-                    )}
+                    <Button variant="outline" onClick={handleExportData}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export Data User
+                    </Button>
+                    <Button onClick={() => handleOpenDialog()}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah {getRoleName(key as TeacherRole)}
+                    </Button>
                 </div>
                 <Table>
                   <TableHeader>
@@ -350,20 +341,16 @@ export default function ManajemenPenggunaPage() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.role}</TableCell>
                           <TableCell className="text-right">
-                             {canEdit && (
-                                <>
-                                  <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2">
-                                      <Eye className="mr-2 h-4 w-4" />
-                                      Password
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
-                                      <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </>
-                             )}
+                              <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2">
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Password
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenDialog({...user, role: key as TeacherRole})}>
+                                  <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                           </TableCell>
                         </TableRow>
                       ))

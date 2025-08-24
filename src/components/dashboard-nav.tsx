@@ -61,7 +61,6 @@ const navItemsByRole = {
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
-    { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
@@ -71,7 +70,6 @@ const navItemsByRole = {
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
-    { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
    wali_kelas: [

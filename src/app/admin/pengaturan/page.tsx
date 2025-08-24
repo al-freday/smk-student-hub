@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { getSourceData } from "@/lib/data-manager";
 
 interface SchoolInfo {
   schoolName: string;
@@ -35,18 +36,30 @@ export default function AdminPengaturanPage() {
     logo: "",
   });
   
+  const [totalUsers, setTotalUsers] = useState(0);
+
   useEffect(() => {
-     // Verifikasi sesi admin
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
       router.push("/admin");
       return;
     }
       
-    // Muat data dari localStorage saat komponen dimuat
     const savedInfo = localStorage.getItem("schoolInfo");
     if (savedInfo) {
       setSchoolInfo(JSON.parse(savedInfo));
     }
+
+    const teachersData = getSourceData('teachersData', {});
+    let count = 0;
+    if (teachersData && typeof teachersData === 'object') {
+        Object.values(teachersData).forEach((roleArray: any) => {
+            if (Array.isArray(roleArray)) {
+                count += roleArray.length;
+            }
+        });
+    }
+    setTotalUsers(count);
+
   }, [router]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,8 +118,8 @@ export default function AdminPengaturanPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Informasi Sekolah</CardTitle>
               <CardDescription>
@@ -150,35 +163,57 @@ export default function AdminPengaturanPage() {
             </CardContent>
           </Card>
           
-           <Card>
-            <CardHeader>
-              <CardTitle>Tema Aplikasi Global</CardTitle>
-              <CardDescription>
-                Pilih skema warna default untuk semua pengguna.
-              </CardDescription>
-            </CardHeader>
-             <CardContent className="space-y-4">
-                 <p className="text-sm text-muted-foreground">Perubahan tema di sini akan menjadi tampilan default untuk semua pengguna saat mereka login.</p>
-                <div className="grid grid-cols-2 gap-4">
-                    {Object.values(themes).map((theme) => (
-                        <Button 
-                            key={theme.name}
-                            variant="outline"
-                            className="h-16 justify-start text-left"
-                            onClick={() => handleThemeChange(theme.colors)}
-                        >
-                           <div className="flex items-center gap-4">
-                               <div className="flex -space-x-2">
-                                  <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--primary']})` }} />
-                                  <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--accent']})` }} />
-                               </div>
-                               <span>{theme.name}</span>
-                           </div>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tema Aplikasi Global</CardTitle>
+                <CardDescription>
+                  Pilih skema warna default untuk semua pengguna.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                      {Object.values(themes).map((theme) => (
+                          <Button 
+                              key={theme.name}
+                              variant="outline"
+                              className="h-16 justify-start text-left"
+                              onClick={() => handleThemeChange(theme.colors)}
+                          >
+                            <div className="flex items-center gap-4">
+                                <div className="flex -space-x-2">
+                                    <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--primary']})` }} />
+                                    <div className="h-8 w-8 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${theme.colors['--accent']})` }} />
+                                </div>
+                                <span>{theme.name}</span>
+                            </div>
+                          </Button>
+                      ))}
+                  </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Manajemen Pengguna</CardTitle>
+                    <CardDescription>Kelola akun dan peran pengguna sistem.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                        <div className="flex items-center gap-4">
+                            <Users className="h-8 w-8 text-primary"/>
+                            <div>
+                                <p className="text-2xl font-bold">{totalUsers}</p>
+                                <p className="text-sm text-muted-foreground">Pengguna Terdaftar</p>
+                            </div>
+                        </div>
+                         <Button onClick={() => router.push('/admin/pengaturan/pengguna')}>
+                            Kelola Pengguna
                         </Button>
-                    ))}
-                </div>
-             </CardContent>
-          </Card>
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
       </div>
     </div>
   );
