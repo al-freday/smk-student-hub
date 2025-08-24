@@ -119,10 +119,10 @@ export default function LaporanWaliKelasPage() {
 
   useEffect(() => {
     const role = localStorage.getItem('userRole');
-    if (role === 'waliKelas') {
+    if (role === 'wali_kelas') {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
-        const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
+        const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
         if (waliKelasData) {
             setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
         }

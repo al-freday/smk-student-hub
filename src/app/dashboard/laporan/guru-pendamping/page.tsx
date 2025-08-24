@@ -39,7 +39,7 @@ export default function LaporanGuruPendampingPage() {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
 
-    if (role === 'wakasek') {
+    if (role === 'wakasek_kesiswaan') {
         try {
           const savedTeachers = localStorage.getItem('teachersData');
           const savedStatuses = localStorage.getItem(reportStorageKey);
@@ -47,7 +47,7 @@ export default function LaporanGuruPendampingPage() {
 
           if (savedTeachers) {
             const teachersData = JSON.parse(savedTeachers);
-            const guruPendampingList: GuruPendamping[] = teachersData.guruPendamping || [];
+            const guruPendampingList: GuruPendamping[] = teachersData.guru_pendamping || [];
 
             const reports = guruPendampingList.map((guru, index) => ({
               id: guru.id,
@@ -119,7 +119,7 @@ export default function LaporanGuruPendampingPage() {
       );
   }
 
-  const isWakasekView = userRole === 'wakasek';
+  const isWakasekView = userRole === 'wakasek_kesiswaan';
 
   return (
     <div className="flex-1 space-y-6">

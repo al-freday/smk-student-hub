@@ -153,7 +153,7 @@ const WaliKelasDashboard = () => {
     useEffect(() => {
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
-        const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
+        const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
 
         if (waliKelasData) {
             const kelasBinaan = waliKelasData.kelas;

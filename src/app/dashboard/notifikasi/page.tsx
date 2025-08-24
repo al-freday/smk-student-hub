@@ -22,11 +22,11 @@ interface Notification {
 
 const getRoleDisplayName = (roleKey: string) => {
     const roles: { [key: string]: string } = {
-        waliKelas: 'Wali Kelas',
-        guruBk: 'Guru BK',
-        guruMapel: 'Guru Mapel',
-        guruPiket: 'Guru Piket',
-        guruPendamping: 'Guru Pendamping',
+        wali_kelas: 'Wali Kelas',
+        guru_bk: 'Guru BK',
+        guru_mapel: 'Guru Mapel',
+        guru_piket: 'Guru Piket',
+        guru_pendamping: 'Guru Pendamping',
     };
     return roles[roleKey] || 'Guru';
 };
@@ -44,7 +44,7 @@ export default function NotifikasiPage() {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
 
-    if (role === 'wakasek') {
+    if (role === 'wakasek_kesiswaan') {
       try {
         const savedTeachers = localStorage.getItem('teachersData');
         if (savedTeachers) {
@@ -99,7 +99,7 @@ export default function NotifikasiPage() {
         <CardHeader>
           <CardTitle>Pemberitahuan Terbaru</CardTitle>
           <CardDescription>
-            {userRole === 'wakasek' 
+            {userRole === 'wakasek_kesiswaan' 
               ? "Aktivitas login terbaru dari semua pengguna terdaftar."
               : "Aktivitas terbaru di sistem."
             }

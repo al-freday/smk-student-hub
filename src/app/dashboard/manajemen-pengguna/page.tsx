@@ -403,7 +403,7 @@ export default function ManajemenPenggunaPage() {
       <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
           <AlertDialogContent>
               <AlertDialogHeader>
-                  <DialogTitle>Apakah Anda yakin?</DialogTitle>
+                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                   <AlertDialogDescription>
                      Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen.
                   </AlertDialogDescription>

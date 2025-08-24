@@ -41,7 +41,7 @@ export default function LaporanGuruMapelPage() {
     const role = localStorage.getItem('userRole');
     setUserRole(role);
 
-    if (role === 'wakasek') {
+    if (role === 'wakasek_kesiswaan') {
         try {
           const savedTeachers = localStorage.getItem('teachersData');
           const savedStatuses = localStorage.getItem(reportStorageKey);
@@ -49,7 +49,7 @@ export default function LaporanGuruMapelPage() {
 
           if (savedTeachers) {
             const teachersData = JSON.parse(savedTeachers);
-            const guruMapelList: GuruMapel[] = teachersData.guruMapel || [];
+            const guruMapelList: GuruMapel[] = teachersData.guru_mapel || [];
 
             const reports = guruMapelList.map((guru, index) => ({
               id: guru.id,
@@ -123,7 +123,7 @@ export default function LaporanGuruMapelPage() {
       );
   }
 
-  const isWakasekView = userRole === 'wakasek';
+  const isWakasekView = userRole === 'wakasek_kesiswaan';
 
   return (
     <div className="flex-1 space-y-6">

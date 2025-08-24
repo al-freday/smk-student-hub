@@ -51,7 +51,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
@@ -62,7 +61,7 @@ const navItemsByRole = {
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [],
-  wali_kelas: [
+   wali_kelas: [
     { 
       label: "Administrasi Kelas", 
       icon: BookUser, 

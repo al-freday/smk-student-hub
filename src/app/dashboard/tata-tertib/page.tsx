@@ -104,7 +104,7 @@ export default function TataTertibPage() {
       const savedTeachers = localStorage.getItem('teachersData');
       if (savedTeachers) {
           const teachersData = JSON.parse(savedTeachers);
-          const waliKelasList = teachersData.waliKelas || [];
+          const waliKelasList = teachersData.wali_kelas || [];
           setDaftarWaliKelas(waliKelasList.map((w: any) => ({ kelas: w.kelas, wali: w.nama })));
       }
 

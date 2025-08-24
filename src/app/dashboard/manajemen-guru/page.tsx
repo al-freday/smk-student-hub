@@ -45,20 +45,20 @@ interface Guru {
   hariPiket?: string;
 }
 
-type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
+type TeacherType = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
 
 const initialTeachers: { [key in TeacherType]: Guru[] } = {
-    waliKelas: [],
-    guruBk: [],
-    guruMapel: [],
-    guruPiket: [],
-    guruPendamping: [],
+    wali_kelas: [],
+    guru_bk: [],
+    guru_mapel: [],
+    guru_piket: [],
+    guru_pendamping: [],
 };
 
 export default function ManajemenGuruPage() {
     const { toast } = useToast();
     const [teachers, setTeachers] = useState<{ [key in TeacherType]: Guru[] }>(initialTeachers);
-    const [activeTab, setActiveTab] = useState<TeacherType>('waliKelas');
+    const [activeTab, setActiveTab] = useState<TeacherType>('wali_kelas');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
     const [teacherToDelete, setTeacherToDelete] = useState<Guru | null>(null);
@@ -84,11 +84,11 @@ export default function ManajemenGuruPage() {
     
     const getRoleName = (tab: TeacherType) => {
         switch (tab) {
-            case 'waliKelas': return 'Wali Kelas';
-            case 'guruMapel': return 'Guru Mapel';
-            case 'guruPiket': return 'Guru Piket';
-            case 'guruBk': return 'Guru BK';
-            case 'guruPendamping': return 'Guru Pendamping';
+            case 'wali_kelas': return 'Wali Kelas';
+            case 'guru_mapel': return 'Guru Mapel';
+            case 'guru_piket': return 'Guru Piket';
+            case 'guru_bk': return 'Guru BK';
+            case 'guru_pendamping': return 'Guru Pendamping';
             default: return 'Guru';
         }
     };
@@ -140,19 +140,19 @@ export default function ManajemenGuruPage() {
                 <Label htmlFor="nama" className="text-right">Nama</Label>
                 <Input id="nama" value={formData.nama || ""} onChange={e => setFormData({ ...formData, nama: e.target.value })} className="col-span-3" />
             </div>
-            {activeTab === 'waliKelas' && (
+            {activeTab === 'wali_kelas' && (
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
                     <Input id="kelas" value={formData.kelas || ""} onChange={e => setFormData({ ...formData, kelas: e.target.value })} className="col-span-3" />
                 </div>
             )}
-             {activeTab === 'guruMapel' && (
+             {activeTab === 'guru_mapel' && (
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
                     <Input id="mapel" value={formData.mapel || ""} onChange={e => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" />
                 </div>
             )}
-             {activeTab === 'guruPiket' && (
+             {activeTab === 'guru_piket' && (
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
                     <Input id="hariPiket" value={formData.hariPiket || ""} onChange={e => setFormData({ ...formData, hariPiket: e.target.value })} className="col-span-3" />
@@ -185,11 +185,11 @@ export default function ManajemenGuruPage() {
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherType)}>
                         <TabsList className="grid w-full grid-cols-5">
-                            <TabsTrigger value="waliKelas">Wali Kelas</TabsTrigger>
-                            <TabsTrigger value="guruBk">Guru BK</TabsTrigger>
-                            <TabsTrigger value="guruMapel">Guru Mapel</TabsTrigger>
-                            <TabsTrigger value="guruPiket">Guru Piket</TabsTrigger>
-                            <TabsTrigger value="guruPendamping">Pendamping</TabsTrigger>
+                            <TabsTrigger value="wali_kelas">Wali Kelas</TabsTrigger>
+                            <TabsTrigger value="guru_bk">Guru BK</TabsTrigger>
+                            <TabsTrigger value="guru_mapel">Guru Mapel</TabsTrigger>
+                            <TabsTrigger value="guru_piket">Guru Piket</TabsTrigger>
+                            <TabsTrigger value="guru_pendamping">Pendamping</TabsTrigger>
                         </TabsList>
 
                         {Object.keys(teachers).map((key) => (
@@ -206,9 +206,9 @@ export default function ManajemenGuruPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Nama</TableHead>
-                                            {key === 'waliKelas' && <TableHead>Kelas Binaan</TableHead>}
-                                            {key === 'guruMapel' && <TableHead>Mata Pelajaran</TableHead>}
-                                            {key === 'guruPiket' && <TableHead>Hari Piket</TableHead>}
+                                            {key === 'wali_kelas' && <TableHead>Kelas Binaan</TableHead>}
+                                            {key === 'guru_mapel' && <TableHead>Mata Pelajaran</TableHead>}
+                                            {key === 'guru_piket' && <TableHead>Hari Piket</TableHead>}
                                             {canEdit && <TableHead className="text-right">Aksi</TableHead>}
                                         </TableRow>
                                     </TableHeader>
@@ -217,9 +217,9 @@ export default function ManajemenGuruPage() {
                                             teachers[key as TeacherType].map((guru) => (
                                                 <TableRow key={guru.id}>
                                                     <TableCell className="font-medium">{guru.nama}</TableCell>
-                                                    {key === 'waliKelas' && <TableCell>{guru.kelas}</TableCell>}
-                                                    {key === 'guruMapel' && <TableCell>{guru.mapel}</TableCell>}
-                                                    {key === 'guruPiket' && <TableCell>{guru.hariPiket}</TableCell>}
+                                                    {key === 'wali_kelas' && <TableCell>{guru.kelas}</TableCell>}
+                                                    {key === 'guru_mapel' && <TableCell>{guru.mapel}</TableCell>}
+                                                    {key === 'guru_piket' && <TableCell>{guru.hariPiket}</TableCell>}
                                                     {canEdit && (
                                                         <TableCell className="text-right">
                                                             <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(guru)}>

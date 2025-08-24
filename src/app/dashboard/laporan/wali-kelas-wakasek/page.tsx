@@ -44,7 +44,7 @@ export default function LaporanWaliKelasWakasekPage() {
 
       if (savedTeachers) {
         const teachersData = JSON.parse(savedTeachers);
-        const waliKelasList: WaliKelas[] = teachersData.waliKelas || [];
+        const waliKelasList: WaliKelas[] = teachersData.wali_kelas || [];
 
         const reports = waliKelasList.map((wali, index) => ({
           id: wali.id,
