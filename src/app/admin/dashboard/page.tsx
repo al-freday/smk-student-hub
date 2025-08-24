@@ -20,12 +20,12 @@ interface User {
 
 const getRoleName = (roleKey: string) => {
     const roles: { [key: string]: string } = {
-        waliKelas: 'Wali Kelas',
-        guruBk: 'Guru BK',
-        guruMapel: 'Guru Mapel',
-        guruPiket: 'Guru Piket',
-        guruPendamping: 'Guru Pendamping',
-        wakasek: 'Wakasek Kesiswaan',
+        wali_kelas: 'Wali Kelas',
+        guru_bk: 'Guru BK',
+        guru_mapel: 'Guru Mapel',
+        guru_piket: 'Guru Piket',
+        guru_pendamping: 'Guru Pendamping',
+        wakasek_kesiswaan: 'Wakasek Kesiswaan',
     };
     return roles[roleKey] || 'Guru';
 };
@@ -42,13 +42,11 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
   useEffect(() => {
-    // Verifikasi sesi admin
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
       router.push("/admin");
       return;
     }
 
-    // Ambil data guru dari localStorage
     try {
       const savedTeachers = localStorage.getItem('teachersData');
       if (savedTeachers) {
@@ -56,19 +54,20 @@ export default function AdminDashboardPage() {
         const users: User[] = [];
         
         users.push({
-            id: 'wakasek',
+            id: 'wakasek_kesiswaan',
             nama: 'Wakasek Kesiswaan',
-            roleKey: 'wakasek',
+            roleKey: 'wakasek_kesiswaan',
             roleName: 'Wakasek Kesiswaan'
         });
 
         Object.keys(teachersData).forEach(roleKey => {
+          const formattedRoleKey = roleKey.replace(/([A-Z])/g, '_$1').toLowerCase();
           teachersData[roleKey].forEach((guru: any) => {
             users.push({
-              id: `${roleKey}-${guru.id}`,
+              id: `${formattedRoleKey}-${guru.id}`,
               nama: guru.nama,
-              roleKey: roleKey,
-              roleName: getRoleName(roleKey),
+              roleKey: formattedRoleKey,
+              roleName: getRoleName(formattedRoleKey),
             });
           });
         });

@@ -22,6 +22,12 @@ import {
   UsersRound,
   Presentation,
   AreaChart,
+  BookOpenCheck,
+  MessageSquareHeart,
+  UserRoundCog,
+  Handshake,
+  Newspaper,
+  BookCopy,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -41,9 +47,8 @@ import { Separator } from "./ui/separator";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-// Definisikan item menu untuk setiap peran
 const navItemsByRole = {
-  wakasek: [
+  wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
@@ -54,127 +59,73 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pengguna", icon: Users, label: "Manajemen Pengguna" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
-  admin: [], // Admin tidak memiliki menu navigasi di dasbor utama
-  waliKelas: [], // Akan menggunakan struktur custom di bawah
-  guruBk: [
+  admin: [],
+  guru_bk: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
-    { href: "/dashboard/laporan/guru-bk", icon: FileText, label: "Laporan Guru BK" },
+    { href: "/dashboard/laporan/guru-bk", icon: FileText, label: "Laporan & Konseling" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Data Pelanggaran" },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Data Siswa" },
+  ],
+  guru_mapel: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/laporan/guru-mapel", icon: FileText, label: "Laporan Mapel" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
   ],
-  guruMapel: [
+  guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-    { href: "/dashboard/laporan/guru-mapel", icon: FileText, label: "Laporan Guru Mapel" },
+    { href: "/dashboard/laporan/guru-pendamping", icon: Handshake, label: "Laporan Pendampingan" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
   ],
-  guruPiket: [
+  guru_piket: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-piket", icon: FileText, label: "Laporan Guru Piket" },
-  ],
-  guruPendamping: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-pendamping", icon: FileText, label: "Laporan Pendamping" },
-  ],
+    { href: "/dashboard/laporan/guru-piket", icon: Newspaper, label: "Laporan Piket" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+  ]
 };
 
 const WaliKelasNav = ({pathname}: {pathname: string}) => (
   <SidebarMenu>
     <SidebarMenuItem>
-      <Link href="/dashboard">
-        <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
-          <LayoutDashboard />
-          <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
-        </SidebarMenuButton>
-      </Link>
+      <Link href="/dashboard"><SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}><LayoutDashboard /><span>Dashboard</span></SidebarMenuButton></Link>
     </SidebarMenuItem>
-
     <SidebarGroup>
-      <SidebarGroupLabel>Tugas Wali Kelas</SidebarGroupLabel>
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Administrasi" isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>
-          <BookUser />
-          <span className="group-data-[collapsible=icon]:hidden">Administrasi & Perencanaan</span>
-        </SidebarMenuButton>
-        <SidebarMenuSub>
-          <SidebarMenuSubItem>
-            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>Administrasi Kelas</SidebarMenuSubButton></Link>
-          </SidebarMenuSubItem>
-           <SidebarMenuSubItem>
-            <Link href="/dashboard/manajemen-siswa"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/manajemen-siswa')}>Data Siswa</SidebarMenuSubButton></Link>
-          </SidebarMenuSubItem>
-        </SidebarMenuSub>
-      </SidebarMenuItem>
-      
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Disiplin" isActive={pathname.startsWith('/dashboard/tata-tertib')}>
-          <ShieldAlert />
-          <span className="group-data-[collapsible=icon]:hidden">Pembinaan Disiplin</span>
-        </SidebarMenuButton>
-         <SidebarMenuSub>
-          <SidebarMenuSubItem>
-            <Link href="/dashboard/tata-tertib"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/tata-tertib')}>Catat Pelanggaran & Prestasi</SidebarMenuSubButton></Link>
-          </SidebarMenuSubItem>
-        </SidebarMenuSub>
-      </SidebarMenuItem>
-
-       <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Pembinaan Karakter">
-          <HeartHandshake />
-          <span className="group-data-[collapsible=icon]:hidden">Pembinaan Karakter</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-      
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Kesejahteraan Siswa">
-          <Users />
-          <span className="group-data-[collapsible=icon]:hidden">Kesejahteraan Siswa</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Hubungan Ortu">
-          <UsersRound />
-          <span className="group-data-[collapsible=icon]:hidden">Hubungan Orang Tua</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Pengawasan">
-          <Presentation />
-          <span className="group-data-[collapsible=icon]:hidden">Pengawasan & Evaluasi</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-
-       <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Koordinasi">
-          <ClipboardCheck />
-          <span className="group-data-[collapsible=icon]:hidden">Koordinasi Internal</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-      
-      <SidebarMenuItem>
-        <SidebarMenuButton tooltip="Laporan" isActive={pathname.startsWith('/dashboard/laporan') && !pathname.startsWith('/dashboard/laporan/wali-kelas')}>
-          <AreaChart />
-          <span className="group-data-[collapsible=icon]:hidden">Laporan Program Kelas</span>
-        </SidebarMenuButton>
-         <SidebarMenuSub>
-          <SidebarMenuSubItem>
-            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuSubButton isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}>Kirim Laporan Bulanan</SidebarMenuSubButton></Link>
-          </SidebarMenuSubItem>
-        </SidebarMenuSub>
-      </SidebarMenuItem>
+        <SidebarGroupLabel>Tugas Wali Kelas</SidebarGroupLabel>
+        <SidebarMenuItem>
+            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuButton tooltip="Administrasi Kelas" isActive={pathname.startsWith('/dashboard/laporan/wali-kelas')}><BookUser /><span>Administrasi Kelas</span></SidebarMenuButton></Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <Link href="/dashboard/tata-tertib"><SidebarMenuButton tooltip="Pembinaan Disiplin" isActive={pathname.startsWith('/dashboard/tata-tertib')}><ShieldAlert /><span>Pembinaan Disiplin</span></SidebarMenuButton></Link>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Pembinaan Karakter"><HeartHandshake /><span>Pembinaan Karakter</span></SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Kesejahteraan Siswa"><Users /><span>Kesejahteraan Siswa</span></SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Hubungan Orang Tua"><UsersRound /><span>Hubungan Orang Tua</span></SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Pengawasan & Evaluasi"><Presentation /><span>Pengawasan & Evaluasi</span></SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <SidebarMenuButton tooltip="Koordinasi Internal"><ClipboardCheck /><span>Koordinasi Internal</span></SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+            <Link href="/dashboard/laporan/wali-kelas"><SidebarMenuButton tooltip="Laporan Kelas"><AreaChart /><span>Laporan Kelas</span></SidebarMenuButton></Link>
+        </SidebarMenuItem>
     </SidebarGroup>
   </SidebarMenu>
 );
 
-
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
-  const [schoolInfo, setSchoolInfo] = useState({ name: "SMKN 2 Tana Toraja", logo: "" });
+  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | 'wali_kelas' | null>(null);
+  const [schoolInfo, setSchoolInfo] = useState({ name: "SMK Student Hub", logo: "" });
   
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
+    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole | 'wali_kelas') || null;
     setUserRole(role);
 
     const savedSchoolInfo = localStorage.getItem("schoolInfo");
@@ -189,19 +140,20 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     localStorage.removeItem('currentUser');
   };
 
-  const navItems = userRole ? navItemsByRole[userRole] || [] : [];
   const containerClass = isMobile ? "flex flex-col h-full" : "";
 
   if (userRole === 'admin' && !isMobile) {
-    return null; // Jangan render apapun untuk admin di sidebar utama
+    return null;
   }
   
   const renderNavItems = () => {
     if (!userRole) return null;
 
-    if (userRole === 'waliKelas') {
+    if (userRole === 'wali_kelas') {
       return <WaliKelasNav pathname={pathname} />;
     }
+
+    const navItems = navItemsByRole[userRole as keyof typeof navItemsByRole] || [];
 
     if (navItems.length === 0) return null;
 

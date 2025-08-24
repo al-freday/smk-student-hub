@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2 } from "lucide-react";
+import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2, BookOpenCheck, MessageSquareHeart, UserRoundCog, Handshake, Newspaper } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AttendanceChart from "@/components/attendance-chart";
@@ -17,12 +17,12 @@ import { useRouter } from "next/navigation";
 
 const getRoleDisplayName = (role: string) => {
     switch (role) {
-        case 'waliKelas': return 'Wali Kelas';
-        case 'guruBk': return 'Guru BK';
-        case 'guruMapel': return 'Guru Mata Pelajaran';
-        case 'guruPiket': return 'Guru Piket';
-        case 'guruPendamping': return 'Guru Pendamping';
-        case 'wakasek': return 'Wakasek Kesiswaan';
+        case 'wali_kelas': return 'Wali Kelas';
+        case 'guru_bk': return 'Guru BK';
+        case 'guru_mapel': return 'Guru Mata Pelajaran';
+        case 'guru_piket': return 'Guru Piket';
+        case 'guru_pendamping': return 'Guru Pendamping';
+        case 'wakasek_kesiswaan': return 'Wakasek Kesiswaan';
         case 'admin': return 'Administrator';
         default: return 'Pengguna';
     }
@@ -160,14 +160,13 @@ const WaliKelasDashboard = () => {
             const siswaData = JSON.parse(localStorage.getItem('siswaData') || '[]');
             const siswaDiKelas = siswaData.filter((s: any) => s.kelas === kelasBinaan);
             
-            // Logika untuk menghitung statistik spesifik kelas
             const jumlahSiswa = siswaDiKelas.length;
             
             setStats({
                 jumlahSiswa: jumlahSiswa,
-                kehadiranRataRata: "97%", // Contoh statis, bisa dikembangkan
-                totalPelanggaran: 15, // Contoh statis
-                siswaBermasalah: 3, // Contoh statis
+                kehadiranRataRata: "97%", 
+                totalPelanggaran: 15,
+                siswaBermasalah: 3,
                 kelasBinaan: kelasBinaan,
             });
         }
@@ -176,94 +175,62 @@ const WaliKelasDashboard = () => {
 
 
     const studentsNeedingAttention = [
-        { id: 1, name: "Ahmad Budi", class: stats.kelasBinaan, points: 45, reason: "Sering terlambat" },
-        { id: 2, name: "Citra Dewi", class: stats.kelasBinaan, points: 30, reason: "Tidak mengerjakan PR 3x" },
-        { id: 3, name: "Eka Putra", class: stats.kelasBinaan, points: 25, reason: "Absen tanpa keterangan" },
+        { id: 1, name: "Siswa A", class: stats.kelasBinaan, points: 45, reason: "Sering terlambat" },
+        { id: 2, name: "Siswa B", class: stats.kelasBinaan, points: 30, reason: "Tidak mengerjakan PR 3x" },
+        { id: 3, name: "Siswa C", class: stats.kelasBinaan, points: 25, reason: "Absen tanpa keterangan" },
     ];
 
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Link href="/dashboard/laporan/wali-kelas">
-                    <StatCard
-                        title="Jumlah Siswa Kelas"
-                        value={stats.jumlahSiswa.toString()}
-                        icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                        description={`Kelas ${stats.kelasBinaan}`}
-                        isLoading={isLoading}
-                    />
-                </Link>
-                 <Link href="/dashboard/laporan/wali-kelas">
-                    <StatCard
-                        title="Kehadiran Rata-rata"
-                        value={stats.kehadiranRataRata}
-                        icon={<UserCheck className="h-4 w-4 text-muted-foreground" />}
-                        description="Bulan ini"
-                        isLoading={isLoading}
-                    />
-                </Link>
-                 <Link href="/dashboard/laporan/wali-kelas">
-                    <StatCard
-                        title="Total Pelanggaran"
-                        value={stats.totalPelanggaran.toString()}
-                        icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
-                        description="Bulan ini"
-                        isNegative
-                        isLoading={isLoading}
-                    />
-                </Link>
-                 <Link href="/dashboard/laporan/wali-kelas">
-                    <StatCard
-                        title="Siswa Bermasalah"
-                        value={stats.siswaBermasalah.toString()}
-                        icon={<UserX className="h-4 w-4 text-muted-foreground" />}
-                        description="Perlu perhatian khusus"
-                        isNegative
-                        isLoading={isLoading}
-                    />
-                </Link>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                 <div className="lg:col-span-3">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Grafik Absensi Kelas (Minggu Ini)</CardTitle>
-                            <CardDescription>Perbandingan kehadiran siswa di kelas Anda.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pl-2">
-                            <AttendanceChart />
-                        </CardContent>
-                    </Card>
-                 </div>
-                 <div className="lg:col-span-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Pelanggaran Kelas</CardTitle>
-                            <CardDescription>Distribusi pelanggaran di kelas Anda.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <InfractionsByCategoryChart />
-                        </CardContent>
-                    </Card>
-                 </div>
+                 <StatCard
+                    title="Jumlah Siswa Kelas"
+                    value={stats.jumlahSiswa.toString()}
+                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                    description={`Kelas ${stats.kelasBinaan}`}
+                    isLoading={isLoading}
+                />
+                 <StatCard
+                    title="Kehadiran Rata-rata"
+                    value={stats.kehadiranRataRata}
+                    icon={<UserCheck className="h-4 w-4 text-muted-foreground" />}
+                    description="Bulan ini"
+                    isLoading={isLoading}
+                />
+                 <StatCard
+                    title="Total Pelanggaran"
+                    value={stats.totalPelanggaran.toString()}
+                    icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
+                    description="Di kelas Anda bulan ini"
+                    isNegative
+                    isLoading={isLoading}
+                />
+                 <StatCard
+                    title="Siswa Perlu Perhatian"
+                    value={stats.siswaBermasalah.toString()}
+                    icon={<UserX className="h-4 w-4 text-muted-foreground" />}
+                    description="Membutuhkan bimbingan"
+                    isNegative
+                    isLoading={isLoading}
+                />
             </div>
 
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5 text-destructive" />
-                        Siswa Perlu Perhatian
+                        Siswa Perlu Perhatian Khusus
                     </CardTitle>
-                    <CardDescription>Daftar siswa dengan poin pelanggaran tertinggi atau catatan khusus.</CardDescription>
+                    <CardDescription>Daftar siswa dengan poin pelanggaran tertinggi atau catatan khusus di kelas Anda.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nama Siswa</TableHead>
-                                <TableHead>Poin</TableHead>
+                                <TableHead>Poin Pelanggaran</TableHead>
                                 <TableHead>Keterangan</TableHead>
+                                <TableHead className="text-right">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -274,6 +241,11 @@ const WaliKelasDashboard = () => {
                                         <Badge variant="destructive">{student.points}</Badge>
                                     </TableCell>
                                     <TableCell>{student.reason}</TableCell>
+                                     <TableCell className="text-right">
+                                        <Link href="/dashboard/tata-tertib">
+                                            <Button variant="outline" size="sm">Tindak Lanjut</Button>
+                                        </Link>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -286,58 +258,38 @@ const WaliKelasDashboard = () => {
 
 const GeneralUserDashboard = ({ role }: { role: string }) => {
     const quickLinks = {
-        guruBk: {
+        guru_bk: {
             primary: { href: "/dashboard/laporan/guru-bk", label: "Buat Laporan BK", icon: FileText },
             secondary: [
                 { href: "/dashboard/manajemen-siswa", label: "Lihat Data Siswa", icon: Users },
                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
-        guruMapel: {
+        guru_mapel: {
             primary: { href: "/dashboard/laporan/guru-mapel", label: "Buat Laporan Mapel", icon: FileText },
             secondary: [
                 { href: "/dashboard/jadwal-pelajaran", label: "Lihat Jadwal", icon: Calendar },
                 { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
-        guruPiket: {
-            primary: { href: "/dashboard/laporan/guru-piket", label: "Buat Laporan Piket", icon: FileText },
+        guru_piket: {
+            primary: { href: "/dashboard/laporan/guru-piket", label: "Buat Laporan Piket", icon: Newspaper },
             secondary: [
                  { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
-        guruPendamping: {
-            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendamping", icon: FileText },
+        guru_pendamping: {
+            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendamping", icon: Handshake },
             secondary: [
                  { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
     };
 
-    const links = quickLinks[role as keyof typeof quickLinks] || quickLinks.guruPiket; // Default case
+    const links = quickLinks[role as keyof typeof quickLinks] || quickLinks.guru_piket;
 
     return (
         <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <StatCard
-                    title="Siswa Ditangani"
-                    value="12"
-                    icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    description="Total siswa bimbingan Anda"
-                />
-                <StatCard
-                    title="Laporan Dibuat"
-                    value="5"
-                    icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-                    description="Laporan bulan ini"
-                />
-                 <StatCard
-                    title="Jadwal Anda"
-                    value="3 Sesi"
-                    icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
-                    description="Jadwal minggu ini"
-                />
-            </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Akses Cepat</CardTitle>
@@ -386,19 +338,19 @@ const AdminDashboard = () => {
 
 const renderDashboardByRole = (role: string) => {
     switch (role) {
-        case 'wakasek':
+        case 'wakasek_kesiswaan':
             return <WakasekDashboard />;
-        case 'waliKelas':
+        case 'wali_kelas':
             return <WaliKelasDashboard />;
         case 'admin':
             return <AdminDashboard />;
-        case 'guruBk':
-        case 'guruMapel':
-        case 'guruPiket':
-        case 'guruPendamping':
+        case 'guru_bk':
+        case 'guru_mapel':
+        case 'guru_piket':
+        case 'guru_pendamping':
             return <GeneralUserDashboard role={role} />;
         default:
-             return <WakasekDashboard />; // Fallback default
+             return <WakasekDashboard />; 
     }
 }
 

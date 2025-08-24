@@ -22,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -53,9 +52,9 @@ interface User extends Guru {
   password?: string;
 }
 
-type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
+type TeacherRole = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
-const roleOptions: { value: TeacherType; label: string }[] = [
+const roleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'waliKelas', label: 'Wali Kelas' },
     { value: 'guruBk', label: 'Guru BK' },
     { value: 'guruMapel', label: 'Guru Mapel' },
@@ -63,32 +62,30 @@ const roleOptions: { value: TeacherType; label: string }[] = [
     { value: 'guruPendamping', label: 'Guru Pendamping' },
 ];
 
-const getRoleName = (roleKey: TeacherType | string) => {
+const getRoleName = (roleKey: TeacherRole | string) => {
     const role = roleOptions.find(r => r.value === roleKey);
     return role ? role.label : 'Pengguna';
 };
 
 
-const createEmailFromName = (name: string, roleKey: string, id: number) => {
+const createEmailFromName = (name: string, id: number) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    const roleInitial = roleKey.replace('guru', '').charAt(0);
     return `${namePart}${id}@schoolemail.com`;
 };
 
-const initialTeachers: { [key in TeacherType]: Guru[] } = {
+const initialTeachers: { [key in TeacherRole]: Guru[] } = {
     waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [],
 };
 
 
 export default function ManajemenPenggunaPage() {
   const { toast } = useToast();
-  const [users, setUsers] = useState<{ [key in TeacherType]: User[] }>({
+  const [users, setUsers] = useState<{ [key in TeacherRole]: User[] }>({
         waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [],
   });
-  const [activeTab, setActiveTab] = useState<TeacherType>('waliKelas');
+  const [activeTab, setActiveTab] = useState<TeacherRole>('waliKelas');
   const [userRole, setUserRole] = useState<string | null>(null);
   
-  // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -101,11 +98,11 @@ export default function ManajemenPenggunaPage() {
         
         for (const roleKey in teachersData) {
             if (usersData.hasOwnProperty(roleKey)) {
-                usersData[roleKey as TeacherType] = teachersData[roleKey].map((guru: Guru) => ({
+                usersData[roleKey as TeacherRole] = teachersData[roleKey].map((guru: Guru) => ({
                     ...guru,
                     role: getRoleName(roleKey),
-                    email: createEmailFromName(guru.nama, roleKey, guru.id),
-                    password: "password123", // Password dibuat otomatis
+                    email: createEmailFromName(guru.nama, guru.id),
+                    password: "password123", 
                 }));
             }
         }
@@ -138,7 +135,7 @@ export default function ManajemenPenggunaPage() {
     };
   }, [toast]);
   
-  const canEdit = userRole === 'wakasek';
+  const canEdit = userRole === 'wakasek_kesiswaan';
 
   const handleShowPassword = (password: string) => {
     toast({
@@ -173,7 +170,7 @@ export default function ManajemenPenggunaPage() {
 
       const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
       updateSourceData('teachersData', updatedTeachers);
-      loadDataFromStorage(); // Reload data to reflect changes
+      loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
@@ -186,7 +183,7 @@ export default function ManajemenPenggunaPage() {
       const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
 
       updateSourceData('teachersData', updatedTeachers);
-      loadDataFromStorage(); // Reload data
+      loadDataFromStorage(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
@@ -268,7 +265,7 @@ export default function ManajemenPenggunaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherType)}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherRole)}>
             <TabsList className="grid w-full grid-cols-5">
               {roleOptions.map(role => (
                  <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
@@ -281,7 +278,7 @@ export default function ManajemenPenggunaPage() {
                     {canEdit && (
                         <Button onClick={() => handleOpenDialog()}>
                             <PlusCircle className="mr-2 h-4 w-4" />
-                            Tambah {getRoleName(key as TeacherType)}
+                            Tambah {getRoleName(key as TeacherRole)}
                         </Button>
                     )}
                 </div>
@@ -295,8 +292,8 @@ export default function ManajemenPenggunaPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users[key as TeacherType].length > 0 ? (
-                       users[key as TeacherType].map((user) => (
+                    {users[key as TeacherRole].length > 0 ? (
+                       users[key as TeacherRole].map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.nama}</TableCell>
                           <TableCell>{user.email}</TableCell>

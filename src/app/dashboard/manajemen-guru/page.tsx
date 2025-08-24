@@ -16,11 +16,9 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -49,14 +47,6 @@ interface Guru {
 
 type TeacherType = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
 
-const daftarKelas = [
-  "X OT 1", "X OT 2", "X OT 3", "X TKR", "X AKL", "X TM",
-  "XI TAB 1", "XI TAB 2", "XI TKR", "XI AKL", "XI TM",
-  "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
-];
-
-const hariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-
 const initialTeachers: { [key in TeacherType]: Guru[] } = {
     waliKelas: [],
     guruBk: [],
@@ -74,7 +64,6 @@ export default function ManajemenGuruPage() {
     const [teacherToDelete, setTeacherToDelete] = useState<Guru | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
     
-    // Form state
     const [formData, setFormData] = useState<Partial<Guru>>({});
     
     const loadData = () => {
@@ -143,7 +132,7 @@ export default function ManajemenGuruPage() {
         setTeacherToDelete(null);
     };
     
-    const canEdit = userRole === 'wakasek';
+    const canEdit = userRole === 'wakasek_kesiswaan';
 
     const renderFormFields = () => (
         <>

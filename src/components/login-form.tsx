@@ -25,49 +25,14 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-const generateUserRoles = (count: number, role: string, roleKey: string): { [email: string]: string } => {
-    const users: { [email: string]: string } = {};
-    for (let i = 3; i <= count; i++) {
-        users[`${roleKey}${i}@email.com`] = role;
-    }
-    return users;
-};
-
-
-// Daftar pengguna yang disimulasikan untuk login berbasis peran
-const userRoles: { [email: string]: string } = {
-    // Wakasek
-    "wakasek@email.com": "wakasek",
-    // Wali Kelas
-    "budi.s@email.com": "waliKelas",
-    "dewi.l@email.com": "waliKelas",
-    ...generateUserRoles(16, "waliKelas", "walikelas"),
-    // Guru BK
-    "siti.a@email.com": "guruBk",
-    "bambang.w@email.com": "guruBk",
-    ...generateUserRoles(3, "guruBk", "gurubk"),
-    // Guru Mapel
-    "eko.p@email.com": "guruMapel",
-    "anita.s@email.com": "guruMapel",
-    ...generateUserRoles(40, "guruMapel", "gurumapel"),
-    // Guru Piket
-    "joko.s@email.com": "guruPiket",
-    "endang.m@email.com": "guruPiket",
-    ...generateUserRoles(40, "guruPiket", "gurupiket"),
-    // Guru Pendamping
-    "rina.k@email.com": "guruPendamping",
-    "agus.s@email.com": "guruPendamping",
-    ...generateUserRoles(40, "guruPendamping", "gurupendamping"),
-};
-
 const getRoleDisplayName = (role: string) => {
     switch (role) {
-        case 'waliKelas': return 'Wali Kelas';
-        case 'guruBk': return 'Guru BK';
-        case 'guruMapel': return 'Guru Mata Pelajaran';
-        case 'guruPiket': return 'Guru Piket';
-        case 'guruPendamping': return 'Guru Pendamping';
-        case 'wakasek': return 'Wakasek Kesiswaan';
+        case 'wali_kelas': return 'Wali Kelas';
+        case 'guru_bk': return 'Guru BK';
+        case 'guru_mapel': return 'Guru Mata Pelajaran';
+        case 'guru_piket': return 'Guru Piket';
+        case 'guru_pendamping': return 'Guru Pendamping';
+        case 'wakasek_kesiswaan': return 'Wakasek Kesiswaan';
         default: return 'Pengguna';
     }
 };
@@ -89,22 +54,57 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const roleKey = userRoles[values.email.toLowerCase()] || 'wakasek'; 
-    const roleName = getRoleDisplayName(roleKey);
-    const userName = roleName; // For simplicity, use role name as user name
+    // Simulasi pencarian pengguna dari data yang disimpan oleh Wakasek
+    const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+    let foundUser = null;
+    let userRoleKey = 'wakasek_kesiswaan'; // Default role
+
+    const emailToSearch = values.email.toLowerCase();
+
+    for (const role in teachersData) {
+        const user = teachersData[role].find((u: any) => {
+            const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+            const expectedEmail = `${namePart}${u.id}@schoolemail.com`;
+            return expectedEmail === emailToSearch;
+        });
+        if (user) {
+            foundUser = user;
+            userRoleKey = role.replace(/([A-Z])/g, '_$1').toLowerCase(); // Convert camelCase to snake_case
+            break;
+        }
+    }
     
+    // Fallback for default wakasek
+    if (emailToSearch === 'wakasek@email.com') {
+        foundUser = { nama: 'Wakasek Kesiswaan' };
+        userRoleKey = 'wakasek_kesiswaan';
+    }
+
+
     setTimeout(() => {
       setIsLoading(false);
-      localStorage.setItem('userRole', roleKey);
-      
-      const userForSettings = {
-          nama: userName,
-          role: roleName,
-          email: values.email.toLowerCase(),
-      };
-      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
 
-      router.push("/dashboard");
+      if (foundUser || emailToSearch === 'wakasek@email.com') {
+          localStorage.setItem('userRole', userRoleKey);
+          
+          const roleName = getRoleDisplayName(userRoleKey);
+          const userName = foundUser ? foundUser.nama : 'Wakasek Kesiswaan';
+
+          const userForSettings = {
+              nama: userName,
+              role: roleName,
+              email: values.email.toLowerCase(),
+          };
+          localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+
+          router.push("/dashboard");
+      } else {
+         toast({
+          title: "Login Gagal",
+          description: "Pengguna tidak ditemukan. Silakan hubungi admin.",
+          variant: "destructive",
+        });
+      }
     }, 1500);
   }
 
@@ -112,7 +112,7 @@ export function LoginForm() {
     setIsGoogleLoading(true);
     setTimeout(() => {
       setIsGoogleLoading(false);
-      const roleKey = 'wakasek';
+      const roleKey = 'wakasek_kesiswaan';
       const roleName = getRoleDisplayName(roleKey);
       localStorage.setItem('userRole', roleKey);
       
