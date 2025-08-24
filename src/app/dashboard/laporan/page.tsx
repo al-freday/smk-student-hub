@@ -20,7 +20,9 @@ const reportTypesByRole = {
     { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas", description: "Buat dan kelola laporan lengkap untuk kelas Anda." },
   ],
   guru_bk: [
-    { title: "Laporan Guru BK", href: "/dashboard/laporan/guru-bk", description: "Catat dan lihat rekapitulasi sesi konseling." },
+    { title: "Layanan Konseling & Tindak Lanjut", href: "/dashboard/laporan/guru-bk", description: "Kelola semua kasus dan catatan tindak lanjut siswa." },
+    { title: "Lihat Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Akses rekapitulasi laporan dari para wali kelas." },
+    { title: "Lihat Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Akses catatan perkembangan akademik dari guru mapel." },
   ],
   guru_mapel: [
     { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Buat laporan perkembangan akademik siswa." },
@@ -86,12 +88,14 @@ export default function LaporanPage() {
   
   const getPageTitle = () => {
     if (userRole === 'guru_pendamping') return "Laporan Perkembangan Siswa";
+    if (userRole === 'guru_bk') return "Pusat Laporan & Layanan BK";
     return "Pusat Laporan";
   };
 
   const getPageDescription = () => {
     if (userRole === 'guru_pendamping') return "Hasilkan laporan refleksi mengenai perkembangan siswa secara holistik (akademik, karakter, keterampilan) per semester atau tahun ajaran.";
     if (userRole === 'wakasek_kesiswaan') return "Pantau, kelola, dan unduh semua laporan yang masuk dari para guru.";
+     if (userRole === 'guru_bk') return "Akses semua laporan yang relevan untuk mendukung layanan bimbingan dan konseling.";
     return "Pilih jenis laporan yang ingin Anda lihat atau buat.";
   };
 
@@ -177,7 +181,7 @@ export default function LaporanPage() {
               <CardContent className="mt-auto">
                 <Link href={report.href} passHref>
                   <Button className="w-full">
-                    {userRole === 'wakasek_kesiswaan' ? 'Lihat Laporan' : 'Buka Laporan'}
+                    {userRole === 'wakasek_kesiswaan' || userRole === 'guru_bk' ? 'Lihat Laporan' : 'Buka Laporan'}
                   </Button>
                 </Link>
               </CardContent>
@@ -197,3 +201,5 @@ export default function LaporanPage() {
     </div>
   );
 }
+
+    

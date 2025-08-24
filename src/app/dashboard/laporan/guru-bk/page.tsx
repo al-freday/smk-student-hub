@@ -1,15 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, MessageSquare } from "lucide-react";
+import { Loader2, MoreHorizontal, CheckCircle, RefreshCw, MessageSquare, Inbox, ListChecks, FileCheck2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -51,42 +49,18 @@ export default function LaporanGuruBkPage() {
             setIsLoading(false);
             return;
         }
-
-        try {
-          const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
-          const siswaData = JSON.parse(localStorage.getItem('siswaData') || '[]');
-          
-          let generatedReports: ReceivedReport[] = [];
-          
-          // Generate sample reports from various roles
-          const waliKelas = teachersData.wali_kelas?.[0];
-          if (waliKelas && siswaData[0]) {
-              generatedReports.push({
-                  id: 1, pelapor: waliKelas.nama, peranPelapor: getRoleName('wali_kelas'), siswa: siswaData[0].nama,
-                  tanggal: format(new Date(), "yyyy-MM-dd"), catatan: "Siswa sering melamun di kelas.",
-                  status: 'Masuk', tindakLanjut: ''
-              });
-          }
-
-          const guruMapel = teachersData.guru_mapel?.[0];
-           if (guruMapel && siswaData[1]) {
-              generatedReports.push({
-                  id: 2, pelapor: guruMapel.nama, peranPelapor: getRoleName('guru_mapel'), siswa: siswaData[1].nama,
-                  tanggal: format(new Date(), "yyyy-MM-dd"), catatan: "Kesulitan mengikuti pelajaran Matematika.",
-                  status: 'Masuk', tindakLanjut: ''
-              });
-          }
-
-          setReceivedReports(generatedReports);
-          localStorage.setItem(reportStorageKey, JSON.stringify(generatedReports));
-        } catch (error) {
-          console.error("Gagal memuat data laporan terintegrasi:", error);
-        } finally {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
     };
     loadReports();
   }, []);
+  
+  const reportStatusCounts = useMemo(() => {
+    return receivedReports.reduce((acc, report) => {
+      acc[report.status] = (acc[report.status] || 0) + 1;
+      return acc;
+    }, { Masuk: 0, Diproses: 0, Selesai: 0 } as Record<ReportStatus, number>);
+  }, [receivedReports]);
+
 
   const handleStatusChange = (id: number, status: ReportStatus) => {
     const updatedReports = receivedReports.map(report =>
@@ -144,6 +118,35 @@ export default function LaporanGuruBkPage() {
           </p>
         </div>
       </div>
+       <Card>
+        <CardHeader>
+            <CardTitle>Rekapitulasi Status Kasus</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+            <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                <Inbox className="h-8 w-8 text-primary"/>
+                <div>
+                    <p className="text-2xl font-bold">{reportStatusCounts.Masuk}</p>
+                    <p className="text-sm text-muted-foreground">Kasus Masuk</p>
+                </div>
+            </div>
+             <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                <ListChecks className="h-8 w-8 text-primary"/>
+                <div>
+                    <p className="text-2xl font-bold">{reportStatusCounts.Diproses}</p>
+                    <p className="text-sm text-muted-foreground">Sedang Diproses</p>
+                </div>
+            </div>
+             <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                <FileCheck2 className="h-8 w-8 text-primary"/>
+                <div>
+                    <p className="text-2xl font-bold">{reportStatusCounts.Selesai}</p>
+                    <p className="text-sm text-muted-foreground">Telah Selesai</p>
+                </div>
+            </div>
+        </CardContent>
+       </Card>
+
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -229,3 +232,5 @@ export default function LaporanGuruBkPage() {
     </div>
   );
 }
+
+    
