@@ -82,6 +82,7 @@ export default function TataTertibPage() {
   
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarWaliKelas, setDaftarWaliKelas] = useState<WaliKelas[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // State untuk form pelanggaran
   const [selectedSiswaPelanggaran, setSelectedSiswaPelanggaran] = useState("");
@@ -98,6 +99,9 @@ export default function TataTertibPage() {
   const [riwayat, setRiwayat] = useState<CatatanSiswa[]>([]);
 
   useEffect(() => {
+      const role = localStorage.getItem('userRole');
+      setUserRole(role);
+
       const savedSiswa = localStorage.getItem('siswaData');
       if (savedSiswa) setDaftarSiswa(JSON.parse(savedSiswa));
 
@@ -191,15 +195,24 @@ export default function TataTertibPage() {
     setDeskripsiPrestasi("");
     setPoinPrestasi(0);
   };
+  
+  const isGuruPendampingView = userRole === 'guru_pendamping';
 
+  const getPageTitle = () => {
+    if (isGuruPendampingView) return "Pusat Pembinaan Karakter";
+    return "Catat Pelanggaran & Prestasi";
+  };
+
+  const getPageDescription = () => {
+    if (isGuruPendampingView) return "Lakukan pembiasaan, bimbingan karakter, dan pembinaan budi pekerti siswa.";
+    return "Gunakan formulir ini untuk mencatat pelanggaran atau prestasi siswa.";
+  };
 
   return (
     <div className="flex-1 space-y-6">
         <div>
-            <h2 className="text-3xl font-bold tracking-tight">Catat Pelanggaran & Prestasi</h2>
-            <p className="text-muted-foreground">
-                Gunakan formulir ini untuk mencatat pelanggaran atau prestasi siswa.
-            </p>
+            <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
+            <p className="text-muted-foreground">{getPageDescription()}</p>
         </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

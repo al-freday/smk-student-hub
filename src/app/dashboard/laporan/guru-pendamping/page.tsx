@@ -120,20 +120,38 @@ export default function LaporanGuruPendampingPage() {
   }
 
   const isWakasekView = userRole === 'wakasek_kesiswaan';
+  const isGuruPendampingView = userRole === 'guru_pendamping';
+
+  const getPageTitle = () => {
+    if (isGuruPendampingView) return "Catatan Bimbingan & Pendampingan";
+    if (isWakasekView) return "Laporan Guru Pendamping (Diterima)";
+    return "Laporan Guru Pendamping";
+  };
+
+  const getPageDescription = () => {
+    if (isGuruPendampingView) return "Rekapitulasi catatan personal untuk penanganan masalah dan pembinaan siswa.";
+    if (isWakasekView) return "Rekapitulasi laporan yang diterima dari semua guru pendamping.";
+    return "Rekapitulasi laporan dari guru pendamping.";
+  }
+
+  const getCardTitle = () => {
+    if (isGuruPendampingView) return "Riwayat Catatan Personal";
+    return "Detail Laporan";
+  }
+
+  const getCardDescription = () => {
+    if (isGuruPendampingView) return "Berikut adalah catatan personal Anda terkait perkembangan atau masalah siswa.";
+    if (isWakasekView) return "Berikut adalah daftar laporan pendampingan yang telah diterima. Kelola status setiap laporan melalui menu Aksi.";
+    return "Berikut adalah catatan pendampingan siswa.";
+  }
+
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
-            {isWakasekView ? "Laporan Guru Pendamping (Diterima)" : "Laporan Guru Pendamping"}
-          </h2>
-          <p className="text-muted-foreground">
-            {isWakasekView
-              ? "Rekapitulasi laporan yang diterima dari semua guru pendamping."
-              : "Rekapitulasi laporan dari guru pendamping."
-            }
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
+          <p className="text-muted-foreground">{getPageDescription()}</p>
         </div>
         <Button onClick={handlePrint}>
           <Printer className="mr-2 h-4 w-4" />
@@ -142,13 +160,8 @@ export default function LaporanGuruPendampingPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Detail Laporan</CardTitle>
-          <CardDescription>
-            {isWakasekView
-              ? "Berikut adalah daftar laporan pendampingan yang telah diterima. Kelola status setiap laporan melalui menu Aksi."
-              : "Berikut adalah catatan pendampingan siswa."
-            }
-          </CardDescription>
+          <CardTitle>{getCardTitle()}</CardTitle>
+          <CardDescription>{getCardDescription()}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -156,7 +169,7 @@ export default function LaporanGuruPendampingPage() {
               <TableRow>
                 <TableHead>Tanggal</TableHead>
                 <TableHead>{isWakasekView ? "Nama Guru Pendamping" : "Nama Siswa"}</TableHead>
-                <TableHead>Catatan Pendampingan</TableHead>
+                <TableHead>{isGuruPendampingView ? "Catatan Personal (Masalah/Perkembangan)" : "Catatan Pendampingan"}</TableHead>
                 {isWakasekView && <TableHead>Status</TableHead>}
                 {isWakasekView && <TableHead className="text-right">Aksi</TableHead>}
               </TableRow>

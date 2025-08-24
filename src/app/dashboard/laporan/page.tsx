@@ -29,7 +29,7 @@ const reportTypesByRole = {
     { title: "Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Isi laporan harian selama jam piket Anda." },
   ],
   guru_pendamping: [
-    { title: "Laporan Guru Pendamping", href: "/dashboard/laporan/guru-pendamping", description: "Buat catatan hasil pendampingan siswa." },
+    { title: "Laporan Refleksi Perkembangan", href: "/dashboard/laporan/guru-pendamping", description: "Buat laporan reflektif mengenai perkembangan siswa selama masa pembimbingan." },
   ],
   siswa: [],
   orang_tua: [],
@@ -84,6 +84,18 @@ export default function LaporanPage() {
     });
   };
   
+  const getPageTitle = () => {
+    if (userRole === 'guru_pendamping') return "Laporan Perkembangan Siswa";
+    return "Pusat Laporan";
+  };
+
+  const getPageDescription = () => {
+    if (userRole === 'guru_pendamping') return "Hasilkan laporan refleksi mengenai perkembangan siswa secara holistik (akademik, karakter, keterampilan) per semester atau tahun ajaran.";
+    if (userRole === 'wakasek_kesiswaan') return "Pantau, kelola, dan unduh semua laporan yang masuk dari para guru.";
+    return "Pilih jenis laporan yang ingin Anda lihat atau buat.";
+  };
+
+
   if (!userRole) {
     return (
       <div className="flex-1 space-y-6">
@@ -108,13 +120,8 @@ export default function LaporanPage() {
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Pusat Laporan</h2>
-        <p className="text-muted-foreground">
-          {userRole === 'wakasek_kesiswaan' 
-            ? "Pantau, kelola, dan unduh semua laporan yang masuk dari para guru."
-            : "Pilih jenis laporan yang ingin Anda lihat atau buat."
-          }
-        </p>
+        <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
+        <p className="text-muted-foreground">{getPageDescription()}</p>
       </div>
 
       {userRole === 'wakasek_kesiswaan' && (
