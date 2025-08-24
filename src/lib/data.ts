@@ -28,13 +28,15 @@ export const getDashboardStats = () => {
     const allSiswa: Siswa[] = getDataFromLocalStorage('siswaData', []);
     const totalSiswa = allSiswa.length;
 
-    // 2. Total Guru (hanya Guru BK dan Guru Mapel)
+    // 2. Total Guru (menghitung semua peran)
     const teachersData = getDataFromLocalStorage('teachersData', {});
     let totalGuru = 0;
-    if (teachersData && typeof teachersData === 'object' && 'guruBk' in teachersData && 'guruMapel' in teachersData) {
-        const guruBkCount = Array.isArray(teachersData.guruBk) ? teachersData.guruBk.length : 0;
-        const guruMapelCount = Array.isArray(teachersData.guruMapel) ? teachersData.guruMapel.length : 0;
-        totalGuru = guruBkCount + guruMapelCount;
+    if (teachersData && typeof teachersData === 'object') {
+        Object.values(teachersData).forEach((roleArray: any) => {
+            if (Array.isArray(roleArray)) {
+                totalGuru += roleArray.length;
+            }
+        });
     }
 
     // 3. Jumlah Kelas
