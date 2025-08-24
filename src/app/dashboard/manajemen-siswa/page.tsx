@@ -42,6 +42,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
@@ -140,7 +141,7 @@ export default function ManajemenSiswaPage() {
           localStorage.setItem('siswaData', JSON.stringify(initialSiswa));
       }
 
-      if (role === 'waliKelas') {
+      if (role === 'wali_kelas') {
           const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
           const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
           const waliKelasData = teachersData.waliKelas?.find((wk: any) => wk.nama === currentUser.nama);
@@ -239,7 +240,7 @@ export default function ManajemenSiswaPage() {
     alert("Fungsionalitas impor dari Excel akan segera tersedia.");
   };
   
-  const displayedKelas = userRole === 'waliKelas' && waliKelasInfo
+  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo
     ? daftarKelasDinamis.filter(k => k.nama === waliKelasInfo.kelas)
     : daftarKelasDinamis;
 
@@ -250,7 +251,7 @@ export default function ManajemenSiswaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa</h2>
           <p className="text-muted-foreground">
-             {userRole === 'waliKelas' && waliKelasInfo 
+             {userRole === 'wali_kelas' && waliKelasInfo 
                 ? `Kelola data siswa di kelas binaan Anda: ${waliKelasInfo.kelas}.`
                 : "Kelola data siswa di sekolah dan catat kehadiran harian."
              }
@@ -292,7 +293,7 @@ export default function ManajemenSiswaPage() {
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="kelas" className="text-right">Kelas</Label>
-                     <Select onValueChange={setKelas} value={kelas} disabled={userRole === 'waliKelas'}>
+                     <Select onValueChange={setKelas} value={kelas} disabled={userRole === 'wali_kelas'}>
                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
                         <SelectContent>{daftarKelasDinamis.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent>
                       </Select>
@@ -310,7 +311,7 @@ export default function ManajemenSiswaPage() {
         <CardHeader>
           <CardTitle>Daftar Kelas & Siswa</CardTitle>
           <CardDescription>
-             {userRole === 'waliKelas' 
+             {userRole === 'wali_kelas' 
                 ? "Berikut adalah daftar siswa di kelas Anda."
                 : "Pilih kelas untuk melihat daftar siswa di dalamnya."
              }
@@ -444,5 +445,3 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
-
-    
