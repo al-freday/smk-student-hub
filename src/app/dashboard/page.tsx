@@ -392,8 +392,13 @@ const renderDashboardByRole = (role: string) => {
             return <WaliKelasDashboard />;
         case 'admin':
             return <AdminDashboard />;
-        default:
+        case 'guruBk':
+        case 'guruMapel':
+        case 'guruPiket':
+        case 'guruPendamping':
             return <GeneralUserDashboard role={role} />;
+        default:
+             return <WakasekDashboard />; // Fallback default
     }
 }
 

@@ -121,7 +121,7 @@ export default function LaporanGuruBkPage() {
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
-            {isWakasekView ? "Laporan Guru BK (Diterima)" : "Laporan Guru BK"}
+            {isWakasekView ? "Laporan Guru BK (Diterima)" : "Laporan Guru Bimbingan & Konseling"}
           </h2>
           <p className="text-muted-foreground">
             {isWakasekView 

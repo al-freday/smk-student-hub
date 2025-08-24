@@ -186,6 +186,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUser');
   };
 
   const navItems = userRole ? navItemsByRole[userRole] || [] : [];
