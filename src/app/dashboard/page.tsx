@@ -287,6 +287,7 @@ const GeneralUserDashboard = () => {
 };
 
 const AdminDashboard = () => {
+    const router = useRouter();
     return (
         <Card>
             <CardHeader>
@@ -295,12 +296,12 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground mb-4">
-                    Gunakan panel admin untuk mengelola pengguna, pengaturan global, dan memantau aktivitas sistem.
+                    Anda sedang login sebagai Admin. Anda dapat kembali ke panel utama admin untuk mengelola pengguna dan pengaturan global.
                 </p>
                 <div className="flex gap-4">
-                    <Link href="/admin/dashboard" passHref>
-                        <Button>Lanjutkan ke Panel Admin</Button>
-                    </Link>
+                    <Button onClick={() => router.push('/admin/dashboard')}>
+                        Kembali ke Panel Admin
+                    </Button>
                 </div>
             </CardContent>
         </Card>

@@ -1,30 +1,18 @@
 
-"use client"; // Diubah menjadi Client Component untuk menerapkan tema dinamis
+"use client";
 
-import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { useEffect } from "react";
 
-// Metadata tidak bisa diekspor dari client component, perlu dipindahkan jika statis
-// export const metadata: Metadata = {
-//   title: 'SMKN 2 Tana Toraja',
-//   description: 'Sistem Manajemen Kesiswaan SMKN 2 Tana Toraja',
-// };
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-
-  const applyTheme = () => {
+const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
     // Default ke 'wakasek_kesiswaan' jika tidak ada peran, atau ke tema aplikasi umum.
     const themeKey = `appTheme_${userRole || 'wakasek_kesiswaan'}`; 
     const savedTheme = localStorage.getItem(themeKey);
 
     let themeToApply = null;
+    let defaultThemeColors = { "--primary": "25 95% 53%", "--accent": "217 91% 60%" };
 
     if (savedTheme) {
       try {
@@ -32,49 +20,36 @@ export default function RootLayout({
       } catch (error) {
         console.error("Gagal mem-parse tema yang disimpan:", error);
       }
-    } else {
-        // Fallback ke tema default jika tema spesifik peran tidak ada
-        const defaultTheme = localStorage.getItem("appTheme_wakasek_kesiswaan");
-        if(defaultTheme) {
-            try {
-                themeToApply = JSON.parse(defaultTheme).colors;
-            } catch (error) {
-                console.error("Gagal mem-parse tema default:", error);
-            }
-        }
-    }
+    } 
     
-    if (themeToApply) {
-      Object.entries(themeToApply).forEach(([property, value]) => {
+    // Fallback to default if no theme is found
+    const colorsToSet = themeToApply || defaultThemeColors;
+    
+    Object.entries(colorsToSet).forEach(([property, value]) => {
         document.documentElement.style.setProperty(property, value as string);
-      });
-    }
-  };
+    });
+};
+
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
 
   useEffect(() => {
     // Terapkan tema saat komponen pertama kali dimuat
     applyTheme();
 
-    // Tambahkan event listener untuk mendeteksi perubahan storage dari tab lain
+    // Event listener untuk sinkronisasi antar tab
     window.addEventListener('storage', applyTheme);
 
-    // Karena perubahan localStorage di tab yang sama tidak memicu event 'storage',
-    // kita perlu cara lain. Salah satunya adalah dengan custom event.
-    // Namun, pendekatan yang lebih sederhana adalah memanggil applyTheme
-    // setiap kali ada potensi perubahan, seperti di komponen login.
-    // Untuk solusi yang lebih kuat di sini, kita bisa gunakan interval check sederhana
-    // atau custom event. Kita asumsikan perubahan terjadi saat login.
-    // Event listener storage sudah cukup untuk sinkronisasi antar tab.
-    
-    // Panggil applyTheme lagi setiap kali userRole mungkin berubah.
-    // Kita bisa membuat custom event jika diperlukan.
-    const handleRoleChange = () => applyTheme();
-    window.addEventListener('roleChanged', handleRoleChange);
-
+    // Event listener kustom untuk perubahan peran di tab yang sama (dipicu saat login)
+    window.addEventListener('roleChanged', applyTheme);
 
     return () => {
       window.removeEventListener('storage', applyTheme);
-      window.removeEventListener('roleChanged', handleRoleChange);
+      window.removeEventListener('roleChanged', applyTheme);
     };
   }, []);
 

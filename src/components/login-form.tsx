@@ -33,6 +33,7 @@ const getRoleDisplayName = (role: string) => {
         case 'guru_piket': return 'Guru Piket';
         case 'guru_pendamping': return 'Guru Pendamping';
         case 'wakasek_kesiswaan': return 'Wakasek Kesiswaan';
+        case 'admin': return 'Administrator';
         default: return 'Pengguna';
     }
 };
@@ -113,8 +114,7 @@ export function LoginForm() {
     setTimeout(() => {
       setIsGoogleLoading(false);
       const roleKey = 'wakasek_kesiswaan';
-      const roleName = getRoleDisplayName(roleKey);
-      handleLoginSuccess(roleKey, { nama: roleName, email: 'wakasek.google@example.com' });
+      handleLoginSuccess(roleKey, { nama: getRoleDisplayName(roleKey), email: 'wakasek.google@example.com' });
     }, 1500);
   }
 

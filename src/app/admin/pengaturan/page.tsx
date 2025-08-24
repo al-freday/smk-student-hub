@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { getSourceData } from "@/lib/data-manager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 
 interface SchoolInfo {
   schoolName: string;
@@ -34,6 +33,7 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
 };
 
 const userRoles = [
+    { key: "admin", name: "Administrator" },
     { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
     { key: "wali_kelas", name: "Wali Kelas" },
     { key: "guru_bk", name: "Guru BK" },
@@ -68,7 +68,7 @@ export default function AdminPengaturanPage() {
     }
 
     const teachersData = getSourceData('teachersData', {});
-    let count = 0;
+    let count = 1; // Start with 1 for wakasek
     if (teachersData && typeof teachersData === 'object') {
         Object.values(teachersData).forEach((roleArray: any) => {
             if (Array.isArray(roleArray)) {
@@ -129,8 +129,8 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
-    // Optionally apply theme to current admin view if admin role is changed
-    if (roleKey === 'admin' || roleKey === 'wakasek_kesiswaan') {
+    // Apply theme to current admin view if admin role is changed
+    if (roleKey === 'admin') {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);
         });
