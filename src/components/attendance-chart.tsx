@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { useState, useEffect } from "react";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 interface Kehadiran {
@@ -35,6 +35,7 @@ const chartConfig = {
 
 export default function AttendanceChart() {
   const [chartData, setChartData] = useState<any[]>([]);
+  const [chartKey, setChartKey] = useState(0);
 
   useEffect(() => {
     const rawData = localStorage.getItem("kehadiranSiswa");
@@ -62,12 +63,13 @@ export default function AttendanceChart() {
       })).reverse(); // Reverse to show chronologically
 
       setChartData(formattedData);
+      setChartKey(prevKey => prevKey + 1); // Force re-render of chart
     }
   }, []);
 
 
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+    <ChartContainer key={chartKey} config={chartConfig} className="min-h-[200px] w-full">
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
         <XAxis
