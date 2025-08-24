@@ -82,10 +82,8 @@ const navItemsByRole = {
     { href: "/dashboard/laporan", icon: ClipboardList, label: "Laporan Bulanan" },
   ],
   guru_bk: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dasbor Layanan BK" },
-    { href: "/dashboard/tata-tertib", icon: BadgeHelp, label: "Data Masalah Siswa" },
-    { href: "/dashboard/laporan/guru-bk", icon: MessageSquare, label: "Layanan Konseling" },
-    { href: "/dashboard/laporan", icon: Handshake, label: "Kolaborasi & Laporan" },
+    { href: "/dashboard/laporan/guru-bk", icon: BadgeHelp, label: "Laporan Guru BK" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Pusat Laporan" },
   ],
   guru_mapel: [
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal & Rencana" },
