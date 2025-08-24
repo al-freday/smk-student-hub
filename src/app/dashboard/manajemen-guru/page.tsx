@@ -95,7 +95,7 @@ export default function ManajemenGuruPage() {
             return;
         }
 
-        const currentList = teachers[role];
+        const currentList = teachers[role] || [];
         let updatedList;
         if (editingTeacher && editingTeacher.role === role) {
             updatedList = currentList.map(t => t.id === editingTeacher.id ? { ...t, ...guruData } : t);
@@ -107,7 +107,7 @@ export default function ManajemenGuruPage() {
             let updatedTeachers = { ...teachers, [role]: updatedList };
 
             if (editingTeacher && editingTeacher.role !== role) {
-                const oldList = teachers[editingTeacher.role].filter(t => t.id !== editingTeacher.id);
+                const oldList = (teachers[editingTeacher.role] || []).filter(t => t.id !== editingTeacher.id);
                 updatedTeachers = { ...updatedTeachers, [editingTeacher.role]: oldList };
             }
             saveData(updatedTeachers);
@@ -120,7 +120,7 @@ export default function ManajemenGuruPage() {
     const handleDelete = () => {
         if (!teacherToDelete) return;
         
-        const updatedList = teachers[teacherToDelete.role].filter(t => t.id !== teacherToDelete.id);
+        const updatedList = (teachers[teacherToDelete.role] || []).filter(t => t.id !== teacherToDelete.id);
         const updatedTeachers = { ...teachers, [teacherToDelete.role]: updatedList };
         saveData(updatedTeachers);
 
@@ -163,13 +163,15 @@ export default function ManajemenGuruPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {roleOptions.map(role => (
+                    {roleOptions.map(role => {
+                        const teacherList = teachers[role.value] || [];
+                        return (
                         <div key={role.value} className="mb-6">
-                            <h3 className="text-lg font-semibold mb-2">{role.label} ({teachers[role.value].length})</h3>
+                            <h3 className="text-lg font-semibold mb-2">{role.label} ({teacherList.length})</h3>
                             <div className="border rounded-md">
-                                {teachers[role.value].length > 0 ? (
-                                    teachers[role.value].map((guru, index) => (
-                                        <div key={guru.id} className={`flex items-center justify-between p-3 ${index < teachers[role.value].length - 1 ? 'border-b' : ''}`}>
+                                {teacherList.length > 0 ? (
+                                    teacherList.map((guru, index) => (
+                                        <div key={guru.id} className={`flex items-center justify-between p-3 ${index < teacherList.length - 1 ? 'border-b' : ''}`}>
                                             <div>
                                                 <p className="font-medium">{guru.nama}</p>
                                                 {role.value === 'wali_kelas' && <p className="text-sm text-muted-foreground">Kelas: {guru.kelas}</p>}
@@ -193,7 +195,7 @@ export default function ManajemenGuruPage() {
                                 )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </CardContent>
             </Card>
             
