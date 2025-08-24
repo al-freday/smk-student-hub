@@ -18,10 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  useEffect(() => {
-    // Terapkan tema dari localStorage saat aplikasi dimuat
+  const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
-    // Default ke 'wakasek_kesiswaan' jika tidak ada, atau bisa juga ke tema default
+    // Default ke 'wakasek_kesiswaan' jika tidak ada peran, atau ke tema aplikasi umum.
     const themeKey = `appTheme_${userRole || 'wakasek_kesiswaan'}`; 
     const savedTheme = localStorage.getItem(themeKey);
 
@@ -50,7 +49,33 @@ export default function RootLayout({
         document.documentElement.style.setProperty(property, value as string);
       });
     }
+  };
+
+  useEffect(() => {
+    // Terapkan tema saat komponen pertama kali dimuat
+    applyTheme();
+
+    // Tambahkan event listener untuk mendeteksi perubahan storage dari tab lain
+    window.addEventListener('storage', applyTheme);
+
+    // Karena perubahan localStorage di tab yang sama tidak memicu event 'storage',
+    // kita perlu cara lain. Salah satunya adalah dengan custom event.
+    // Namun, pendekatan yang lebih sederhana adalah memanggil applyTheme
+    // setiap kali ada potensi perubahan, seperti di komponen login.
+    // Untuk solusi yang lebih kuat di sini, kita bisa gunakan interval check sederhana
+    // atau custom event. Kita asumsikan perubahan terjadi saat login.
+    // Event listener storage sudah cukup untuk sinkronisasi antar tab.
     
+    // Panggil applyTheme lagi setiap kali userRole mungkin berubah.
+    // Kita bisa membuat custom event jika diperlukan.
+    const handleRoleChange = () => applyTheme();
+    window.addEventListener('roleChanged', handleRoleChange);
+
+
+    return () => {
+      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('roleChanged', handleRoleChange);
+    };
   }, []);
 
   return (

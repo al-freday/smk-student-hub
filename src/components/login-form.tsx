@@ -51,14 +51,29 @@ export function LoginForm() {
     },
   });
 
+  const handleLoginSuccess = (userRoleKey: string, userDetails: {nama: string, email: string}) => {
+      localStorage.setItem('userRole', userRoleKey);
+      
+      const roleName = getRoleDisplayName(userRoleKey);
+      const userForSettings = {
+          nama: userDetails.nama,
+          role: roleName,
+          email: userDetails.email,
+      };
+      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+      
+      // Memicu event kustom untuk memberitahu layout bahwa peran telah berubah
+      window.dispatchEvent(new Event('roleChanged'));
+      
+      router.push("/dashboard");
+  };
+
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    // Simulasi pencarian pengguna dari data yang disimpan oleh Wakasek
     const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
     let foundUser = null;
-    let userRoleKey = 'wakasek_kesiswaan'; // Default role
-
+    let userRoleKey = 'wakasek_kesiswaan';
     const emailToSearch = values.email.toLowerCase();
 
     for (const role in teachersData) {
@@ -69,35 +84,20 @@ export function LoginForm() {
         });
         if (user) {
             foundUser = user;
-            userRoleKey = role.replace(/([A-Z])/g, '_$1').toLowerCase(); // Convert camelCase to snake_case
+            userRoleKey = role.replace(/([A-Z])/g, '_$1').toLowerCase();
             break;
         }
     }
     
-    // Fallback for default wakasek
     if (emailToSearch === 'wakasek@email.com') {
         foundUser = { nama: 'Wakasek Kesiswaan' };
         userRoleKey = 'wakasek_kesiswaan';
     }
 
-
     setTimeout(() => {
       setIsLoading(false);
-
-      if (foundUser || emailToSearch === 'wakasek@email.com') {
-          localStorage.setItem('userRole', userRoleKey);
-          
-          const roleName = getRoleDisplayName(userRoleKey);
-          const userName = foundUser ? foundUser.nama : 'Wakasek Kesiswaan';
-
-          const userForSettings = {
-              nama: userName,
-              role: roleName,
-              email: values.email.toLowerCase(),
-          };
-          localStorage.setItem('currentUser', JSON.stringify(userForSettings));
-
-          router.push("/dashboard");
+      if (foundUser) {
+          handleLoginSuccess(userRoleKey, { nama: foundUser.nama, email: emailToSearch });
       } else {
          toast({
           title: "Login Gagal",
@@ -114,16 +114,7 @@ export function LoginForm() {
       setIsGoogleLoading(false);
       const roleKey = 'wakasek_kesiswaan';
       const roleName = getRoleDisplayName(roleKey);
-      localStorage.setItem('userRole', roleKey);
-      
-      const userForSettings = {
-          nama: roleName,
-          role: roleName,
-          email: 'wakasek.google@example.com',
-      };
-      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
-      
-      router.push("/dashboard");
+      handleLoginSuccess(roleKey, { nama: roleName, email: 'wakasek.google@example.com' });
     }, 1500);
   }
 
