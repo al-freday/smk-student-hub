@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Eye } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -52,14 +52,14 @@ interface User extends Guru {
   password?: string;
 }
 
-type TeacherRole = 'waliKelas' | 'guruBk' | 'guruMapel' | 'guruPiket' | 'guruPendamping';
+type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
 
 const roleOptions: { value: TeacherRole; label: string }[] = [
-    { value: 'waliKelas', label: 'Wali Kelas' },
-    { value: 'guruBk', label: 'Guru BK' },
-    { value: 'guruMapel', label: 'Guru Mapel' },
-    { value: 'guruPiket', label: 'Guru Piket' },
-    { value: 'guruPendamping', label: 'Guru Pendamping' },
+    { value: 'wali_kelas', label: 'Wali Kelas' },
+    { value: 'guru_bk', label: 'Guru BK' },
+    { value: 'guru_mapel', label: 'Guru Mapel' },
+    { value: 'guru_piket', label: 'Guru Piket' },
+    { value: 'guru_pendamping', label: 'Guru Pendamping' },
 ];
 
 const getRoleName = (roleKey: TeacherRole | string) => {
@@ -74,16 +74,16 @@ const createEmailFromName = (name: string, id: number) => {
 };
 
 const initialTeachers: { [key in TeacherRole]: Guru[] } = {
-    waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [],
+    wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
 };
 
 
 export default function ManajemenPenggunaPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<{ [key in TeacherRole]: User[] }>({
-        waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [],
+        wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
   });
-  const [activeTab, setActiveTab] = useState<TeacherRole>('waliKelas');
+  const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
   const [userRole, setUserRole] = useState<string | null>(null);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function ManajemenPenggunaPage() {
   const loadDataFromStorage = () => {
     try {
         const teachersData = getSourceData('teachersData', initialTeachers);
-        const usersData = { waliKelas: [], guruBk: [], guruMapel: [], guruPiket: [], guruPendamping: [] };
+        const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
         
         for (const roleKey in teachersData) {
             if (usersData.hasOwnProperty(roleKey)) {
@@ -187,6 +187,51 @@ export default function ManajemenPenggunaPage() {
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
+  
+  const handleExportData = () => {
+    const teachersData = getSourceData('teachersData', initialTeachers);
+    let allUsers: User[] = [];
+
+    for (const roleKey in teachersData) {
+        teachersData[roleKey as TeacherRole].forEach((guru: Guru) => {
+            allUsers.push({
+                ...guru,
+                role: getRoleName(roleKey),
+                email: createEmailFromName(guru.nama, guru.id),
+                password: "password123", // Password default
+            });
+        });
+    }
+
+    const headers = ['ID', 'Nama', 'Email', 'Role', 'Password', 'Kelas Binaan', 'Mapel', 'Hari Piket'];
+    const csvContent = [
+        headers.join(','),
+        ...allUsers.map(user => [
+            user.id,
+            `"${user.nama}"`,
+            user.email,
+            user.role,
+            user.password,
+            user.kelas || '',
+            user.mapel || '',
+            user.hariPiket || ''
+        ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+        URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'user_data.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({ title: "Ekspor Berhasil", description: "Data pengguna telah diunduh sebagai user_data.csv." });
+  };
 
   const renderFormFields = () => (
     <>
@@ -201,7 +246,7 @@ export default function ManajemenPenggunaPage() {
           className="col-span-3"
         />
       </div>
-      {activeTab === 'waliKelas' && (
+      {activeTab === 'wali_kelas' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="kelas" className="text-right">
             Kelas Binaan
@@ -214,7 +259,7 @@ export default function ManajemenPenggunaPage() {
           />
         </div>
       )}
-      {activeTab === 'guruMapel' && (
+      {activeTab === 'guru_mapel' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="mapel" className="text-right">
             Mata Pelajaran
@@ -227,7 +272,7 @@ export default function ManajemenPenggunaPage() {
           />
         </div>
       )}
-      {activeTab === 'guruPiket' && (
+      {activeTab === 'guru_piket' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="hariPiket" className="text-right">
             Hari Piket
@@ -274,12 +319,18 @@ export default function ManajemenPenggunaPage() {
 
             {Object.keys(users).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
-                 <div className="flex justify-end mb-4">
+                 <div className="flex justify-end mb-4 gap-2">
                     {canEdit && (
+                       <>
+                        <Button variant="outline" onClick={handleExportData}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export Data User
+                        </Button>
                         <Button onClick={() => handleOpenDialog()}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Tambah {getRoleName(key as TeacherRole)}
                         </Button>
+                       </>
                     )}
                 </div>
                 <Table>
