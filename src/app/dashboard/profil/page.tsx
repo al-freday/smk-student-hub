@@ -6,15 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Upload, PlusCircle, Edit, Trash2 } from "lucide-react";
+import { Save, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
 
 interface UserProfile {
   nip: string;
@@ -24,7 +20,6 @@ interface UserProfile {
   alamat: string;
   role: string;
   avatar: string;
-  subjects: string[];
 }
 
 export default function ProfilPage() {
@@ -39,16 +34,7 @@ export default function ProfilPage() {
     alamat: "",
     role: "Pengguna",
     avatar: "",
-    subjects: [],
   });
-
-  // State for subject CRUD
-  const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
-  const [editingSubject, setEditingSubject] = useState<string | null>(null);
-  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
-  const [subjectName, setSubjectName] = useState("");
-
-  const canHaveSubjects = userProfile.role === 'Guru Mata Pelajaran' || userProfile.role === 'Wakasek Kesiswaan';
   
   useEffect(() => {
     const savedUser = localStorage.getItem("currentUser");
@@ -69,7 +55,6 @@ export default function ProfilPage() {
         alamat: "",
         role: basicInfo.role || "Pengguna",
         avatar: basicInfo.avatar || "",
-        subjects: [],
       };
     } else {
       initialProfile = {
@@ -80,7 +65,6 @@ export default function ProfilPage() {
         alamat: "",
         role: "Pengguna",
         avatar: "",
-        subjects: [],
       };
     }
     setUserProfile(initialProfile);
@@ -122,33 +106,6 @@ export default function ProfilPage() {
           description: "Perubahan biodata Anda telah berhasil disimpan.",
       });
   };
-
-  const handleOpenSubjectDialog = (subject: string | null = null) => {
-    setEditingSubject(subject);
-    setSubjectName(subject || "");
-    setIsSubjectDialogOpen(true);
-  };
-
-  const handleSaveSubject = () => {
-    if (!subjectName.trim()) return;
-    let updatedSubjects;
-    if (editingSubject) {
-      updatedSubjects = userProfile.subjects.map(s => s === editingSubject ? subjectName.trim() : s);
-    } else {
-      updatedSubjects = [...userProfile.subjects, subjectName.trim()];
-    }
-    setUserProfile(prev => ({ ...prev, subjects: updatedSubjects }));
-    setIsSubjectDialogOpen(false);
-  };
-
-  const handleDeleteSubject = () => {
-    if (subjectToDelete) {
-      const updatedSubjects = userProfile.subjects.filter(s => s !== subjectToDelete);
-      setUserProfile(prev => ({ ...prev, subjects: updatedSubjects }));
-      setSubjectToDelete(null);
-    }
-  };
-
 
   return (
     <div className="flex-1 space-y-6">
@@ -215,66 +172,6 @@ export default function ProfilPage() {
               </Button>
             </CardContent>
         </Card>
-
-        {canHaveSubjects && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                  <CardTitle>Mata Pelajaran yang Diampu</CardTitle>
-                  <CardDescription>Kelola daftar mata pelajaran yang Anda ajarkan. (Opsional)</CardDescription>
-              </div>
-              <Button onClick={() => handleOpenSubjectDialog()}>
-                  <PlusCircle className="mr-2 h-4 w-4"/> Tambah Mapel
-              </Button>
-            </CardHeader>
-            <CardContent>
-                {userProfile.subjects.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                        {userProfile.subjects.map((subject, index) => (
-                            <Badge key={index} variant="secondary" className="text-base py-1 pl-3 pr-1">
-                                {subject}
-                                <Button variant="ghost" size="icon" className="h-6 w-6 ml-1" onClick={() => handleOpenSubjectDialog(subject)}><Edit className="h-3 w-3"/></Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSubjectToDelete(subject)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
-                            </Badge>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">Belum ada mata pelajaran yang ditambahkan.</p>
-                )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dialog for Subject CRUD */}
-        <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingSubject ? 'Edit' : 'Tambah'} Mata Pelajaran</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <Label htmlFor="subjectName">Nama Mata Pelajaran</Label>
-                    <Input id="subjectName" value={subjectName} onChange={e => setSubjectName(e.target.value)} placeholder="Contoh: Matematika"/>
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                    <Button onClick={handleSaveSubject}>Simpan</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        {/* Alert Dialog for Deleting Subject */}
-        <AlertDialog open={!!subjectToDelete} onOpenChange={() => setSubjectToDelete(null)}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>Tindakan ini akan menghapus mata pelajaran dari daftar Anda.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteSubject}>Hapus</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     </div>
   );
 }
