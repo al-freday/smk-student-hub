@@ -22,9 +22,6 @@ import {
   UsersRound,
   Presentation,
   AreaChart,
-  BookOpenCheck,
-  MessageSquareHeart,
-  UserRoundCog,
   Handshake,
   Newspaper,
   BookCopy,
@@ -38,9 +35,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
@@ -62,25 +56,28 @@ const navItemsByRole = {
   admin: [],
   guru_bk: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-bk", icon: FileText, label: "Laporan & Konseling" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Data Pelanggaran" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Data Siswa" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Data Masalah Siswa" },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Konseling & Layanan" },
+    { href: "/dashboard/laporan/guru-bk", icon: Handshake, label: "Kolaborasi" },
+    { href: "/dashboard/laporan", icon: FileText, label: "Laporan BK" },
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-mapel", icon: FileText, label: "Laporan Mapel" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Rencana Pembelajaran" },
+    { href: "/dashboard/manajemen-siswa", icon: BookCopy, label: "Pelaksanaan Pembelajaran" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Penilaian" },
+    { href: "/dashboard/laporan/guru-mapel", icon: FileText, label: "Laporan Harian/Mingguan" },
   ],
   guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-pendamping", icon: Handshake, label: "Laporan Pendampingan" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pendampingan Karakter" },
+    { href: "/dashboard/laporan/guru-pendamping", icon: Handshake, label: "Kolaborasi" },
   ],
   guru_piket: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-piket", icon: Newspaper, label: "Laporan Piket" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
+    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Absensi & Disiplin" },
+    { href: "/dashboard/laporan/guru-piket", icon: Newspaper, label: "Laporan Piket Harian" },
   ]
 };
 

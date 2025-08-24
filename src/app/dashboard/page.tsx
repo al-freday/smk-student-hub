@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2, BookOpenCheck, MessageSquareHeart, UserRoundCog, Handshake, Newspaper } from "lucide-react";
+import { Activity, Users, School, ShieldAlert, UserCog, FileText, Calendar, UserCheck, UserX, AlertTriangle, Loader2, BookCopy, Handshake, Newspaper } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AttendanceChart from "@/components/attendance-chart";
@@ -259,28 +259,30 @@ const WaliKelasDashboard = () => {
 const GeneralUserDashboard = ({ role }: { role: string }) => {
     const quickLinks = {
         guru_bk: {
-            primary: { href: "/dashboard/laporan/guru-bk", label: "Buat Laporan BK", icon: FileText },
+            primary: { href: "/dashboard/laporan/guru-bk", label: "Lihat Laporan & Kolaborasi", icon: Handshake },
             secondary: [
+                { href: "/dashboard/tata-tertib", label: "Lihat Data Masalah Siswa", icon: ShieldAlert },
                 { href: "/dashboard/manajemen-siswa", label: "Lihat Data Siswa", icon: Users },
-                { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
         guru_mapel: {
-            primary: { href: "/dashboard/laporan/guru-mapel", label: "Buat Laporan Mapel", icon: FileText },
+            primary: { href: "/dashboard/laporan/guru-mapel", label: "Buat Laporan Harian", icon: FileText },
             secondary: [
-                { href: "/dashboard/jadwal-pelajaran", label: "Lihat Jadwal", icon: Calendar },
-                { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
+                { href: "/dashboard/jadwal-pelajaran", label: "Rencana Pembelajaran", icon: Calendar },
+                { href: "/dashboard/tata-tertib", label: "Lihat Penilaian", icon: ShieldAlert },
             ]
         },
         guru_piket: {
             primary: { href: "/dashboard/laporan/guru-piket", label: "Buat Laporan Piket", icon: Newspaper },
             secondary: [
+                 { href: "/dashboard/manajemen-siswa", label: "Cek Absensi & Disiplin", icon: UserCheck },
                  { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
         guru_pendamping: {
-            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendamping", icon: Handshake },
+            primary: { href: "/dashboard/laporan/guru-pendamping", label: "Buat Laporan Pendampingan", icon: Handshake },
             secondary: [
+                 { href: "/dashboard/manajemen-kelas", label: "Manajemen Kelas", icon: School },
                  { href: "/dashboard/tata-tertib", label: "Lihat Tata Tertib", icon: ShieldAlert },
             ]
         },
@@ -295,7 +297,7 @@ const GeneralUserDashboard = ({ role }: { role: string }) => {
                     <CardTitle>Akses Cepat</CardTitle>
                     <CardDescription>Pintasan ke fitur yang paling sering Anda gunakan.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
+                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <Link href={links.primary.href}>
                         <Button className="w-full justify-start text-base py-6 h-auto">
                             <links.primary.icon className="mr-4 h-5 w-5"/> {links.primary.label}
