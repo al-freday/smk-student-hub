@@ -64,47 +64,34 @@ const navItemsByRole = {
   admin: [],
   wali_kelas: [
     { 
-      label: "Perencanaan & Administrasi", 
+      label: "Administrasi Kelas", 
       icon: BookUser, 
-      subItems: [
-        { href: "/dashboard/laporan/wali-kelas", label: "Administrasi Kelas" },
-        { href: "/dashboard/manajemen-siswa", label: "Biodata Siswa" },
-      ] 
+      href: "/dashboard/laporan/wali-kelas"
     },
     { 
       label: "Pembinaan Disiplin", 
       icon: ShieldAlert, 
-      subItems: [
-        { href: "/dashboard/tata-tertib", label: "Catat Pelanggaran" },
-      ] 
+      href: "/dashboard/tata-tertib"
     },
     { 
-      label: "Karakter & Kesiswaan", 
+      label: "Pembinaan Karakter", 
       icon: Users, 
-      subItems: [
-        { href: "/dashboard/tata-tertib", label: "Catat Prestasi" },
-      ] 
+      href: "/dashboard/manajemen-siswa"
     },
-    { 
-      label: "Kesejahteraan Siswa", 
+     { 
+      label: "Layanan Siswa", 
       icon: HeartHandshake, 
-      subItems: [
-        { href: "/dashboard/laporan/wali-kelas", label: "Catatan Bantuan Siswa" },
-      ] 
+      href: "/dashboard/laporan/wali-kelas"
     },
     { 
       label: "Hubungan Orang Tua", 
       icon: Handshake, 
-      subItems: [
-        { href: "/dashboard/laporan/wali-kelas", label: "Laporan ke Orang Tua" },
-      ] 
+      href: "/dashboard/laporan/wali-kelas"
     },
     { 
-      label: "Pengawasan & Laporan", 
+      label: "Laporan Bulanan", 
       icon: ClipboardList, 
-      subItems: [
-        { href: "/dashboard/laporan/wali-kelas", label: "Laporan Bulanan" },
-      ] 
+      href: "/dashboard/laporan"
     },
   ],
   guru_bk: [
@@ -131,7 +118,7 @@ const navItemsByRole = {
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
-  const [schoolInfo, setSchoolInfo] = useState({ name: "SMK Student Hub", logo: "" });
+  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
   useEffect(() => {
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
@@ -139,8 +126,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
 
     const savedSchoolInfo = localStorage.getItem("schoolInfo");
     if (savedSchoolInfo) {
-      const info = JSON.parse(savedSchoolInfo);
-      setSchoolInfo({ name: info.schoolName, logo: info.logo });
+      setSchoolInfo(JSON.parse(savedSchoolInfo));
     }
   }, []);
 
@@ -162,42 +148,16 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
 
     if (navItems.length === 0) return null;
 
-    if (userRole === 'wali_kelas') {
-      return (
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/dashboard">
-              <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
-                <LayoutDashboard className="size-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-          {navItems.map((item) => (
-            <SidebarGroup key={item.label}>
-              <SidebarGroupLabel className="flex items-center gap-2">
-                <item.icon className="size-4" />
-                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-              </SidebarGroupLabel>
-              <SidebarMenuSub>
-                {item.subItems?.map(subItem => (
-                  <SidebarMenuSubItem key={subItem.label}>
-                    <Link href={subItem.href}>
-                      <SidebarMenuSubButton isActive={pathname === subItem.href}>
-                        {subItem.label}
-                      </SidebarMenuSubButton>
-                    </Link>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            </SidebarGroup>
-          ))}
-        </SidebarMenu>
-      );
-    }
-    
     return (
       <SidebarMenu>
+        <SidebarMenuItem>
+          <Link href="/dashboard">
+            <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
+              <LayoutDashboard className="size-4" />
+              <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
+            </SidebarMenuButton>
+          </Link>
+        </SidebarMenuItem>
         {navItems.map((item) => (
           'href' in item ? (
             <SidebarMenuItem key={item.label}>
@@ -229,7 +189,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
              <Icons.logo className="h-7 w-7 text-primary"/>
            )}
            <span className="text-lg font-semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
-            {schoolInfo.name}
+            {schoolInfo.schoolName}
            </span>
          </Link>
       </SidebarHeader>
