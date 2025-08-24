@@ -20,41 +20,26 @@ import { Icons } from "./icons";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const getRoleDisplayName = (role: string) => {
-    switch (role) {
-        case 'waliKelas': return 'Wali Kelas';
-        case 'guruBk': return 'Guru BK';
-        case 'guruMapel': return 'Guru Mapel';
-        case 'guruPiket': return 'Guru Piket';
-        case 'guruPendamping': return 'Guru Pendamping';
-        case 'wakasek': return 'Wakasek Kesiswaan';
-        case 'admin': return 'Administrator';
-        default: return 'Pengguna';
-    }
-};
-
-const getAvatarFallback = (role: string) => {
-     switch (role) {
-        case 'waliKelas': return 'WK';
-        case 'guruBk': return 'BK';
-        case 'guruMapel': return 'GM';
-        case 'guruPiket': return 'GP';
-        case 'guruPendamping': return 'GP';
-        case 'wakasek': return 'WK';
-        case 'admin': return 'AD';
-        default: return 'U';
-    }
+interface UserInfo {
+    nama: string;
+    role: string;
+    email: string;
 }
 
+const getAvatarFallbackFromName = (name: string = "") => {
+    if (!name) return "U";
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+};
 
 export default function DashboardHeader() {
   const router = useRouter();
-  const [userRole, setUserRole] = useState("");
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
-    // Ambil peran dari localStorage saat komponen dimuat di client-side
-    const role = localStorage.getItem('userRole') || 'wakasek';
-    setUserRole(role);
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        setUserInfo(JSON.parse(storedUser));
+    }
   }, []);
 
   const handleLogout = () => {
@@ -97,12 +82,12 @@ export default function DashboardHeader() {
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar>
                 <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                <AvatarFallback>{getAvatarFallback(userRole)}</AvatarFallback>
+                <AvatarFallback>{getAvatarFallbackFromName(userInfo?.nama)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{getRoleDisplayName(userRole)}</DropdownMenuLabel>
+            <DropdownMenuLabel>{userInfo?.nama || "Pengguna"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <Link href="/dashboard/pengaturan" passHref>
                 <DropdownMenuItem>Profil</DropdownMenuItem>
