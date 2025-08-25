@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -25,20 +26,12 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
     
-    // Prioritaskan data dari teachersData jika ada, jika tidak, fallback ke schoolInfo
-    const teachersData = JSON.parse(localStorage.getItem("teachersData") || '{}');
-    const savedInfo = teachersData.schoolInfo || JSON.parse(localStorage.getItem("schoolInfo") || 'null');
+    // Always read from the centralized teachersData object
+    const teachersData = getSourceData('teachersData', {});
+    const savedInfo = teachersData.schoolInfo;
     
     if (savedInfo) {
-      try {
-        setSchoolInfo(savedInfo);
-      } catch (error) {
-        console.error("Failed to parse school info from localStorage", error);
-        setSchoolInfo({
-          schoolName: "SMK Student Hub",
-          logo: "",
-        });
-      }
+      setSchoolInfo(savedInfo);
     }
   }, []);
 

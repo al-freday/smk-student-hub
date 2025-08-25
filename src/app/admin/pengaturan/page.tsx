@@ -114,9 +114,6 @@ export default function AdminPengaturanPage() {
       const updatedData = { ...teachersData, schoolInfo: schoolInfo };
       updateSourceData('teachersData', updatedData);
       
-      // Also update the simple schoolInfo for immediate reflection on login page
-      localStorage.setItem("schoolInfo", JSON.stringify(schoolInfo));
-
       toast({
           title: "Pengaturan Disimpan",
           description: "Informasi sekolah telah berhasil diperbarui.",
@@ -135,6 +132,7 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
+    // Apply theme immediately for the admin
     if (roleKey === 'admin') {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);
