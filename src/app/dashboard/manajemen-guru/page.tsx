@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Kelas {
   id: number;
@@ -196,7 +197,7 @@ export default function ManajemenGuruPage() {
       const hari = hariPiketArray.length > 0 ? `Hari: ${hariPiketArray.join(', ')}` : '';
       
       const tanggalPiketArray = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
-      const tanggal = tanggalPiketArray.length > 0 ? `Tanggal: ${tanggalPiketArray.join(', ')}` : '';
+      const tanggal = tanggalPiketArray.length > 0 ? `Tanggal: ${tanggalPiketArray.map(d => format(new Date(d), 'dd/MM/yy')).join(', ')}` : '';
       
       if (hari && tanggal) return `${hari} | ${tanggal}`;
       if (hari) return hari;
@@ -219,7 +220,7 @@ export default function ManajemenGuruPage() {
                          <div key={k.id} className="flex items-center space-x-2">
                             <Checkbox
                                 id={`kelas-${k.id}`}
-                                checked={formData.kelas?.includes(k.nama)}
+                                checked={Array.isArray(formData.kelas) && formData.kelas.includes(k.nama)}
                                 onCheckedChange={(checked) => handleKelasBinaanChange(k.nama, !!checked)}
                             />
                             <label htmlFor={`kelas-${k.id}`} className="text-sm font-medium leading-none">
@@ -258,7 +259,7 @@ export default function ManajemenGuruPage() {
                 <Label className="text-right">Tanggal Piket Khusus</Label>
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="outline" className="col-span-3 font-normal justify-start">
+                        <Button variant="outline" className={cn("col-span-3 font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Pilih tanggal"}
                         </Button>
