@@ -49,7 +49,7 @@ interface Guru {
   id: number;
   nama: string;
   mapel?: string;
-  kelas?: string;
+  kelas?: string[];
   hariPiket?: string[];
   tanggalPiket?: string[];
   tugasKelas?: string; 
@@ -172,6 +172,15 @@ export default function ManajemenGuruPage() {
           setFormData({ ...formData, hariPiket: currentHari.filter(h => h !== hari) });
       }
   };
+  
+  const handleKelasBinaanChange = (namaKelas: string, checked: boolean) => {
+      const currentKelas = formData.kelas || [];
+      if (checked) {
+          setFormData({ ...formData, kelas: [...currentKelas, namaKelas] });
+      } else {
+          setFormData({ ...formData, kelas: currentKelas.filter(k => k !== namaKelas) });
+      }
+  };
 
   const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
       const currentSiswa = formData.siswaBinaan || [];
@@ -202,12 +211,24 @@ export default function ManajemenGuruPage() {
         <Input id="nama" value={formData.nama || ''} disabled className="col-span-3" />
       </div>
       {activeTab === 'wali_kelas' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
-           <Select value={formData.kelas} onValueChange={(value) => setFormData({ ...formData, kelas: value })}>
-              <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
-              <SelectContent>{availableKelas.map((k) => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}</SelectContent>
-            </Select>
+        <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">Kelas Binaan</Label>
+            <ScrollArea className="col-span-3 h-48 rounded-md border p-4">
+                <div className="space-y-2">
+                    {availableKelas.map((k) => (
+                         <div key={k.id} className="flex items-center space-x-2">
+                            <Checkbox
+                                id={`kelas-${k.id}`}
+                                checked={formData.kelas?.includes(k.nama)}
+                                onCheckedChange={(checked) => handleKelasBinaanChange(k.nama, !!checked)}
+                            />
+                            <label htmlFor={`kelas-${k.id}`} className="text-sm font-medium leading-none">
+                                {k.nama}
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
         </div>
       )}
       {activeTab === 'guru_mapel' && (
@@ -267,7 +288,7 @@ export default function ManajemenGuruPage() {
                          <div key={siswa.id} className="flex items-center space-x-2">
                             <Checkbox
                                 id={`siswa-${siswa.id}`}
-                                checked={formData.siswaBinaan?.includes(siswa.nama)}
+                                checked={Array.isArray(formData.siswaBinaan) && formData.siswaBinaan.includes(siswa.nama)}
                                 onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
                             />
                             <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
@@ -323,12 +344,13 @@ export default function ManajemenGuruPage() {
                     <TableBody>
                         {teachers[key as TeacherRole]?.length > 0 ? (
                         teachers[key as TeacherRole].map((guru) => {
+                            const kelasBinaanArray = Array.isArray(guru.kelas) ? guru.kelas : [];
                             const siswaBinaanArray = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
                             return (
                                 <TableRow key={guru.id}>
                                 <TableCell className="font-medium">{guru.nama}</TableCell>
                                 <TableCell>
-                                    {key === 'wali_kelas' && `Kelas Binaan: ${guru.kelas || '-'}`}
+                                    {key === 'wali_kelas' && `Kelas Binaan: ${kelasBinaanArray.join(', ') || '-'}`}
                                     {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
                                     {key === 'guru_piket' && formatPiketDetails(guru)}
                                     {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
