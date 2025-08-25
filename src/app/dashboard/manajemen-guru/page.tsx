@@ -35,6 +35,12 @@ interface Kelas {
   nama: string;
 }
 
+interface Siswa {
+  id: number;
+  nama: string;
+  kelas: string;
+}
+
 interface Guru {
   id: number;
   nama: string;
@@ -42,6 +48,7 @@ interface Guru {
   kelas?: string;
   hariPiket?: string;
   tugasKelas?: string; // Untuk tugas Guru BK
+  siswaBinaan?: string; // Untuk Guru Pendamping
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -67,6 +74,7 @@ export default function ManajemenGuruPage() {
   const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
   const [formData, setFormData] = useState<Partial<Guru>>({});
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
+  const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
 
   const loadDataFromStorage = () => {
     try {
@@ -96,10 +104,17 @@ export default function ManajemenGuruPage() {
         });
         setAvailableGrades(Array.from(grades).sort());
     }
+    
+    // Load student data
+    const siswaData: Siswa[] = getSourceData('siswaData', []);
+    setDaftarSiswa(siswaData);
 
     const handleStorageChange = (event: StorageEvent) => {
         if (event.key === 'teachersData') {
             loadDataFromStorage();
+        }
+         if (event.key === 'siswaData') {
+            setDaftarSiswa(getSourceData('siswaData', []));
         }
     };
     
@@ -194,6 +209,24 @@ export default function ManajemenGuruPage() {
             </Select>
         </div>
       )}
+       {activeTab === 'guru_pendamping' && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="siswaBinaan" className="text-right">Siswa Binaan</Label>
+           <Select
+              value={formData.siswaBinaan}
+              onValueChange={(value) => setFormData({ ...formData, siswaBinaan: value })}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Pilih siswa untuk dibimbing" />
+              </SelectTrigger>
+              <SelectContent>
+                {daftarSiswa.map((siswa) => (
+                  <SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} - {siswa.kelas}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+        </div>
+      )}
     </>
   );
 
@@ -245,7 +278,7 @@ export default function ManajemenGuruPage() {
                                 {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
                                 {key === 'guru_piket' && `Jadwal Piket: ${guru.hariPiket || '-'}`}
                                 {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
-                                {key === 'guru_pendamping' && `Penugasan Umum`}
+                                {key === 'guru_pendamping' && `Mendampingi: ${guru.siswaBinaan || '-'}`}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
@@ -291,3 +324,4 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
