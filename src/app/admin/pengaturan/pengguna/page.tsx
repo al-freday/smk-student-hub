@@ -48,12 +48,12 @@ interface Guru {
   mapel?: string;
   kelas?: string;
   hariPiket?: string;
+  password?: string;
 }
 
 interface User extends Guru {
   email: string;
   role: string;
-  password?: string;
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -106,7 +106,7 @@ export default function AdminManajemenPenggunaPage() {
                     ...guru,
                     role: getRoleName(roleKey),
                     email: createEmailFromName(guru.nama, guru.id),
-                    password: "password123", 
+                    password: guru.password || "password123", 
                 }));
             }
         }
@@ -155,41 +155,38 @@ export default function AdminManajemenPenggunaPage() {
         setFormData(user);
       } else {
         setEditingUser(null);
-        setFormData({role: activeTab});
+        setFormData({role: activeTab, password: ''});
       }
       setIsDialogOpen(true);
   };
 
   const handleSave = () => {
       const { role, ...guruData } = formData;
-      if (!guruData.nama || !role) {
-          toast({ title: "Gagal", description: "Nama dan peran pengguna harus diisi.", variant: "destructive" });
+      if (!guruData.nama || !role || !guruData.password) {
+          toast({ title: "Gagal", description: "Nama, peran, dan sandi pengguna harus diisi.", variant: "destructive" });
           return;
       }
       
       const teachersData = getSourceData('teachersData', initialTeachers);
       let updatedTeachers = { ...teachersData };
 
-      // Jika peran diubah, hapus dari daftar peran lama
       if (editingUser && editingUser.originalRole !== role) {
          updatedTeachers[editingUser.originalRole] = (updatedTeachers[editingUser.originalRole] || []).filter((g: Guru) => g.id !== editingUser.id);
       }
 
       let currentList: Guru[] = updatedTeachers[role] || [];
+      const cleanGuruData = { id: guruData.id, nama: guruData.nama, password: guruData.password };
+          
       if (editingUser) {
           const userIndex = currentList.findIndex((u: Guru) => u.id === editingUser.id);
-          const cleanGuruData = { id: guruData.id, nama: guruData.nama, kelas: guruData.kelas, mapel: guruData.mapel, hariPiket: guruData.hariPiket };
-          
           if (userIndex > -1) {
             currentList[userIndex] = { ...currentList[userIndex], ...cleanGuruData };
           } else {
-            // Ini terjadi jika peran berubah, tambahkan ke daftar baru
             currentList.push(cleanGuruData as Guru);
           }
       } else {
           const newId = Date.now();
-          const cleanGuruData = { id: newId, nama: guruData.nama, kelas: guruData.kelas, mapel: guruData.mapel, hariPiket: guruData.hariPiket };
-          currentList.push(cleanGuruData as Guru);
+          currentList.push({ ...cleanGuruData, id: newId } as Guru);
       }
       
       updatedTeachers[role] = currentList;
@@ -227,7 +224,7 @@ export default function AdminManajemenPenggunaPage() {
                     ...guru,
                     role: getRoleName(roleKey),
                     email: createEmailFromName(guru.nama, guru.id),
-                    password: "password123",
+                    password: guru.password || "password123",
                 });
             });
         }
@@ -274,24 +271,10 @@ export default function AdminManajemenPenggunaPage() {
         <Label htmlFor="nama" className="text-right">Nama</Label>
         <Input id="nama" value={formData.nama || ''} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} className="col-span-3"/>
       </div>
-      {formData.role === 'wali_kelas' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
-          <Input id="kelas" value={formData.kelas || ''} onChange={(e) => setFormData({ ...formData, kelas: e.target.value })} className="col-span-3"/>
-        </div>
-      )}
-      {formData.role === 'guru_mapel' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} placeholder="Contoh: Matematika - X TKJ 1" className="col-span-3"/>
-        </div>
-      )}
-      {formData.role === 'guru_piket' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
-          <Input id="hariPiket" value={formData.hariPiket || ''} onChange={(e) => setFormData({ ...formData, hariPiket: e.target.value })} className="col-span-3"/>
-        </div>
-      )}
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="password" className="text-right">Sandi</Label>
+        <Input id="password" type="password" value={formData.password || ''} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="col-span-3"/>
+      </div>
     </>
   );
 
@@ -421,3 +404,5 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
+
+    
