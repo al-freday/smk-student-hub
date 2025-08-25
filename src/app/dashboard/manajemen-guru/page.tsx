@@ -174,8 +174,12 @@ export default function ManajemenGuruPage() {
   };
   
   const formatPiketDetails = (guru: Guru) => {
-      const hari = guru.hariPiket && guru.hariPiket.length > 0 ? `Hari: ${guru.hariPiket.join(', ')}` : '';
-      const tanggal = guru.tanggalPiket && guru.tanggalPiket.length > 0 ? `Tanggal: ${guru.tanggalPiket.join(', ')}` : '';
+      // Ensure guru.hariPiket is always an array before calling .join()
+      const hariPiketArray = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
+      const hari = hariPiketArray.length > 0 ? `Hari: ${hariPiketArray.join(', ')}` : '';
+      
+      const tanggalPiketArray = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
+      const tanggal = tanggalPiketArray.length > 0 ? `Tanggal: ${tanggalPiketArray.join(', ')}` : '';
       
       if (hari && tanggal) return `${hari} | ${tanggal}`;
       if (hari) return hari;
