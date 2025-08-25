@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Edit, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -29,6 +29,10 @@ import { Label } from "@/components/ui/label";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface Kelas {
   id: number;
@@ -46,9 +50,10 @@ interface Guru {
   nama: string;
   mapel?: string;
   kelas?: string;
-  hariPiket?: string;
-  tugasKelas?: string; // Untuk tugas Guru BK
-  siswaBinaan?: string; // Untuk Guru Pendamping
+  hariPiket?: string[]; // Diubah menjadi array untuk multi-hari
+  tanggalPiket?: string[]; // Array untuk tanggal spesifik
+  tugasKelas?: string; 
+  siswaBinaan?: string;
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -79,6 +84,9 @@ export default function ManajemenGuruPage() {
   const [availableKelas, setAvailableKelas] = useState<Kelas[]>([]);
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  
+  // State for multi-date picker
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
 
   const loadDataFromStorage = () => {
     try {
@@ -97,7 +105,6 @@ export default function ManajemenGuruPage() {
   useEffect(() => {
     loadDataFromStorage();
     
-    // Load available grades and classes from class data
     const kelasData: Kelas[] = getSourceData('kelasData', []);
     setAvailableKelas(kelasData);
     if (kelasData.length > 0) {
@@ -110,43 +117,44 @@ export default function ManajemenGuruPage() {
         setAvailableGrades(Array.from(grades).sort());
     }
     
-    // Load student data
     const siswaData: Siswa[] = getSourceData('siswaData', []);
     setDaftarSiswa(siswaData);
 
     const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'teachersData') {
-            loadDataFromStorage();
-        }
-         if (event.key === 'siswaData') {
-            setDaftarSiswa(getSourceData('siswaData', []));
-        }
-         if (event.key === 'kelasData') {
-            setAvailableKelas(getSourceData('kelasData', []));
-        }
+        if (event.key === 'teachersData') loadDataFromStorage();
+        if (event.key === 'siswaData') setDaftarSiswa(getSourceData('siswaData', []));
+        if (event.key === 'kelasData') setAvailableKelas(getSourceData('kelasData', []));
     };
     
     window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [toast]);
 
   const handleOpenDialog = (guru: Guru) => {
       setEditingTeacher(guru);
       setFormData(guru);
+      
+      if (guru.tanggalPiket) {
+          setSelectedDates(guru.tanggalPiket.map(d => new Date(d)));
+      } else {
+          setSelectedDates([]);
+      }
       setIsDialogOpen(true);
   };
 
   const handleSave = () => {
       if (!editingTeacher) return;
+      
+      const dataToSave = { ...formData };
+      if (activeTab === 'guru_piket') {
+          dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
+      }
 
       const teachersData = getSourceData('teachersData', initialTeachers);
-      const currentList: Guru[] = teachersData[activeTab];
+      const currentList: Guru[] = teachersData[activeTab] || [];
       
       const updatedList = currentList.map((t: Guru) => 
-          t.id === editingTeacher.id ? { ...t, ...formData } : t
+          t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
       );
 
       const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
@@ -155,7 +163,25 @@ export default function ManajemenGuruPage() {
       toast({ title: "Sukses", description: `Tugas untuk ${editingTeacher.nama} berhasil diperbarui.` });
       setIsDialogOpen(false);
   };
-
+  
+  const handleHariPiketChange = (hari: string, checked: boolean) => {
+      const currentHari = formData.hariPiket || [];
+      if (checked) {
+          setFormData({ ...formData, hariPiket: [...currentHari, hari] });
+      } else {
+          setFormData({ ...formData, hariPiket: currentHari.filter(h => h !== hari) });
+      }
+  };
+  
+  const formatPiketDetails = (guru: Guru) => {
+      const hari = guru.hariPiket && guru.hariPiket.length > 0 ? `Hari: ${guru.hariPiket.join(', ')}` : '';
+      const tanggal = guru.tanggalPiket && guru.tanggalPiket.length > 0 ? `Tanggal: ${guru.tanggalPiket.join(', ')}` : '';
+      
+      if (hari && tanggal) return `${hari} | ${tanggal}`;
+      if (hari) return hari;
+      if (tanggal) return tanggal;
+      return '-';
+  };
 
   const renderFormFields = () => (
     <>
@@ -166,84 +192,66 @@ export default function ManajemenGuruPage() {
       {activeTab === 'wali_kelas' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
-           <Select
-              value={formData.kelas}
-              onValueChange={(value) => setFormData({ ...formData, kelas: value })}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Pilih Kelas" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableKelas.map((k) => (
-                  <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>
-                ))}
-              </SelectContent>
+           <Select value={formData.kelas} onValueChange={(value) => setFormData({ ...formData, kelas: value })}>
+              <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
+              <SelectContent>{availableKelas.map((k) => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}</SelectContent>
             </Select>
         </div>
       )}
       {activeTab === 'guru_mapel' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-          <Input
-            id="mapel"
-            value={formData.mapel || ''}
-            onChange={(e) => setFormData({ ...formData, mapel: e.target.value })}
-            className="col-span-3"
-            placeholder="Contoh: Matematika - X TKJ 1"
-          />
+          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" placeholder="Contoh: Matematika - X TKJ 1" />
         </div>
       )}
       {activeTab === 'guru_piket' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
-           <Select
-              value={formData.hariPiket}
-              onValueChange={(value) => setFormData({ ...formData, hariPiket: value })}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Pilih Hari" />
-              </SelectTrigger>
-              <SelectContent>
-                {daftarHariPiket.map((hari) => (
-                  <SelectItem key={hari} value={hari}>{hari}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-        </div>
+        <>
+            <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">Hari Piket Rutin</Label>
+                <div className="col-span-3 space-y-2">
+                    {daftarHariPiket.map(hari => (
+                        <div key={hari} className="flex items-center space-x-2">
+                            <Checkbox 
+                                id={`hari-${hari}`} 
+                                checked={formData.hariPiket?.includes(hari)}
+                                onCheckedChange={(checked) => handleHariPiketChange(hari, !!checked)}
+                            />
+                            <label htmlFor={`hari-${hari}`} className="text-sm font-medium leading-none">{hari}</label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Tanggal Piket Khusus</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className="col-span-3 font-normal justify-start">
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Pilih tanggal"}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
+                    </PopoverContent>
+                </Popover>
+            </div>
+        </>
       )}
        {activeTab === 'guru_bk' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="tugasKelas" className="text-right">Tugas Pembinaan</Label>
-           <Select
-              value={formData.tugasKelas}
-              onValueChange={(value) => setFormData({ ...formData, tugasKelas: value })}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Pilih tingkatan kelas" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableGrades.map((grade) => (
-                  <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                ))}
-              </SelectContent>
+           <Select value={formData.tugasKelas} onValueChange={(value) => setFormData({ ...formData, tugasKelas: value })}>
+              <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih tingkatan kelas" /></SelectTrigger>
+              <SelectContent>{availableGrades.map((grade) => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent>
             </Select>
         </div>
       )}
        {activeTab === 'guru_pendamping' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="siswaBinaan" className="text-right">Siswa Binaan</Label>
-           <Select
-              value={formData.siswaBinaan}
-              onValueChange={(value) => setFormData({ ...formData, siswaBinaan: value })}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Pilih siswa untuk dibimbing" />
-              </SelectTrigger>
-              <SelectContent>
-                {daftarSiswa.map((siswa) => (
-                  <SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} - {siswa.kelas}</SelectItem>
-                ))}
-              </SelectContent>
+           <Select value={formData.siswaBinaan} onValueChange={(value) => setFormData({ ...formData, siswaBinaan: value })}>
+              <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih siswa untuk dibimbing" /></SelectTrigger>
+              <SelectContent>{daftarSiswa.map((siswa) => <SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} - {siswa.kelas}</SelectItem>)}</SelectContent>
             </Select>
         </div>
       )}
@@ -296,7 +304,7 @@ export default function ManajemenGuruPage() {
                             <TableCell>
                                 {key === 'wali_kelas' && `Kelas Binaan: ${guru.kelas || '-'}`}
                                 {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
-                                {key === 'guru_piket' && `Jadwal Piket: ${guru.hariPiket || '-'}`}
+                                {key === 'guru_piket' && formatPiketDetails(guru)}
                                 {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
                                 {key === 'guru_pendamping' && `Mendampingi: ${guru.siswaBinaan || '-'}`}
                             </TableCell>
@@ -325,7 +333,7 @@ export default function ManajemenGuruPage() {
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-md">
               <DialogHeader>
                   <DialogTitle>Atur Penugasan Guru</DialogTitle>
                   <DialogDescription>
