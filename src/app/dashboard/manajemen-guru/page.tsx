@@ -50,10 +50,10 @@ interface Guru {
   nama: string;
   mapel?: string;
   kelas?: string;
-  hariPiket?: string[]; // Diubah menjadi array untuk multi-hari
-  tanggalPiket?: string[]; // Array untuk tanggal spesifik
+  hariPiket?: string[];
+  tanggalPiket?: string[];
   tugasKelas?: string; 
-  siswaBinaan?: string;
+  siswaBinaan?: string[];
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -172,9 +172,17 @@ export default function ManajemenGuruPage() {
           setFormData({ ...formData, hariPiket: currentHari.filter(h => h !== hari) });
       }
   };
+
+  const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
+      const currentSiswa = formData.siswaBinaan || [];
+      if (checked) {
+          setFormData({ ...formData, siswaBinaan: [...currentSiswa, siswaNama] });
+      } else {
+          setFormData({ ...formData, siswaBinaan: currentSiswa.filter(s => s !== siswaNama) });
+      }
+  };
   
   const formatPiketDetails = (guru: Guru) => {
-      // Ensure guru.hariPiket is always an array before calling .join()
       const hariPiketArray = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
       const hari = hariPiketArray.length > 0 ? `Hari: ${hariPiketArray.join(', ')}` : '';
       
@@ -251,12 +259,24 @@ export default function ManajemenGuruPage() {
         </div>
       )}
        {activeTab === 'guru_pendamping' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="siswaBinaan" className="text-right">Siswa Binaan</Label>
-           <Select value={formData.siswaBinaan} onValueChange={(value) => setFormData({ ...formData, siswaBinaan: value })}>
-              <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih siswa untuk dibimbing" /></SelectTrigger>
-              <SelectContent>{daftarSiswa.map((siswa) => <SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} - {siswa.kelas}</SelectItem>)}</SelectContent>
-            </Select>
+        <div className="grid grid-cols-4 items-start gap-4">
+          <Label htmlFor="siswaBinaan" className="text-right pt-2">Siswa Binaan</Label>
+            <ScrollArea className="col-span-3 h-48 rounded-md border p-4">
+                <div className="space-y-2">
+                    {daftarSiswa.map((siswa) => (
+                         <div key={siswa.id} className="flex items-center space-x-2">
+                            <Checkbox
+                                id={`siswa-${siswa.id}`}
+                                checked={formData.siswaBinaan?.includes(siswa.nama)}
+                                onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
+                            />
+                            <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
+                                {siswa.nama} ({siswa.kelas})
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
         </div>
       )}
     </>
@@ -310,7 +330,7 @@ export default function ManajemenGuruPage() {
                                 {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
                                 {key === 'guru_piket' && formatPiketDetails(guru)}
                                 {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
-                                {key === 'guru_pendamping' && `Mendampingi: ${guru.siswaBinaan || '-'}`}
+                                {key === 'guru_pendamping' && `Mendampingi: ${guru.siswaBinaan?.join(', ') || '-'}`}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
