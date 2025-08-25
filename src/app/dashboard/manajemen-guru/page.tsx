@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -70,6 +70,10 @@ const roleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'guru_piket', label: 'Guru Piket' },
     { value: 'guru_pendamping', label: 'Guru Pendamping' },
 ];
+
+const getRoleName = (roleKey: string) => {
+    return roleOptions.find(r => r.value === roleKey)?.label || 'Guru';
+};
 
 const daftarHariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
@@ -205,6 +209,56 @@ export default function ManajemenGuruPage() {
       return '-';
   };
 
+  const getTugasDetail = (guru: Guru, role: TeacherRole): string => {
+      switch(role) {
+          case 'wali_kelas': return `Kelas Binaan: ${(Array.isArray(guru.kelas) ? guru.kelas : []).join(', ') || '-'}`;
+          case 'guru_mapel': return `Mengajar: ${guru.mapel || '-'}`;
+          case 'guru_piket': return formatPiketDetails(guru);
+          case 'guru_bk': return `Tugas Pembinaan: ${guru.tugasKelas || '-'}`;
+          case 'guru_pendamping': return `Mendampingi: ${(Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : []).join(', ') || '-'}`;
+          default: return '-';
+      }
+  };
+  
+  const handleExportData = () => {
+    let allUsers: { Nama: string, Peran: string, "Detail Tugas": string }[] = [];
+
+    for (const roleKey in teachers) {
+        const typedRoleKey = roleKey as TeacherRole;
+        teachers[typedRoleKey].forEach((guru: Guru) => {
+            allUsers.push({
+                "Nama": guru.nama,
+                "Peran": getRoleName(typedRoleKey),
+                "Detail Tugas": getTugasDetail(guru, typedRoleKey),
+            });
+        });
+    }
+
+    const headers = ['Nama', 'Peran', 'Detail Tugas'];
+    const csvContent = [
+        headers.join(','),
+        ...allUsers.map(user => 
+            headers.map(header => `"${user[header as keyof typeof user]}"`).join(',')
+        )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'penugasan_guru.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({ title: "Ekspor Berhasil", description: "Data penugasan guru telah diunduh." });
+  };
+
+  const handlePrint = () => {
+      window.print();
+  };
+
+
   const renderFormFields = () => (
     <>
       <div className="grid grid-cols-4 items-center gap-4">
@@ -306,11 +360,23 @@ export default function ManajemenGuruPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Manajemen Guru</h2>
-        <p className="text-muted-foreground">
-          Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
-        </p>
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+            <h2 className="text-3xl font-bold tracking-tight">Manajemen Guru</h2>
+            <p className="text-muted-foreground">
+            Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
+            </p>
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExportData}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Excel
+            </Button>
+            <Button variant="outline" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak
+            </Button>
+        </div>
       </div>
         
       <Card>
@@ -339,7 +405,7 @@ export default function ManajemenGuruPage() {
                         <TableRow>
                         <TableHead>Nama</TableHead>
                         <TableHead>Detail Tugas</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
+                        <TableHead className="text-right print:hidden">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -351,13 +417,9 @@ export default function ManajemenGuruPage() {
                                 <TableRow key={guru.id}>
                                 <TableCell className="font-medium">{guru.nama}</TableCell>
                                 <TableCell>
-                                    {key === 'wali_kelas' && `Kelas Binaan: ${kelasBinaanArray.join(', ') || '-'}`}
-                                    {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
-                                    {key === 'guru_piket' && formatPiketDetails(guru)}
-                                    {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
-                                    {key === 'guru_pendamping' && `Mendampingi: ${siswaBinaanArray.join(', ') || '-'}`}
+                                    {getTugasDetail(guru, key as TeacherRole)}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right print:hidden">
                                     <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
                                         <Edit className="mr-2 h-4 w-4" />
                                         Atur Tugas
