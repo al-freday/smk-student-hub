@@ -28,7 +28,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface Kelas {
+  id: number;
+  nama: string;
+}
 
 interface Guru {
   id: number;
@@ -36,6 +41,7 @@ interface Guru {
   mapel?: string;
   kelas?: string;
   hariPiket?: string;
+  tugasKelas?: string; // Untuk tugas Guru BK
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -52,11 +58,6 @@ const roleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'guru_pendamping', label: 'Guru Pendamping' },
 ];
 
-const getRoleName = (roleKey: TeacherRole | string) => {
-    const role = roleOptions.find(r => r.value === roleKey);
-    return role ? role.label : 'Pengguna';
-};
-
 export default function ManajemenGuruPage() {
   const { toast } = useToast();
   const [teachers, setTeachers] = useState<{ [key in TeacherRole]: Guru[] }>(initialTeachers);
@@ -65,6 +66,7 @@ export default function ManajemenGuruPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
   const [formData, setFormData] = useState<Partial<Guru>>({});
+  const [availableGrades, setAvailableGrades] = useState<string[]>([]);
 
   const loadDataFromStorage = () => {
     try {
@@ -83,6 +85,18 @@ export default function ManajemenGuruPage() {
   useEffect(() => {
     loadDataFromStorage();
     
+    // Load available grades from class data
+    const kelasData: Kelas[] = getSourceData('kelasData', []);
+    if (kelasData.length > 0) {
+        const grades = new Set<string>();
+        kelasData.forEach(kelas => {
+            if (kelas.nama.startsWith("X ")) grades.add("Kelas X");
+            else if (kelas.nama.startsWith("XI ")) grades.add("Kelas XI");
+            else if (kelas.nama.startsWith("XII ")) grades.add("Kelas XII");
+        });
+        setAvailableGrades(Array.from(grades).sort());
+    }
+
     const handleStorageChange = (event: StorageEvent) => {
         if (event.key === 'teachersData') {
             loadDataFromStorage();
@@ -162,6 +176,24 @@ export default function ManajemenGuruPage() {
           />
         </div>
       )}
+       {activeTab === 'guru_bk' && (
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="tugasKelas" className="text-right">Tugas Pembinaan</Label>
+           <Select
+              value={formData.tugasKelas}
+              onValueChange={(value) => setFormData({ ...formData, tugasKelas: value })}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Pilih tingkatan kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableGrades.map((grade) => (
+                  <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+        </div>
+      )}
     </>
   );
 
@@ -212,7 +244,8 @@ export default function ManajemenGuruPage() {
                                 {key === 'wali_kelas' && `Kelas Binaan: ${guru.kelas || '-'}`}
                                 {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
                                 {key === 'guru_piket' && `Jadwal Piket: ${guru.hariPiket || '-'}`}
-                                {(key === 'guru_bk' || key === 'guru_pendamping') && `Penugasan Umum`}
+                                {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
+                                {key === 'guru_pendamping' && `Penugasan Umum`}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
