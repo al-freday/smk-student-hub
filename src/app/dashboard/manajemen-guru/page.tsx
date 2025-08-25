@@ -65,6 +65,8 @@ const roleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'guru_pendamping', label: 'Guru Pendamping' },
 ];
 
+const daftarHariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+
 export default function ManajemenGuruPage() {
   const { toast } = useToast();
   const [teachers, setTeachers] = useState<{ [key in TeacherRole]: Guru[] }>(initialTeachers);
@@ -182,13 +184,19 @@ export default function ManajemenGuruPage() {
       {activeTab === 'guru_piket' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="hariPiket" className="text-right">Hari Piket</Label>
-          <Input
-            id="hariPiket"
-            value={formData.hariPiket || ''}
-            onChange={(e) => setFormData({ ...formData, hariPiket: e.target.value })}
-            className="col-span-3"
-            placeholder="Contoh: Senin"
-          />
+           <Select
+              value={formData.hariPiket}
+              onValueChange={(value) => setFormData({ ...formData, hariPiket: value })}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Pilih Hari" />
+              </SelectTrigger>
+              <SelectContent>
+                {daftarHariPiket.map((hari) => (
+                  <SelectItem key={hari} value={hari}>{hari}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         </div>
       )}
        {activeTab === 'guru_bk' && (
@@ -324,4 +332,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
