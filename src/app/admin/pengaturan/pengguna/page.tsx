@@ -91,7 +91,7 @@ export default function AdminManajemenPenggunaPage() {
   const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User & { originalRole: TeacherRole } | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [formData, setFormData] = useState<Partial<User & {role: TeacherRole}>>({});
 
@@ -101,7 +101,7 @@ export default function AdminManajemenPenggunaPage() {
         const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
         
         for (const roleKey in teachersData) {
-            if (usersData.hasOwnProperty(roleKey)) {
+            if (usersData.hasOwnProperty(roleKey) && Array.isArray(teachersData[roleKey])) {
                 usersData[roleKey as TeacherRole] = teachersData[roleKey].map((guru: Guru) => ({
                     ...guru,
                     role: getRoleName(roleKey),
@@ -150,8 +150,13 @@ export default function AdminManajemenPenggunaPage() {
   };
 
   const handleOpenDialog = (user: (User & {role: TeacherRole}) | null = null) => {
-      setEditingUser(user);
-      setFormData(user || {role: activeTab});
+      if (user) {
+        setEditingUser({ ...user, originalRole: user.role });
+        setFormData(user);
+      } else {
+        setEditingUser(null);
+        setFormData({role: activeTab});
+      }
       setIsDialogOpen(true);
   };
 
@@ -165,28 +170,31 @@ export default function AdminManajemenPenggunaPage() {
       const teachersData = getSourceData('teachersData', initialTeachers);
       let updatedTeachers = { ...teachersData };
 
-      if (editingUser && editingUser.role !== getRoleName(role)) {
-         const oldRoleKey = roleOptions.find(r => r.label === editingUser.role)?.value;
-         if (oldRoleKey) {
-            updatedTeachers[oldRoleKey] = updatedTeachers[oldRoleKey].filter((g: Guru) => g.id !== editingUser.id);
-         }
+      // Jika peran diubah, hapus dari daftar peran lama
+      if (editingUser && editingUser.originalRole !== role) {
+         updatedTeachers[editingUser.originalRole] = (updatedTeachers[editingUser.originalRole] || []).filter((g: Guru) => g.id !== editingUser.id);
       }
 
-      let currentList = updatedTeachers[role] || [];
+      let currentList: Guru[] = updatedTeachers[role] || [];
       if (editingUser) {
           const userIndex = currentList.findIndex((u: Guru) => u.id === editingUser.id);
+          const cleanGuruData = { id: guruData.id, nama: guruData.nama, kelas: guruData.kelas, mapel: guruData.mapel, hariPiket: guruData.hariPiket };
+          
           if (userIndex > -1) {
-            currentList[userIndex] = { ...currentList[userIndex], ...guruData };
+            currentList[userIndex] = { ...currentList[userIndex], ...cleanGuruData };
           } else {
-            currentList.push({ ...guruData, id: editingUser.id } as Guru);
+            // Ini terjadi jika peran berubah, tambahkan ke daftar baru
+            currentList.push(cleanGuruData as Guru);
           }
       } else {
           const newId = Date.now();
-          currentList.push({ ...guruData, id: newId } as Guru);
+          const cleanGuruData = { id: newId, nama: guruData.nama, kelas: guruData.kelas, mapel: guruData.mapel, hariPiket: guruData.hariPiket };
+          currentList.push(cleanGuruData as Guru);
       }
       
       updatedTeachers[role] = currentList;
       updateSourceData('teachersData', updatedTeachers);
+      
       loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
@@ -213,14 +221,16 @@ export default function AdminManajemenPenggunaPage() {
     let allUsers: User[] = [];
 
     for (const roleKey in teachersData) {
-        teachersData[roleKey as TeacherRole].forEach((guru: Guru) => {
-            allUsers.push({
-                ...guru,
-                role: getRoleName(roleKey),
-                email: createEmailFromName(guru.nama, guru.id),
-                password: "password123",
+        if(Array.isArray(teachersData[roleKey as TeacherRole])) {
+            teachersData[roleKey as TeacherRole].forEach((guru: Guru) => {
+                allUsers.push({
+                    ...guru,
+                    role: getRoleName(roleKey),
+                    email: createEmailFromName(guru.nama, guru.id),
+                    password: "password123",
+                });
             });
-        });
+        }
     }
 
     const headers = ['ID', 'Nama', 'Email', 'Role', 'Password', 'Kelas Binaan', 'Mapel', 'Hari Piket'];
@@ -273,7 +283,7 @@ export default function AdminManajemenPenggunaPage() {
       {formData.role === 'guru_mapel' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3"/>
+          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} placeholder="Contoh: Matematika - X TKJ 1" className="col-span-3"/>
         </div>
       )}
       {formData.role === 'guru_piket' && (
@@ -294,7 +304,7 @@ export default function AdminManajemenPenggunaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            Kelola data pengguna sistem, termasuk pembuatan password otomatis.
+            Kelola data pengguna sistem. Data ini akan menjadi acuan untuk Manajemen Guru.
           </p>
         </div>
       </div>
