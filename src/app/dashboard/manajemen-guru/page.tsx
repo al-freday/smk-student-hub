@@ -75,6 +75,8 @@ export default function ManajemenGuruPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Guru | null>(null);
   const [formData, setFormData] = useState<Partial<Guru>>({});
+  
+  const [availableKelas, setAvailableKelas] = useState<Kelas[]>([]);
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
 
@@ -95,8 +97,9 @@ export default function ManajemenGuruPage() {
   useEffect(() => {
     loadDataFromStorage();
     
-    // Load available grades from class data
+    // Load available grades and classes from class data
     const kelasData: Kelas[] = getSourceData('kelasData', []);
+    setAvailableKelas(kelasData);
     if (kelasData.length > 0) {
         const grades = new Set<string>();
         kelasData.forEach(kelas => {
@@ -117,6 +120,9 @@ export default function ManajemenGuruPage() {
         }
          if (event.key === 'siswaData') {
             setDaftarSiswa(getSourceData('siswaData', []));
+        }
+         if (event.key === 'kelasData') {
+            setAvailableKelas(getSourceData('kelasData', []));
         }
     };
     
@@ -160,13 +166,19 @@ export default function ManajemenGuruPage() {
       {activeTab === 'wali_kelas' && (
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="kelas" className="text-right">Kelas Binaan</Label>
-          <Input
-            id="kelas"
-            value={formData.kelas || ''}
-            onChange={(e) => setFormData({ ...formData, kelas: e.target.value })}
-            className="col-span-3"
-            placeholder="Contoh: X TKJ 1"
-          />
+           <Select
+              value={formData.kelas}
+              onValueChange={(value) => setFormData({ ...formData, kelas: value })}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Pilih Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableKelas.map((k) => (
+                  <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         </div>
       )}
       {activeTab === 'guru_mapel' && (
