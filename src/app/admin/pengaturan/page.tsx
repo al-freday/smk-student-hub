@@ -10,7 +10,7 @@ import { Save, ArrowLeft, Upload, Users, Palette } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SchoolInfo {
@@ -62,16 +62,16 @@ export default function AdminPengaturanPage() {
       return;
     }
       
-    const savedInfo = localStorage.getItem("schoolInfo");
-    if (savedInfo) {
-      setSchoolInfo(JSON.parse(savedInfo));
+    const teachersData = getSourceData('teachersData', {});
+    if (teachersData.schoolInfo) {
+        setSchoolInfo(teachersData.schoolInfo);
     }
 
-    const teachersData = getSourceData('teachersData', {});
     let count = 1; // Start with 1 for wakasek
     if (teachersData && typeof teachersData === 'object') {
-        Object.values(teachersData).forEach((roleArray: any) => {
-            if (Array.isArray(roleArray)) {
+        Object.keys(teachersData).forEach((key) => {
+            const roleArray = teachersData[key];
+             if (Array.isArray(roleArray)) {
                 count += roleArray.length;
             }
         });
@@ -110,7 +110,13 @@ export default function AdminPengaturanPage() {
   };
   
   const handleSaveChanges = () => {
+      const teachersData = getSourceData('teachersData', {});
+      const updatedData = { ...teachersData, schoolInfo: schoolInfo };
+      updateSourceData('teachersData', updatedData);
+      
+      // Also update the simple schoolInfo for immediate reflection on login page
       localStorage.setItem("schoolInfo", JSON.stringify(schoolInfo));
+
       toast({
           title: "Pengaturan Disimpan",
           description: "Informasi sekolah telah berhasil diperbarui.",
@@ -129,7 +135,6 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
-    // Apply theme to current admin view if admin role is changed
     if (roleKey === 'admin') {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);

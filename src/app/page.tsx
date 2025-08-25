@@ -23,15 +23,17 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // This effect runs only on the client side
     setIsClient(true);
-    const savedInfo = localStorage.getItem("schoolInfo");
+    
+    // Prioritaskan data dari teachersData jika ada, jika tidak, fallback ke schoolInfo
+    const teachersData = JSON.parse(localStorage.getItem("teachersData") || '{}');
+    const savedInfo = teachersData.schoolInfo || JSON.parse(localStorage.getItem("schoolInfo") || 'null');
+    
     if (savedInfo) {
       try {
-        setSchoolInfo(JSON.parse(savedInfo));
+        setSchoolInfo(savedInfo);
       } catch (error) {
         console.error("Failed to parse school info from localStorage", error);
-        // Fallback to default if parsing fails
         setSchoolInfo({
           schoolName: "SMK Student Hub",
           logo: "",
@@ -40,8 +42,6 @@ export default function Home() {
     }
   }, []);
 
-  // Show a loader or nothing until the client has mounted
-  // to prevent hydration mismatch errors.
   if (!isClient) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
