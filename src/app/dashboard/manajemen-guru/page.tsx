@@ -322,24 +322,27 @@ export default function ManajemenGuruPage() {
                     </TableHeader>
                     <TableBody>
                         {teachers[key as TeacherRole]?.length > 0 ? (
-                        teachers[key as TeacherRole].map((guru) => (
-                            <TableRow key={guru.id}>
-                            <TableCell className="font-medium">{guru.nama}</TableCell>
-                            <TableCell>
-                                {key === 'wali_kelas' && `Kelas Binaan: ${guru.kelas || '-'}`}
-                                {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
-                                {key === 'guru_piket' && formatPiketDetails(guru)}
-                                {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
-                                {key === 'guru_pendamping' && `Mendampingi: ${guru.siswaBinaan?.join(', ') || '-'}`}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Atur Tugas
-                                </Button>
-                            </TableCell>
-                            </TableRow>
-                        ))
+                        teachers[key as TeacherRole].map((guru) => {
+                            const siswaBinaanArray = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
+                            return (
+                                <TableRow key={guru.id}>
+                                <TableCell className="font-medium">{guru.nama}</TableCell>
+                                <TableCell>
+                                    {key === 'wali_kelas' && `Kelas Binaan: ${guru.kelas || '-'}`}
+                                    {key === 'guru_mapel' && `Mengajar: ${guru.mapel || '-'}`}
+                                    {key === 'guru_piket' && formatPiketDetails(guru)}
+                                    {key === 'guru_bk' && `Tugas Pembinaan: ${guru.tugasKelas || '-'}`}
+                                    {key === 'guru_pendamping' && `Mendampingi: ${siswaBinaanArray.join(', ') || '-'}`}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Atur Tugas
+                                    </Button>
+                                </TableCell>
+                                </TableRow>
+                            )
+                        })
                         ) : (
                         <TableRow>
                             <TableCell colSpan={3} className="h-24 text-center">
