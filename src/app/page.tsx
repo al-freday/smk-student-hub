@@ -7,7 +7,7 @@ import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Shield } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface SchoolInfo {
@@ -23,16 +23,31 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // This effect runs only on the client side
     setIsClient(true);
     const savedInfo = localStorage.getItem("schoolInfo");
     if (savedInfo) {
-      setSchoolInfo(JSON.parse(savedInfo));
+      try {
+        setSchoolInfo(JSON.parse(savedInfo));
+      } catch (error) {
+        console.error("Failed to parse school info from localStorage", error);
+        // Fallback to default if parsing fails
+        setSchoolInfo({
+          schoolName: "SMK Student Hub",
+          logo: "",
+        });
+      }
     }
   }, []);
 
+  // Show a loader or nothing until the client has mounted
+  // to prevent hydration mismatch errors.
   if (!isClient) {
-    // Anda bisa menampilkan skeleton loader di sini jika diinginkan
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
