@@ -60,11 +60,8 @@ export const getDashboardStats = () => {
     // Gunakan totalSiswa yang valid untuk perhitungan persentase
     const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(0) + "%" : "0%";
 
-    // 5. Pelanggaran Hari Ini
-    const riwayatCatatan: CatatanSiswa[] = getSourceData('riwayatCatatan', []);
-    const pelanggaranHariIni = Array.isArray(riwayatCatatan) ? riwayatCatatan.filter(
-        c => c.tanggal === today && c.tipe === 'pelanggaran'
-    ).length : 0;
+    // 5. Pelanggaran Hari Ini (Placeholder since Tata Tertib is removed)
+    const pelanggaranHariIni = 0;
 
     return {
         totalSiswa,

@@ -10,38 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 
 const reportTypesByRole = {
   wakasek_kesiswaan: [
-    { title: "Laporan Guru Pendamping", href: "/dashboard/laporan/guru-pendamping", description: "Rekapitulasi catatan pendampingan siswa." },
-    { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Catatan perkembangan akademik per mata pelajaran." },
-    { title: "Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Laporan harian dari guru yang bertugas piket." },
     { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
-    { title: "Laporan Guru BK", href: "/dashboard/laporan/guru-bk", description: "Rekapitulasi sesi bimbingan dan konseling." },
   ],
-  wali_kelas: [
-    { title: "Laporan Administrasi Kelas", href: "/dashboard/laporan/wali-kelas", description: "Buat dan kelola laporan lengkap untuk kelas Anda." },
-  ],
-  guru_bk: [
-    { title: "Layanan Konseling & Tindak Lanjut", href: "/dashboard/laporan/guru-bk", description: "Kelola semua kasus dan catatan tindak lanjut siswa." },
-    { title: "Rekap Program & Laporan", href: "/dashboard/laporan/guru-bk/rekap", description: "Buat rekapitulasi program untuk dikirim ke Wakasek." },
-  ],
-  guru_mapel: [
-    { title: "Penilaian & Laporan", href: "/dashboard/laporan/guru-mapel", description: "Input nilai, absensi, dan kirim laporan." },
-  ],
-  guru_piket: [
-    { title: "Laporan Piket Harian", href: "/dashboard/laporan/guru-piket", description: "Isi laporan harian selama jam piket Anda." },
-  ],
-  guru_pendamping: [
-    { title: "Catatan Bimbingan & Laporan", href: "/dashboard/laporan/guru-pendamping", description: "Buat catatan dan laporan perkembangan siswa." },
-  ],
+  wali_kelas: [],
+  guru_bk: [],
+  guru_mapel: [],
+  guru_piket: [],
+  guru_pendamping: [],
   siswa: [],
   orang_tua: [],
 };
 
 interface ReportCounts {
   wali_kelas: number;
-  guru_mapel: number;
-  guru_pendamping: number;
-  guru_piket: number;
-  guru_bk: number;
 }
 
 export default function LaporanPage() {
@@ -49,10 +30,6 @@ export default function LaporanPage() {
   const [userRole, setUserRole] = useState<keyof typeof reportTypesByRole | null>(null);
   const [reportCounts, setReportCounts] = useState<ReportCounts>({
     wali_kelas: 0,
-    guru_mapel: 0,
-    guru_pendamping: 0,
-    guru_piket: 0,
-    guru_bk: 0,
   });
 
   useEffect(() => {
@@ -66,10 +43,6 @@ export default function LaporanPage() {
 
         setReportCounts({
             wali_kelas: teachersData.wali_kelas?.length || 0,
-            guru_mapel: teachersData.guru_mapel?.length || 0,
-            guru_pendamping: teachersData.guru_pendamping?.length || 0,
-            guru_piket: teachersData.guru_piket?.length || 0,
-            guru_bk: teachersData.guru_bk?.length || 0,
         });
       } catch (error) {
         console.error("Gagal memuat data rekapitulasi:", error);
@@ -85,15 +58,11 @@ export default function LaporanPage() {
   };
   
   const getPageTitle = () => {
-    if (userRole === 'guru_pendamping') return "Laporan Perkembangan Siswa";
-    if (userRole === 'guru_bk') return "Pusat Laporan & Layanan BK";
     return "Pusat Laporan";
   };
 
   const getPageDescription = () => {
-    if (userRole === 'guru_pendamping') return "Hasilkan laporan refleksi mengenai perkembangan siswa secara holistik (akademik, karakter, keterampilan) per semester atau tahun ajaran.";
     if (userRole === 'wakasek_kesiswaan') return "Pantau, kelola, dan unduh semua laporan yang masuk dari para guru.";
-     if (userRole === 'guru_bk') return "Akses semua laporan yang relevan untuk mendukung layanan bimbingan dan konseling.";
     return "Pilih jenis laporan yang ingin Anda lihat atau buat.";
   };
 
@@ -133,26 +102,6 @@ export default function LaporanPage() {
                     <p className="text-2xl font-bold">{reportCounts.wali_kelas}</p>
                     <p className="text-sm text-muted-foreground">Laporan Wali Kelas</p>
                 </div>
-                 <div className="p-4 bg-background rounded-lg shadow-sm">
-                    <FileCheck2 className="mx-auto h-8 w-8 text-primary mb-2" />
-                    <p className="text-2xl font-bold">{reportCounts.guru_mapel}</p>
-                    <p className="text-sm text-muted-foreground">Laporan Guru Mapel</p>
-                </div>
-                 <div className="p-4 bg-background rounded-lg shadow-sm">
-                    <FileCheck2 className="mx-auto h-8 w-8 text-primary mb-2" />
-                    <p className="text-2xl font-bold">{reportCounts.guru_pendamping}</p>
-                    <p className="text-sm text-muted-foreground">Laporan Pendamping</p>
-                </div>
-                 <div className="p-4 bg-background rounded-lg shadow-sm">
-                    <FileCheck2 className="mx-auto h-8 w-8 text-primary mb-2" />
-                    <p className="text-2xl font-bold">{reportCounts.guru_piket}</p>
-                    <p className="text-sm text-muted-foreground">Laporan Guru Piket</p>
-                </div>
-                 <div className="p-4 bg-background rounded-lg shadow-sm">
-                    <FileCheck2 className="mx-auto h-8 w-8 text-primary mb-2" />
-                    <p className="text-2xl font-bold">{reportCounts.guru_bk}</p>
-                    <p className="text-sm text-muted-foreground">Laporan Guru BK</p>
-                </div>
             </CardContent>
         </Card>
       )}
@@ -168,7 +117,7 @@ export default function LaporanPage() {
               <CardContent className="mt-auto">
                 <Link href={report.href} passHref>
                   <Button className="w-full">
-                    {userRole === 'wakasek_kesiswaan' || userRole === 'guru_bk' ? 'Lihat Laporan' : 'Buka Laporan'}
+                    Lihat Laporan
                   </Button>
                 </Link>
               </CardContent>

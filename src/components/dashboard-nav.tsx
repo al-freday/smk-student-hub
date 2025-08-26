@@ -9,28 +9,11 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
-  ShieldAlert,
-  School,
-  UserPlus,
   FileText,
   Users,
   UserCog,
   User,
-  BookUser,
-  Handshake,
-  HeartHandshake,
-  ClipboardList,
   UserCheck,
-  FileSignature,
-  MessageSquare,
-  SendToBack,
-  TrafficCone,
-  Siren,
-  FolderKanban,
-  FileHeart,
-  MessagesSquare,
-  Database,
-  CalendarCheck,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -52,39 +35,17 @@ const navItemsByRole = {
     { href: "/dashboard/kehadiran-siswa", icon: UserCheck, label: "Kehadiran Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
-   wali_kelas: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/kehadiran-siswa", icon: CalendarCheck, label: "Kehadiran Siswa" },
-    { href: "/dashboard/laporan/wali-kelas", icon: BookUser, label: "Laporan Administrasi" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pembinaan Disiplin" },
-  ],
-  guru_bk: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-bk", icon: MessageSquare, label: "Layanan Konseling" },
-    { href: "/dashboard/laporan/guru-bk/rekap", icon: SendToBack, label: "Rekap Program" },
-  ],
-  guru_mapel: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-mapel", icon: FileSignature, label: "Penilaian & Laporan" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
-  ],
-  guru_pendamping: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/tata-tertib", icon: HeartHandshake, label: "Pembinaan Karakter" },
-    { href: "/dashboard/laporan/guru-pendamping", icon: FileHeart, label: "Catatan Bimbingan" },
-  ],
-  guru_piket: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/guru-piket", icon: Siren, label: "Laporan Piket Harian" },
-    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru" },
-  ]
+   wali_kelas: [],
+  guru_bk: [],
+  guru_mapel: [],
+  guru_pendamping: [],
+  guru_piket: []
 };
 
 
@@ -115,7 +76,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   
   const renderNavItems = () => {
     const navItems = userRole ? (navItemsByRole[userRole] || []) : [];
-    if (navItems.length === 0 && userRole !== 'admin') return null;
+    if (navItems.length === 0) return null;
     
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
