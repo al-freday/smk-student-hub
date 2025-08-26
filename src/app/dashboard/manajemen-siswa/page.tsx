@@ -338,7 +338,7 @@ export default function ManajemenSiswaPage() {
         </div>
       </div>
       <div className="flex justify-end gap-2">
-            <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
+            <Link href="/dashboard/kehadiran-siswa">
                 <Button variant="outline"><CalendarCheck className="mr-2 h-4 w-4" />Riwayat Kehadiran</Button>
             </Link>
              <input type="file" ref={fileInputRef} className="hidden" onChange={handleImport} accept=".csv" />
