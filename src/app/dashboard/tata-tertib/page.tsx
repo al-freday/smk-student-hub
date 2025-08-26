@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getSourceData } from "@/lib/data-manager";
+
 
 const initialPelanggaran = [
     {
@@ -60,8 +62,8 @@ interface Siswa {
 }
 
 interface WaliKelas {
-    kelas: string;
-    wali: string;
+    kelas: string[];
+    nama: string;
 }
 
 interface CatatanSiswa {
@@ -81,10 +83,12 @@ export default function TataTertibPage() {
   const [activeTab, setActiveTab] = useState("pelanggaran");
   
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
   const [daftarWaliKelas, setDaftarWaliKelas] = useState<WaliKelas[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   // State untuk form pelanggaran
+  const [selectedKelas, setSelectedKelas] = useState("");
   const [selectedSiswaPelanggaran, setSelectedSiswaPelanggaran] = useState("");
   const [selectedPelanggaran, setSelectedPelanggaran] = useState("");
   const [tindakanPelanggaran, setTindakanPelanggaran] = useState("");
@@ -102,31 +106,42 @@ export default function TataTertibPage() {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
 
-      const savedSiswa = localStorage.getItem('siswaData');
-      if (savedSiswa) setDaftarSiswa(JSON.parse(savedSiswa));
+      const savedSiswa = getSourceData('siswaData', []);
+      setDaftarSiswa(savedSiswa);
+      
+      const savedKelas = getSourceData('kelasData', []);
+      setDaftarKelas(savedKelas.map((k: {nama: string}) => k.nama));
 
-      const savedTeachers = localStorage.getItem('teachersData');
-      if (savedTeachers) {
-          const teachersData = JSON.parse(savedTeachers);
-          const waliKelasList = teachersData.wali_kelas || [];
-          setDaftarWaliKelas(waliKelasList.map((w: any) => ({ kelas: w.kelas, wali: w.nama })));
-      }
+      const savedTeachers = getSourceData('teachersData', {});
+      const waliKelasList = savedTeachers.wali_kelas || [];
+      setDaftarWaliKelas(waliKelasList.map((w: any) => ({ kelas: Array.isArray(w.kelas) ? w.kelas : [w.kelas], nama: w.nama })));
 
-      const savedRiwayat = localStorage.getItem('riwayatCatatan');
-      if (savedRiwayat) setRiwayat(JSON.parse(savedRiwayat));
+      const savedRiwayat = getSourceData('riwayatCatatan', []);
+      setRiwayat(savedRiwayat);
   }, []);
 
   const saveDataToLocalStorage = (data: CatatanSiswa[]) => {
       localStorage.setItem('riwayatCatatan', JSON.stringify(data));
   };
+  
+  const siswaDiKelasTerpilih = useMemo(() => {
+    if (!selectedKelas) return [];
+    return daftarSiswa.filter(s => s.kelas === selectedKelas);
+  }, [selectedKelas, daftarSiswa]);
+
 
   const waliKelasTerpilih = useMemo(() => {
-    const siswaNama = activeTab === 'pelanggaran' ? selectedSiswaPelanggaran : selectedSiswaPrestasi;
-    if (!siswaNama) return "N/A";
-    const siswa = daftarSiswa.find(s => s.nama === siswaNama);
-    if (!siswa) return "N/A";
-    const wali = daftarWaliKelas.find(w => w.kelas === siswa.kelas);
-    return wali ? wali.wali : "N/A";
+    let siswaTerpilih: Siswa | undefined;
+    if (activeTab === 'pelanggaran' && selectedSiswaPelanggaran) {
+        siswaTerpilih = daftarSiswa.find(s => s.nama === selectedSiswaPelanggaran);
+    } else if (activeTab === 'prestasi' && selectedSiswaPrestasi) {
+        siswaTerpilih = daftarSiswa.find(s => s.nama === selectedSiswaPrestasi);
+    }
+    
+    if (!siswaTerpilih) return "N/A";
+    
+    const wali = daftarWaliKelas.find(w => Array.isArray(w.kelas) && w.kelas.includes(siswaTerpilih!.kelas));
+    return wali ? wali.nama : "Belum Ditentukan";
   }, [selectedSiswaPelanggaran, selectedSiswaPrestasi, activeTab, daftarSiswa, daftarWaliKelas]);
 
   const getPoinFromDeskripsi = (deskripsi: string) => {
@@ -161,6 +176,7 @@ export default function TataTertibPage() {
     setRiwayat(updatedRiwayat);
     saveDataToLocalStorage(updatedRiwayat);
     toast({ title: "Pelanggaran Dicatat", description: `Pelanggaran untuk ${siswa.nama} telah disimpan.` });
+    setSelectedKelas("");
     setSelectedSiswaPelanggaran("");
     setSelectedPelanggaran("");
     setTindakanPelanggaran("");
@@ -229,12 +245,19 @@ export default function TataTertibPage() {
                             <CardDescription>Pilih siswa, jenis pelanggaran, dan jelaskan tindakan yang diambil.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
+                               <div className="space-y-2">
+                                    <Label htmlFor="kelas-pelanggaran">Pilih Kelas</Label>
+                                    <Select value={selectedKelas} onValueChange={(value) => { setSelectedKelas(value); setSelectedSiswaPelanggaran(""); }}>
+                                        <SelectTrigger id="kelas-pelanggaran"><SelectValue placeholder="-- Kelas --" /></SelectTrigger>
+                                        <SelectContent>{daftarKelas.map(kelas => (<SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="siswa-pelanggaran">Pilih Siswa</Label>
-                                    <Select value={selectedSiswaPelanggaran} onValueChange={setSelectedSiswaPelanggaran}>
+                                    <Select value={selectedSiswaPelanggaran} onValueChange={setSelectedSiswaPelanggaran} disabled={!selectedKelas}>
                                         <SelectTrigger id="siswa-pelanggaran"><SelectValue placeholder="-- Nama Siswa --" /></SelectTrigger>
-                                        <SelectContent>{daftarSiswa.map(siswa => (<SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} ({siswa.kelas})</SelectItem>))}</SelectContent>
+                                        <SelectContent>{siswaDiKelasTerpilih.map(siswa => (<SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama}</SelectItem>))}</SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
@@ -276,7 +299,9 @@ export default function TataTertibPage() {
                                     <Label htmlFor="siswa-prestasi">Pilih Siswa</Label>
                                     <Select value={selectedSiswaPrestasi} onValueChange={setSelectedSiswaPrestasi}>
                                         <SelectTrigger id="siswa-prestasi"><SelectValue placeholder="-- Nama Siswa --" /></SelectTrigger>
-                                        <SelectContent>{daftarSiswa.map(siswa => (<SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} ({siswa.kelas})</SelectItem>))}</SelectContent>
+                                        <SelectContent>
+                                          {daftarSiswa.map(siswa => (<SelectItem key={siswa.id} value={siswa.nama}>{siswa.nama} ({siswa.kelas})</SelectItem>))}
+                                        </SelectContent>
                                     </Select>
                                 </div>
                                  <div className="space-y-2">
