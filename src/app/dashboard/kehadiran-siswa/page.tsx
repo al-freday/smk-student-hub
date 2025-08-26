@@ -48,7 +48,7 @@ export default function KehadiranSiswaPage() {
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   
   const [filterDate, setFilterDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [filterKelas, setFilterKelas] = useState<string>("");
+  const [filterKelas, setFilterKelas] = useState<string>("all");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Kehadiran | null>(null);
@@ -72,7 +72,7 @@ export default function KehadiranSiswaPage() {
     return allRecords
       .filter(r => {
         const dateMatch = filterDate ? r.tanggal === filterDate : true;
-        const kelasMatch = filterKelas ? r.kelas === filterKelas : true;
+        const kelasMatch = filterKelas !== 'all' ? r.kelas === filterKelas : true;
         return dateMatch && kelasMatch;
       })
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
@@ -181,7 +181,7 @@ export default function KehadiranSiswaPage() {
                         <SelectValue placeholder="Semua Kelas" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua Kelas</SelectItem>
+                        <SelectItem value="all">Semua Kelas</SelectItem>
                         {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
                     </SelectContent>
                 </Select>
