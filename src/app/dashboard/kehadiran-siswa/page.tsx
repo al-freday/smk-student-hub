@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -66,15 +65,17 @@ export default function KehadiranSiswaPage() {
 
 
   const loadData = () => {
-    setAllRecords(getSourceData('kehadiranSiswa', []));
-    setDaftarSiswa(getSourceData('siswaData', []));
-    setDaftarKelas(getSourceData('kelasData', []));
+    const savedKehadiran = localStorage.getItem('kehadiranSiswa');
+    const savedSiswa = localStorage.getItem('siswaData');
+    const savedKelas = localStorage.getItem('kelasData');
+
+    setAllRecords(savedKehadiran ? JSON.parse(savedKehadiran) : []);
+    setDaftarSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
+    setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
   };
   
   useEffect(() => {
     loadData();
-    window.addEventListener('dataUpdated', loadData);
-    return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
   
   const studentsInSelectedClass = useMemo(() => {
@@ -139,7 +140,7 @@ export default function KehadiranSiswaPage() {
     
     const updatedRecords = [...otherRecords, ...newRecordsForDay];
     
-    updateSourceData('kehadiranSiswa', updatedRecords);
+    localStorage.setItem('kehadiranSiswa', JSON.stringify(updatedRecords));
     setAllRecords(updatedRecords); // Update state lokal untuk memicu re-render
     
     toast({
