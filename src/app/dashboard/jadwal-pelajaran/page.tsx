@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, User, Shield } from "lucide-react";
+import { PlusCircle, Edit, Trash2, User, Shield, UserCog } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
@@ -69,6 +69,13 @@ const sesiPelajaran = [
     { id: "IX", label: "Sesi IX" }, { id: "X", label: "Sesi X" },
 ];
 
+const getGradeLevel = (className: string) => {
+    if (className.startsWith("X ")) return "Kelas X";
+    if (className.startsWith("XI ")) return "Kelas XI";
+    if (className.startsWith("XII ")) return "Kelas XII";
+    return null;
+};
+
 export default function JadwalPelajaranPage() {
   const { toast } = useToast();
   const [jadwal, setJadwal] = useState<Jadwal[]>([
@@ -83,6 +90,7 @@ export default function JadwalPelajaranPage() {
   const [formData, setFormData] = useState<Partial<Jadwal>>({});
   const [waliKelasMap, setWaliKelasMap] = useState<{ [key: string]: string }>({});
   const [guruPiketMap, setGuruPiketMap] = useState<{ [key: string]: string[] }>({});
+  const [guruBkMap, setGuruBkMap] = useState<{ [key: string]: string[] }>({});
 
   useEffect(() => {
     const teachersData = getSourceData('teachersData', {});
@@ -117,6 +125,21 @@ export default function JadwalPelajaranPage() {
         });
     }
     setGuruPiketMap(newGuruPiketMap);
+    
+    // Set Guru BK
+    const guruBkList = teachersData.guru_bk || [];
+    const newGuruBkMap: { [key: string]: string[] } = {};
+    if (Array.isArray(guruBkList)) {
+        guruBkList.forEach((guru: any) => {
+            if (guru.tugasKelas) { // e.g., "Kelas X"
+                if (!newGuruBkMap[guru.tugasKelas]) {
+                    newGuruBkMap[guru.tugasKelas] = [];
+                }
+                newGuruBkMap[guru.tugasKelas].push(guru.nama);
+            }
+        });
+    }
+    setGuruBkMap(newGuruBkMap);
 
   }, []);
 
@@ -198,16 +221,18 @@ export default function JadwalPelajaranPage() {
                   {daftarKelas.map(kelas => {
                     const jadwalKelas = jadwalHari.filter(j => j.kelas === kelas).sort((a,b) => a.sesi.localeCompare(b.sesi));
                     const waliKelas = waliKelasMap[kelas] || "Belum Ditentukan";
+                    const gradeLevel = getGradeLevel(kelas);
+                    const guruBk = gradeLevel ? guruBkMap[gradeLevel]?.join(', ') || "Belum Ditentukan" : "Belum Ditentukan";
                     
                     return (
                       <AccordionItem value={`${hari}-${kelas}`} key={`${hari}-${kelas}`}>
                         <AccordionTrigger>
                            <div>
                                 <span className="font-semibold">{kelas}</span>
-                                <p className="text-xs text-muted-foreground font-normal flex items-center gap-1.5">
-                                    <User className="h-3 w-3" />
-                                    Wali Kelas: {waliKelas}
-                                </p>
+                                <div className="text-xs text-muted-foreground font-normal flex flex-col sm:flex-row sm:gap-4 items-start text-left">
+                                    <p className="flex items-center gap-1.5"><User className="h-3 w-3" />Wali Kelas: {waliKelas}</p>
+                                    <p className="flex items-center gap-1.5"><UserCog className="h-3 w-3" />Guru BK: {guruBk}</p>
+                                </div>
                            </div>
                         </AccordionTrigger>
                         <AccordionContent>
@@ -328,5 +353,3 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
-
-    
