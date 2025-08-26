@@ -1,6 +1,5 @@
 
 import { format } from "date-fns";
-import { getSourceData } from "./data-manager";
 
 // Tipe data yang relevan
 interface Guru { id: number; nama: string; }
@@ -8,6 +7,20 @@ interface Kelas { id: number; nama: string; }
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface Kehadiran { id: string; tanggal: string; status: string; }
 interface CatatanSiswa { id: number; tanggal: string; tipe: 'pelanggaran' | 'prestasi'; }
+
+
+const getSourceData = (key: string, defaultValue: any) => {
+    if (typeof window === 'undefined') {
+        return defaultValue;
+    }
+    try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
+        return defaultValue;
+    }
+};
 
 
 // Fungsi utama untuk mengambil semua statistik dasbor

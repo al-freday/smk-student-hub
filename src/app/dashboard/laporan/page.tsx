@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Download, FileCheck2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData } from "@/lib/data-manager";
 
 const reportTypesByRole = {
   wakasek_kesiswaan: [
@@ -62,7 +61,9 @@ export default function LaporanPage() {
 
     if (role === 'wakasek_kesiswaan') {
       try {
-        const teachersData = getSourceData('teachersData', {});
+        const savedData = localStorage.getItem('teachersData');
+        const teachersData = savedData ? JSON.parse(savedData) : {};
+
         setReportCounts({
             wali_kelas: teachersData.wali_kelas?.length || 0,
             guru_mapel: teachersData.guru_mapel?.length || 0,

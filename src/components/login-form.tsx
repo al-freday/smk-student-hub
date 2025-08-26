@@ -19,7 +19,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -73,7 +72,9 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const teachersData = getSourceData('teachersData', {});
+    const savedTeachers = localStorage.getItem('teachersData');
+    const teachersData = savedTeachers ? JSON.parse(savedTeachers) : {};
+    
     let foundUser = null;
     let userRoleKey = '';
     const emailToSearch = values.email.toLowerCase();

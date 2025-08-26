@@ -10,7 +10,6 @@ import { Save, ArrowLeft, Upload, Users, Palette } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SchoolInfo {
@@ -62,7 +61,9 @@ export default function AdminPengaturanPage() {
       return;
     }
       
-    const teachersData = getSourceData('teachersData', {});
+    const savedData = localStorage.getItem('teachersData');
+    const teachersData = savedData ? JSON.parse(savedData) : {};
+    
     if (teachersData.schoolInfo) {
         setSchoolInfo(teachersData.schoolInfo);
     }
@@ -110,9 +111,10 @@ export default function AdminPengaturanPage() {
   };
   
   const handleSaveChanges = () => {
-      const teachersData = getSourceData('teachersData', {});
+      const savedData = localStorage.getItem('teachersData');
+      const teachersData = savedData ? JSON.parse(savedData) : {};
       const updatedData = { ...teachersData, schoolInfo: schoolInfo };
-      updateSourceData('teachersData', updatedData);
+      localStorage.setItem('teachersData', JSON.stringify(updatedData));
       
       toast({
           title: "Pengaturan Disimpan",

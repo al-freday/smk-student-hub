@@ -44,7 +44,6 @@ import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { getSourceData } from "@/lib/data-manager";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
@@ -98,9 +97,12 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
     setUserRole(role);
 
-    const teachersData = getSourceData('teachersData', {});
-    if (teachersData.schoolInfo) {
-      setSchoolInfo(teachersData.schoolInfo);
+    const savedTeachers = localStorage.getItem('teachersData');
+    if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        if (teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+        }
     }
   }, []);
 

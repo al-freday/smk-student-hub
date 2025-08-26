@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -98,7 +97,8 @@ export default function AdminManajemenPenggunaPage() {
 
   const loadDataFromStorage = () => {
     try {
-        const fullData = getSourceData('teachersData', initialTeachers);
+        const savedData = localStorage.getItem('teachersData');
+        const fullData = savedData ? JSON.parse(savedData) : initialTeachers;
         const { schoolInfo, ...teachersData } = fullData;
 
         const usersData: { [key in TeacherRole]: User[] } = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
@@ -131,18 +131,6 @@ export default function AdminManajemenPenggunaPage() {
       return;
     }
     loadDataFromStorage();
-    
-    const handleDataChange = () => {
-        loadDataFromStorage();
-    };
-    
-    window.addEventListener('storage', handleDataChange);
-    window.addEventListener('dataUpdated', handleDataChange);
-    
-    return () => {
-        window.removeEventListener('storage', handleDataChange);
-        window.removeEventListener('dataUpdated', handleDataChange);
-    };
   }, [router, toast]);
   
 
@@ -171,7 +159,8 @@ export default function AdminManajemenPenggunaPage() {
           return;
       }
       
-      const fullData = getSourceData('teachersData', initialTeachers);
+      const savedData = localStorage.getItem('teachersData');
+      const fullData = savedData ? JSON.parse(savedData) : initialTeachers;
       const { schoolInfo, ...teachersData } = fullData;
       let updatedTeachers = { ...teachersData };
 
@@ -194,8 +183,8 @@ export default function AdminManajemenPenggunaPage() {
       }
       
       updatedTeachers[role] = currentList;
-      updateSourceData('teachersData', { ...updatedTeachers, schoolInfo });
-      window.dispatchEvent(new Event('dataUpdated'));
+      localStorage.setItem('teachersData', JSON.stringify({ ...updatedTeachers, schoolInfo }));
+      loadDataFromStorage();
       
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
@@ -207,7 +196,8 @@ export default function AdminManajemenPenggunaPage() {
       const roleKey = roleOptions.find(opt => opt.label === userToDelete.role)?.value;
       if (!roleKey) return;
 
-      const fullData = getSourceData('teachersData', initialTeachers);
+      const savedData = localStorage.getItem('teachersData');
+      const fullData = savedData ? JSON.parse(savedData) : initialTeachers;
       const { schoolInfo, ...teachersData } = fullData;
 
       if (!teachersData[roleKey]) return;
@@ -215,15 +205,16 @@ export default function AdminManajemenPenggunaPage() {
       const updatedList = teachersData[roleKey].filter((t: Guru) => t.id !== userToDelete.id);
       const updatedTeachers = { ...teachersData, [roleKey]: updatedList };
 
-      updateSourceData('teachersData', { ...updatedTeachers, schoolInfo });
-      window.dispatchEvent(new Event('dataUpdated'));
+      localStorage.setItem('teachersData', JSON.stringify({ ...updatedTeachers, schoolInfo }));
+      loadDataFromStorage();
 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
   const handleExportData = () => {
-    const fullData = getSourceData('teachersData', initialTeachers);
+    const savedData = localStorage.getItem('teachersData');
+    const fullData = savedData ? JSON.parse(savedData) : initialTeachers;
     const { schoolInfo, ...teachersData } = fullData;
 
     let allUsers: User[] = [];

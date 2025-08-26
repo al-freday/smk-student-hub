@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -108,8 +107,8 @@ export default function ManajemenGuruPage() {
 
   const loadData = () => {
     try {
-        // Get the master data of all users from the Admin panel source
-        const fullData = getSourceData('teachersData', {});
+        const savedData = localStorage.getItem('teachersData');
+        const fullData = savedData ? JSON.parse(savedData) : {};
         const { schoolInfo, ...teachersDataFromAdmin } = fullData;
 
         // Initialize a clean state
@@ -124,7 +123,6 @@ export default function ManajemenGuruPage() {
                 return {
                     id: user.id,
                     nama: user.nama,
-                    // Preserve existing assignments or initialize if new
                     ...existingTeacher,
                 };
             });
@@ -142,7 +140,8 @@ export default function ManajemenGuruPage() {
   useEffect(() => {
     loadData();
     
-    const kelasData: Kelas[] = getSourceData('kelasData', []);
+    const savedKelas = localStorage.getItem('kelasData');
+    const kelasData: Kelas[] = savedKelas ? JSON.parse(savedKelas) : [];
     setAvailableKelas(kelasData);
     if (kelasData.length > 0) {
         const grades = new Set<string>();
@@ -154,28 +153,16 @@ export default function ManajemenGuruPage() {
         setAvailableGrades(Array.from(grades).sort());
     }
     
-    const siswaData: Siswa[] = getSourceData('siswaData', []);
+    const savedSiswa = localStorage.getItem('siswaData');
+    const siswaData: Siswa[] = savedSiswa ? JSON.parse(savedSiswa) : [];
     setDaftarSiswa(siswaData);
-
-    const handleDataChange = () => {
-        setDaftarSiswa(getSourceData('siswaData', []));
-        setAvailableKelas(getSourceData('kelasData', []));
-        loadData();
-    };
-    
-    window.addEventListener('storage', handleDataChange);
-    window.addEventListener('dataUpdated', handleDataChange);
-
-    return () => {
-      window.removeEventListener('storage', handleDataChange)
-      window.removeEventListener('dataUpdated', handleDataChange)
-    };
   }, []);
   
   const handleSaveChanges = () => {
-    const currentFullData = getSourceData('teachersData', {});
+    const savedData = localStorage.getItem('teachersData');
+    const currentFullData = savedData ? JSON.parse(savedData) : {};
     const updatedData = { ...currentFullData, ...teachers };
-    updateSourceData('teachersData', updatedData);
+    localStorage.setItem('teachersData', JSON.stringify(updatedData));
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada penugasan guru telah disimpan.",

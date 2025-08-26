@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { getSourceData } from "@/lib/data-manager";
 
 
 // Data Types
@@ -49,44 +48,18 @@ export default function LaporanWaliKelasPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>("");
 
   // States for all data sections
-  const [identitasSiswa, setIdentitasSiswa] = useState<Siswa[]>([
-    { id: 1, nis: "12345", nama: "Ahmad Budi", jk: "L", alamat: "Jl. Merdeka No. 1", kelas: "X OT 1" },
-    { id: 2, nis: "12346", nama: "Citra Dewi", jk: "P", alamat: "Jl. Pahlawan No. 2", kelas: "X OT 1" },
-  ]);
-  const [saranaKelas, setSaranaKelas] = useState<Sarana[]>([
-      { id: 1, nama: "Meja Siswa", jumlah: 40, kondisi: "Baik" },
-      { id: 2, nama: "Kursi Siswa", jumlah: 40, kondisi: "Baik" },
-  ]);
-  const [rekapNilai, setRekapNilai] = useState<Nilai[]>([
-    { id: 1, mapel: "Matematika", rataRata: 85.5 },
-    { id: 2, mapel: "Bahasa Indonesia", rataRata: 88.0 },
-  ]);
-  const [jadwalPelajaran, setJadwalPelajaran] = useState<Jadwal[]>([
-      { id: 1, hari: "Senin", jam: "07:30-09:00", mapel: "Matematika", guru: "Drs. Budi Santoso" },
-  ]);
-  const [jadwalPiket, setJadwalPiket] = useState<Piket[]>([
-      { id: 1, hari: "Senin", siswa: "Ahmad, Budi, Citra, Dewi" },
-      { id: 2, hari: "Selasa", siswa: "Eka, Fitri, Gunawan, Hana" },
-  ]);
-  const [strukturOrganisasi, setStrukturOrganisasi] = useState<Organisasi>({
-      "Ketua Kelas": "Ahmad Budi", "Wakil Ketua Kelas": "Citra Dewi", "Sekretaris": "Fitriani", "Bendahara": "Gunawan"
-  });
-  const [kehadiranSiswa, setKehadiranSiswa] = useState<Kehadiran>({ totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 });
+  const [identitasSiswa, setIdentitasSiswa] = useState<Siswa[]>([]);
+  const [saranaKelas, setSaranaKelas] = useState<Sarana[]>([]);
+  const [rekapNilai, setRekapNilai] = useState<Nilai[]>([]);
+  const [jadwalPelajaran, setJadwalPelajaran] = useState<Jadwal[]>([]);
+  const [jadwalPiket, setJadwalPiket] = useState<Piket[]>([]);
+  const [strukturOrganisasi, setStrukturOrganisasi] = useState<Organisasi>({});
+  const [kehadiranSiswa, setKehadiranSiswa] = useState<Kehadiran>({ totalSiswa: 0, hadir: 0, sakit: 0, izin: 0, alpa: 0 });
   const [detailKehadiranHariIni, setDetailKehadiranHariIni] = useState<KehadiranSiswa[]>([]);
-  const [catatanSiswa, setCatatanSiswa] = useState<Catatan[]>([
-      { id: 1, nama: "Eka Putra", catatan: "Perlu bimbingan lebih pada mata pelajaran Bahasa Inggris." },
-  ]);
-  const [mutasiSiswa, setMutasiSiswa] = useState<Mutasi[]>([
-      { id: 1, tanggal: "2024-07-01", nama: "Rahmat Hidayat", jenis: "Masuk", keterangan: "Pindahan dari SMKN 1 Makassar" },
-  ]);
-  const [terimaRapor, setTerimaRapor] = useState<Rapor[]>([
-      { id: 1, nis: "12345", nama: "Ahmad Budi", tanggal: "2024-06-15", penerima: "Orang Tua" },
-  ]);
-  const [pembayaranKomite, setPembayaranKomite] = useState<Komite[]>([
-      { id: 1, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-01-10" },
-      { id: 2, nis: "12346", nama: "Citra Dewi", status: "Lunas", tanggal: "2024-02-15" },
-      { id: 3, nis: "12345", nama: "Ahmad Budi", status: "Lunas", tanggal: "2024-03-10" },
-  ]);
+  const [catatanSiswa, setCatatanSiswa] = useState<Catatan[]>([]);
+  const [mutasiSiswa, setMutasiSiswa] = useState<Mutasi[]>([]);
+  const [terimaRapor, setTerimaRapor] = useState<Rapor[]>([]);
+  const [pembayaranKomite, setPembayaranKomite] = useState<Komite[]>([]);
 
   // Generic state for handling dialogs
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -128,22 +101,28 @@ export default function LaporanWaliKelasPage() {
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role === 'wali_kelas') {
-        const currentUser = getSourceData('currentUser', {});
-        const teachersData = getSourceData('teachersData', {});
-        const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
-        if (waliKelasData) {
-            const assignedClasses = Array.isArray(waliKelasData.kelas) ? waliKelasData.kelas : [waliKelasData.kelas];
-            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: assignedClasses });
-            if (assignedClasses.length > 0) {
-                setSelectedKelas(assignedClasses[0]);
+        const currentUserData = localStorage.getItem('currentUser');
+        const teachersDataData = localStorage.getItem('teachersData');
+        if (currentUserData && teachersDataData) {
+            const currentUser = JSON.parse(currentUserData);
+            const teachersData = JSON.parse(teachersDataData);
+            const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
+            if (waliKelasData) {
+                const assignedClasses = Array.isArray(waliKelasData.kelas) ? waliKelasData.kelas : [waliKelasData.kelas];
+                setWaliKelasInfo({ nama: waliKelasData.nama, kelas: assignedClasses });
+                if (assignedClasses.length > 0) {
+                    setSelectedKelas(assignedClasses[0]);
+                }
             }
         }
     }
 
+    const dataSiswa = localStorage.getItem('siswaData');
+    if (dataSiswa) setIdentitasSiswa(JSON.parse(dataSiswa));
 
     const data = localStorage.getItem("kehadiranSiswa");
     const today = format(new Date(), "yyyy-MM-dd");
-    let rekap: Kehadiran = { totalSiswa: 40, hadir: 0, sakit: 0, izin: 0, alpa: 0 };
+    let rekap: Kehadiran = { totalSiswa: 0, hadir: 0, sakit: 0, izin: 0, alpa: 0 };
     
     if (data) {
         const riwayat: KehadiranSiswa[] = JSON.parse(data);

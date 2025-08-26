@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
-import { getSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -50,7 +49,8 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const teachersData = getSourceData('teachersData', {});
+      const savedData = localStorage.getItem('teachersData');
+      const teachersData = savedData ? JSON.parse(savedData) : {};
       const users: User[] = [];
       
       // Hardcoded Wakasek Kesiswaan

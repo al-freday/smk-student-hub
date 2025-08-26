@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -26,12 +25,12 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
     
-    // Always read from the centralized teachersData object
-    const teachersData = getSourceData('teachersData', {});
-    const savedInfo = teachersData.schoolInfo;
-    
-    if (savedInfo) {
-      setSchoolInfo(savedInfo);
+    const savedTeachers = localStorage.getItem('teachersData');
+    if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        if (teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+        }
     }
   }, []);
 

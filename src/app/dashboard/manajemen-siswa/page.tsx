@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,9 +110,14 @@ export default function ManajemenSiswaPage() {
   const [mutasiFormData, setMutasiFormData] = useState<Partial<Mutasi>>({});
 
   const loadData = () => {
-    setSiswa(getSourceData('siswaData', []));
-    setDaftarKelas(getSourceData('kelasData', []));
-    setRiwayatMutasi(getSourceData('mutasiSiswaData', []));
+    const savedSiswa = localStorage.getItem('siswaData');
+    const savedKelas = localStorage.getItem('kelasData');
+    const savedMutasi = localStorage.getItem('mutasiSiswaData');
+    
+    setSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
+    setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
+    setRiwayatMutasi(savedMutasi ? JSON.parse(savedMutasi) : []);
+    
     toast({ title: "Data Dimuat", description: "Data siswa, kelas, dan mutasi terbaru telah dimuat." });
   };
 
@@ -121,37 +125,31 @@ export default function ManajemenSiswaPage() {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
 
-      loadData(); // Initial load
+      loadData();
 
       if (role === 'wali_kelas') {
-          const currentUser = getSourceData('currentUser', {});
-          const teachersData = getSourceData('teachersData', {});
-          const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
-          if (waliKelasData) {
-              setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+          const currentUserData = localStorage.getItem('currentUser');
+          const teachersDataData = localStorage.getItem('teachersData');
+
+          if(currentUserData && teachersDataData) {
+            const currentUser = JSON.parse(currentUserData);
+            const teachersData = JSON.parse(teachersDataData);
+            const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
+            if (waliKelasData) {
+                setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+            }
           }
       }
-      
-      const handleDataChange = () => {
-        loadData();
-      };
-    
-      window.addEventListener('dataUpdated', handleDataChange);
-      
-      return () => {
-          window.removeEventListener('dataUpdated', handleDataChange);
-      };
   }, []);
 
   const handleSaveChanges = () => {
-    updateSourceData('siswaData', siswa);
-    updateSourceData('kelasData', daftarKelas);
-    updateSourceData('mutasiSiswaData', riwayatMutasi);
+    localStorage.setItem('siswaData', JSON.stringify(siswa));
+    localStorage.setItem('kelasData', JSON.stringify(daftarKelas));
+    localStorage.setItem('mutasiSiswaData', JSON.stringify(riwayatMutasi));
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
     });
-    window.dispatchEvent(new Event('dataUpdated'));
   };
 
   const resetSiswaForm = () => {
@@ -348,7 +346,7 @@ export default function ManajemenSiswaPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
   
-  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo && daftarKelas
+  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo && Array.isArray(daftarKelas)
     ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
     : daftarKelas;
     
@@ -403,7 +401,7 @@ export default function ManajemenSiswaPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {daftarKelas.length > 0 ? daftarKelas.map(k => (
+                            {Array.isArray(daftarKelas) && daftarKelas.length > 0 ? daftarKelas.map(k => (
                                 <TableRow key={k.id}>
                                     <TableCell className="font-medium">{k.nama}</TableCell>
                                     <TableCell className="text-right">
@@ -457,7 +455,7 @@ export default function ManajemenSiswaPage() {
                 </CardHeader>
                 <CardContent>
                 <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas?.[0]}>
-                    {displayedKelas.map((k) => {
+                    {Array.isArray(displayedKelas) && displayedKelas.map((k) => {
                     const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
                     return (
                         <AccordionItem value={k.nama} key={k.id}>
@@ -510,7 +508,7 @@ export default function ManajemenSiswaPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={siswaFormData.nis || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nis: e.target.value})} className="col-span-3"/></div>
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={siswaFormData.nama || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nama: e.target.value})} className="col-span-3"/></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{daftarKelas?.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{Array.isArray(daftarKelas) && daftarKelas.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">Status</Label>
                 <Select onValueChange={(v) => setSiswaFormData({...siswaFormData, status: v as StudentStatus})} value={siswaFormData.status}>
