@@ -19,6 +19,10 @@ import {
   Trophy,
   BookOpen,
   FileBarChart,
+  ClipboardUser,
+  BookUser,
+  Activity,
+  Megaphone,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -27,26 +31,29 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
-import { Separator } from "./ui/separator";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
-    { href: "/dashboard/kehadiran-siswa", icon: UserCheck, label: "Manajemen Kehadiran Siswa" },
+    { type: 'divider', label: 'Data Induk' },
+    { href: "/dashboard/data-induk-siswa", icon: Users, label: "Data Induk Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Manajemen Jadwal Pelajaran" },
-    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Manajemen Kehadiran Guru"},
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Manajemen Jadwal Pelajaran" },
+    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Manajemen Ekskul & Prestasi" },
+    { type: 'divider', label: 'Aktivitas Harian' },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardUser, label: "Manajemen Kehadiran Siswa" },
+    { href: "/dashboard/kehadiran-guru", icon: BookUser, label: "Manajemen Kehadiran Guru"},
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
-    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Manajemen Ekskul dan Prestasi" },
-    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Tindakan dan Pelanggaran Siswa"},
-    { href: "/dashboard/laporan", icon: FileText, label: "Manajemen Wakasek" },
-    { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Wakasek" },
+    { type: 'divider', label: 'Laporan & Notifikasi' },
+    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
+    { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Masuk" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
@@ -101,20 +108,30 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
 
     return (
       <SidebarMenu>
-        {navItems.map((item) => (
-          'href' in item ? (
-            <SidebarMenuItem key={item.label}>
-              <Link href={item.href}>
-                <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")}>
-                    <item.icon className="size-4" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      {item.label}
-                    </span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ) : null
-        ))}
+        {navItems.map((item, index) => {
+           if (item.type === 'divider') {
+            return (
+              <SidebarGroupLabel key={index} className="!h-auto mt-2">
+                {item.label}
+              </SidebarGroupLabel>
+            );
+          }
+          if ('href' in item) {
+            return (
+              <SidebarMenuItem key={item.label}>
+                <Link href={item.href}>
+                  <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")}>
+                      <item.icon className="size-4" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.label}
+                      </span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            )
+          }
+          return null;
+        })}
       </SidebarMenu>
     );
   };
@@ -159,7 +176,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
                   </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
-            <Separator className="my-1"/>
             <SidebarMenuItem>
               <Link href="/" onClick={handleLogout}>
                 <SidebarMenuButton tooltip="Logout">
@@ -173,5 +189,3 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
-
-    
