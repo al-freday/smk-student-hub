@@ -65,8 +65,9 @@ export default function AdminPengaturanPage() {
 
     let count = 1; // Start with 1 for wakasek
     if (teachersData && typeof teachersData === 'object') {
-        Object.keys(teachersData).forEach((key) => {
-            const roleArray = teachersData[key];
+        const { schoolInfo, ...roles } = teachersData;
+        Object.keys(roles).forEach((key) => {
+            const roleArray = roles[key];
              if (Array.isArray(roleArray)) {
                 count += roleArray.length;
             }

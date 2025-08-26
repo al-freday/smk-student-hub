@@ -96,12 +96,14 @@ export default function AdminManajemenPenggunaPage() {
   const loadDataFromStorage = () => {
     try {
         const savedData = localStorage.getItem('teachersData');
-        const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
-        const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
+        const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
+        const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] } as { [key in TeacherRole]: User[] };
         
-        for (const roleKey in teachersData) {
+        const { schoolInfo, ...roles } = teachersData;
+        
+        for (const roleKey in roles) {
             if (usersData.hasOwnProperty(roleKey)) {
-                usersData[roleKey as TeacherRole] = teachersData[roleKey].map((guru: Guru) => ({
+                usersData[roleKey as TeacherRole] = (roles[roleKey] || []).map((guru: Guru) => ({
                     ...guru,
                     role: getRoleName(roleKey),
                     email: createEmailFromName(guru.nama, guru.id),
@@ -149,7 +151,7 @@ export default function AdminManajemenPenggunaPage() {
       }
 
       const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
+      const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
       const currentList = teachersData[activeTab] || [];
       let updatedList;
       
@@ -163,8 +165,10 @@ export default function AdminManajemenPenggunaPage() {
           updatedList = [...currentList, newUser];
       }
 
-      const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
-      localStorage.setItem('teachersData', JSON.stringify(updatedTeachers));
+      const { schoolInfo, ...roles } = teachersData;
+      const updatedTeachers = { ...roles, [activeTab]: updatedList };
+      const finalDataToSave = { ...teachersData, ...updatedTeachers };
+      localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
       
       loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
@@ -177,9 +181,12 @@ export default function AdminManajemenPenggunaPage() {
       const savedData = localStorage.getItem('teachersData');
       const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
       const updatedList = (teachersData[activeTab] || []).filter((t: Guru) => t.id !== userToDelete.id);
-      const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
+      
+      const { schoolInfo, ...roles } = teachersData;
+      const updatedTeachers = { ...roles, [activeTab]: updatedList };
+      const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
-      localStorage.setItem('teachersData', JSON.stringify(updatedTeachers));
+      localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
       
       loadDataFromStorage(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
@@ -191,9 +198,11 @@ export default function AdminManajemenPenggunaPage() {
     const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
     let allUsers: User[] = [];
 
-    for (const roleKey in teachersData) {
-        if (roleKey !== 'schoolInfo') {
-            (teachersData[roleKey as TeacherRole] || []).forEach((guru: Guru) => {
+    const { schoolInfo, ...roles } = teachersData;
+
+    for (const roleKey in roles) {
+        if (roles.hasOwnProperty(roleKey)) {
+            (roles[roleKey as TeacherRole] || []).forEach((guru: Guru) => {
                 allUsers.push({
                     ...guru,
                     role: getRoleName(roleKey),
@@ -253,7 +262,7 @@ export default function AdminManajemenPenggunaPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherRole)}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
               {roleOptions.map(role => (
                  <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
               ))}
