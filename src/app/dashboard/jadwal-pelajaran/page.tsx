@@ -37,7 +37,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface Jadwal {
   id: number;
@@ -91,9 +90,11 @@ export default function JadwalPelajaranPage() {
   const [guruBkMap, setGuruBkMap] = useState<{ [key: string]: string[] }>({});
 
   const loadData = () => {
-    setJadwal(getSourceData(JADWAL_STORAGE_KEY, []));
+    const savedJadwal = localStorage.getItem(JADWAL_STORAGE_KEY);
+    setJadwal(savedJadwal ? JSON.parse(savedJadwal) : []);
     
-    const teachersData = getSourceData('teachersData', {});
+    const savedTeachers = localStorage.getItem('teachersData');
+    const teachersData = savedTeachers ? JSON.parse(savedTeachers) : {};
     
     const waliKelasList = teachersData.wali_kelas || [];
     const newWaliKelasMap: { [key: string]: string } = {};
@@ -145,7 +146,7 @@ export default function JadwalPelajaranPage() {
   }, []);
   
   const handleSaveChanges = () => {
-    updateSourceData(JADWAL_STORAGE_KEY, jadwal);
+    localStorage.setItem(JADWAL_STORAGE_KEY, JSON.stringify(jadwal));
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada jadwal pelajaran telah disimpan.",
