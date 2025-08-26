@@ -1,18 +1,16 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon, Users, Download, Building, Save, RefreshCw } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -44,10 +42,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface Siswa {
@@ -60,15 +54,6 @@ interface Siswa {
 interface Kelas {
     id: number;
     nama: string;
-}
-
-interface Kehadiran {
-  id: string;
-  nis: string;
-  nama: string;
-  kelas: string;
-  tanggal: string;
-  status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
 interface WaliKelasInfo {
@@ -94,14 +79,9 @@ export default function ManajemenSiswaPage() {
   const [editingKelas, setEditingKelas] = useState<Kelas | null>(null);
   const [kelasToDelete, setKelasToDelete] = useState<Kelas | null>(null);
 
-  const [openKehadiran, setOpenKehadiran] = useState(false);
-  const [siswaKehadiran, setSiswaKehadiran] = useState<Siswa | null>(null);
-
   // --- Form States ---
   const [siswaFormData, setSiswaFormData] = useState<Partial<Siswa>>({});
   const [kelasFormData, setKelasFormData] = useState<Partial<Kelas>>({});
-  const [statusKehadiran, setStatusKehadiran] = useState<Kehadiran['status']>('Hadir');
-  const [tanggalKehadiran, setTanggalKehadiran] = useState<Date | undefined>(new Date());
 
   const loadData = () => {
     const savedSiswa = getSourceData('siswaData', []);
@@ -125,6 +105,16 @@ export default function ManajemenSiswaPage() {
               setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
           }
       }
+      
+      const handleDataChange = () => {
+        loadData();
+      };
+    
+      window.addEventListener('dataUpdated', handleDataChange);
+      
+      return () => {
+          window.removeEventListener('dataUpdated', handleDataChange);
+      };
   }, []);
 
   const handleSaveChanges = () => {
@@ -134,6 +124,7 @@ export default function ManajemenSiswaPage() {
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
     });
+    window.dispatchEvent(new Event('dataUpdated'));
   };
 
   const resetSiswaForm = () => {
@@ -162,13 +153,6 @@ export default function ManajemenSiswaPage() {
         setKelasFormData(kelasToEdit);
     }
     setIsKelasDialogOpen(true);
-  };
-
-  const handleOpenKehadiranDialog = (siswa: Siswa) => {
-      setSiswaKehadiran(siswa);
-      setStatusKehadiran('Hadir');
-      setTanggalKehadiran(new Date());
-      setOpenKehadiran(true);
   };
 
   const handleSaveSiswa = () => {
@@ -213,35 +197,6 @@ export default function ManajemenSiswaPage() {
     }
   };
   
-  const handleSaveKehadiran = () => {
-    if (!siswaKehadiran || !statusKehadiran || !tanggalKehadiran) return;
-    
-    const tanggalFormatted = format(tanggalKehadiran, "yyyy-MM-dd");
-    const riwayat: Kehadiran[] = getSourceData("kehadiranSiswa", []);
-
-    const riwayatBaru = riwayat.filter(k => !(k.nis === siswaKehadiran.nis && k.tanggal === tanggalFormatted));
-    
-    const catatanBaru: Kehadiran = {
-      id: `${siswaKehadiran.nis}-${tanggalFormatted}`,
-      nis: siswaKehadiran.nis,
-      nama: siswaKehadiran.nama,
-      kelas: siswaKehadiran.kelas,
-      tanggal: tanggalFormatted,
-      status: statusKehadiran,
-    };
-    
-    riwayatBaru.push(catatanBaru);
-    updateSourceData("kehadiranSiswa", riwayatBaru);
-    
-    toast({
-      title: "Kehadiran Disimpan",
-      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk tanggal ${tanggalFormatted}. Data kehadiran disimpan langsung.`,
-    });
-
-    setOpenKehadiran(false);
-    setSiswaKehadiran(null);
-  };
-
   const handleDeleteSiswa = () => {
     if (!siswaToDelete) return;
     const updatedSiswa = siswa.filter((s) => s.id !== siswaToDelete.id);
@@ -337,9 +292,6 @@ export default function ManajemenSiswaPage() {
         </div>
       </div>
       <div className="flex justify-end gap-2">
-            <Link href="/dashboard/kehadiran-siswa">
-                <Button variant="outline"><CalendarCheck className="mr-2 h-4 w-4" />Riwayat Kehadiran</Button>
-            </Link>
              <input type="file" ref={fileInputRef} className="hidden" onChange={handleImport} accept=".csv" />
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" />Impor</Button>
             <Button variant="outline" onClick={handleDownload}><Download className="mr-2 h-4 w-4" />Unduh</Button>
@@ -409,7 +361,6 @@ export default function ManajemenSiswaPage() {
                                         <TableCell>{s.nis}</TableCell>
                                         <TableCell className="font-medium">{s.nama}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="outline" size="sm" className="mr-2" onClick={() => handleOpenKehadiranDialog(s)}><CalendarCheck className="mr-2 h-4 w-4" /> Kehadiran</Button>
                                             <DropdownMenu>
                                             <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Menu</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
@@ -455,24 +406,6 @@ export default function ManajemenSiswaPage() {
             </div>
             <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><Button onClick={handleSaveKelas}>Simpan</Button></DialogFooter>
           </DialogContent>
-      </Dialog>
-
-      {/* Dialog Kehadiran */}
-      <Dialog open={openKehadiran} onOpenChange={setOpenKehadiran}>
-        <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>Catat Kehadiran: {siswaKehadiran?.nama}</DialogTitle></DialogHeader>
-            <div className="grid gap-4 py-4">
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="tanggal-kehadiran" className="text-right">Tanggal</Label>
-                    <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal",!tanggalKehadiran && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{tanggalKehadiran ? format(tanggalKehadiran, "PPP") : <span>Pilih tanggal</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={tanggalKehadiran} onSelect={setTanggalKehadiran} initialFocus /></PopoverContent></Popover>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="status-kehadiran" className="text-right">Status</Label>
-                    <Select onValueChange={(value) => setStatusKehadiran(value as Kehadiran['status'])} defaultValue={statusKehadiran}><SelectTrigger className="col-span-3" id="status-kehadiran"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Hadir">Hadir</SelectItem><SelectItem value="Sakit">Sakit</SelectItem><SelectItem value="Izin">Izin</SelectItem><SelectItem value="Alpa">Alpa</SelectItem></SelectContent></Select>
-                </div>
-            </div>
-            <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><Button onClick={handleSaveKehadiran}>Simpan</Button></DialogFooter>
-        </DialogContent>
       </Dialog>
       
       {/* Alert Dialogs for Deletion */}
