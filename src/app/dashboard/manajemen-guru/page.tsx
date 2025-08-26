@@ -468,7 +468,7 @@ export default function ManajemenGuruPage() {
                             <Label htmlFor="session">Jam Ke-</Label>
                               <Select value={currentAssignment.session} onValueChange={value => setCurrentAssignment({...currentAssignment, session: value})}>
                                 <SelectTrigger id="session"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                                <SelectContent>{sesiPelajaran.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                                <SelectContent>{sesiPelajaran.map((s, i) => <SelectItem key={`${s}-${i}`} value={s}>{s}</SelectItem>)}</SelectContent>
                              </Select>
                         </div>
                     </div>
@@ -663,5 +663,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-    
