@@ -35,21 +35,28 @@ const getAvatarFallbackFromName = (name: string = "") => {
 export default function DashboardHeader() {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [schoolName, setSchoolName] = useState("SMK Student Hub");
   
-  const loadUserInfo = useCallback(() => {
+  const loadData = useCallback(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
         setUserInfo(JSON.parse(storedUser));
     }
+    const savedTeachers = localStorage.getItem('teachersData');
+    if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        if (teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
+            setSchoolName(teachersData.schoolInfo.schoolName);
+        }
+    }
   }, []);
 
   useEffect(() => {
-    loadUserInfo();
+    loadData();
     
-    // Listen for storage changes to update the header in real-time
     const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'currentUser') {
-            loadUserInfo();
+        if (event.key === 'currentUser' || event.key === 'teachersData') {
+            loadData();
         }
     };
     
@@ -58,7 +65,7 @@ export default function DashboardHeader() {
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
-  }, [loadUserInfo]);
+  }, [loadData]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -79,7 +86,7 @@ export default function DashboardHeader() {
           <SheetContent side="left" className="p-0">
             <Link href="#" className="flex h-16 items-center border-b px-4">
                <Icons.logo className="h-6 w-6 mr-2" />
-               <span className="font-semibold">SMKN 2 Tana Toraja</span>
+               <span className="font-semibold">{schoolName}</span>
             </Link>
             <DashboardNav isMobile={true} />
           </SheetContent>

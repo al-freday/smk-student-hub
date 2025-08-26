@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 const reportTypesByRole = {
   wakasek_kesiswaan: [
-    { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
+    { title: "Laporan Wali Kelas", href: "/dashboard/laporan-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
   ],
   wali_kelas: [],
   guru_bk: [],

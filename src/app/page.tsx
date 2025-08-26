@@ -25,9 +25,9 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
     
-    const savedTeachers = localStorage.getItem('teachersData');
-    if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
+    const savedData = localStorage.getItem('teachersData');
+    if (savedData) {
+        const teachersData = JSON.parse(savedData);
         if (teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
         }
