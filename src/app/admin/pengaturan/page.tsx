@@ -34,6 +34,11 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
 const userRoles = [
     { key: "admin", name: "Administrator" },
     { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
+    { key: "wali_kelas", name: "Wali Kelas" },
+    { key: "guru_bk", name: "Guru BK" },
+    { key: "guru_mapel", name: "Guru Mapel" },
+    { key: "guru_piket", name: "Guru Piket" },
+    { key: "guru_pendamping", name: "Guru Pendamping" },
 ];
 
 export default function AdminPengaturanPage() {
