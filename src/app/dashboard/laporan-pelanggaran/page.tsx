@@ -5,12 +5,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Download, User, BarChart2, TrendingDown, TrendingUp, Trophy, ShieldAlert } from "lucide-react";
+import { Printer, Download, User, TrendingDown, ShieldAlert, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -52,23 +53,42 @@ export default function LaporanPelanggaranPage() {
   
   // --- Filter States ---
   const [selectedKelas, setSelectedKelas] = useState<string>("Semua Kelas");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     const siswaData = getSourceData('siswaData', []);
-    const catatanData = getSourceData('riwayatCatatan', []);
+    // Menggabungkan riwayatPelanggaran dan riwayatCatatan untuk kompatibilitas
+    const pelanggaranData = getSourceData('riwayatPelanggaran', []);
+    const prestasiData = getSourceData('prestasiData', []).map((p: any) => ({
+        id: `prestasi-${p.id}`,
+        tanggal: p.tanggal,
+        tipe: 'prestasi',
+        nis: p.nis,
+        siswa: p.namaSiswa,
+        kelas: p.kelas,
+        deskripsi: p.deskripsi,
+        poin: 0
+    }));
+
+    const catatanData = [...pelanggaranData.map((p:any) => ({...p, tipe: 'pelanggaran', siswa: p.namaSiswa})), ...prestasiData];
+
     setDaftarSiswa(siswaData);
     setRiwayatCatatan(catatanData);
     
     const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s: Siswa) => s.kelas)))];
-    setDaftarKelas(kelasUnik);
+    setDaftarKelas(kelasUnik.sort());
   }, []);
 
   const filteredSiswa = useMemo(() => {
-      if (selectedKelas === "Semua Kelas") {
-          return daftarSiswa;
+      let siswa = daftarSiswa;
+      if (selectedKelas !== "Semua Kelas") {
+          siswa = siswa.filter(s => s.kelas === selectedKelas);
       }
-      return daftarSiswa.filter(s => s.kelas === selectedKelas);
-  }, [selectedKelas, daftarSiswa]);
+      if (searchTerm) {
+          siswa = siswa.filter(s => s.nama.toLowerCase().includes(searchTerm.toLowerCase()));
+      }
+      return siswa;
+  }, [selectedKelas, searchTerm, daftarSiswa]);
 
   const siswaDenganPoin = useMemo(() => {
     return filteredSiswa.map(siswa => {
@@ -150,12 +170,24 @@ export default function LaporanPelanggaranPage() {
                     <CardTitle>Rekapitulasi Poin Siswa</CardTitle>
                     <CardDescription>Daftar siswa diurutkan berdasarkan total poin pelanggaran tertinggi.</CardDescription>
                 </div>
-                 <div className="flex items-center gap-2 print:hidden">
-                    <Label htmlFor="filter-kelas">Filter Kelas:</Label>
-                    <Select value={selectedKelas} onValueChange={setSelectedKelas}>
-                        <SelectTrigger id="filter-kelas" className="w-[180px]"><SelectValue/></SelectTrigger>
-                        <SelectContent>{daftarKelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
-                    </Select>
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 print:hidden w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Label htmlFor="search-student" className="whitespace-nowrap">Cari Siswa:</Label>
+                        <Input 
+                            id="search-student"
+                            placeholder="Ketik nama..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full sm:w-48"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Label htmlFor="filter-kelas">Filter Kelas:</Label>
+                        <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                            <SelectTrigger id="filter-kelas" className="w-full sm:w-[180px]"><SelectValue/></SelectTrigger>
+                            <SelectContent>{daftarKelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
                  </div>
             </div>
         </CardHeader>
@@ -184,7 +216,7 @@ export default function LaporanPelanggaranPage() {
                             <TableCell className="text-center">{s.totalPrestasi}</TableCell>
                         </TableRow>
                     )) : (
-                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Tidak ada data untuk ditampilkan.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Tidak ada data untuk ditampilkan sesuai filter.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
@@ -193,5 +225,3 @@ export default function LaporanPelanggaranPage() {
     </div>
   );
 }
-
-    
