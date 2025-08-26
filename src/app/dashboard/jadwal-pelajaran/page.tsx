@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, User } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData } from "@/lib/data-manager";
 
 interface Jadwal {
   id: number;
@@ -80,6 +81,24 @@ export default function JadwalPelajaranPage() {
   const [jadwalToDelete, setJadwalToDelete] = useState<Jadwal | null>(null);
   
   const [formData, setFormData] = useState<Partial<Jadwal>>({});
+  const [waliKelasMap, setWaliKelasMap] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    const teachersData = getSourceData('teachersData', {});
+    const waliKelasList = teachersData.wali_kelas || [];
+    const newWaliKelasMap: { [key: string]: string } = {};
+
+    if (Array.isArray(waliKelasList)) {
+        waliKelasList.forEach((wali: any) => {
+            if (Array.isArray(wali.kelas)) {
+                wali.kelas.forEach((kelas: string) => {
+                    newWaliKelasMap[kelas] = wali.nama;
+                });
+            }
+        });
+    }
+    setWaliKelasMap(newWaliKelasMap);
+  }, []);
 
   const resetForm = () => {
     setFormData({});
@@ -153,10 +172,19 @@ export default function JadwalPelajaranPage() {
                 <Accordion type="multiple" className="w-full">
                   {daftarKelas.map(kelas => {
                     const jadwalKelas = jadwalHari.filter(j => j.kelas === kelas).sort((a,b) => a.sesi.localeCompare(b.sesi));
+                    const waliKelas = waliKelasMap[kelas] || "Belum Ditentukan";
                     
                     return (
                       <AccordionItem value={`${hari}-${kelas}`} key={`${hari}-${kelas}`}>
-                        <AccordionTrigger>{kelas}</AccordionTrigger>
+                        <AccordionTrigger>
+                           <div>
+                                <span className="font-semibold">{kelas}</span>
+                                <p className="text-xs text-muted-foreground font-normal flex items-center gap-1.5">
+                                    <User className="h-3 w-3" />
+                                    Wali Kelas: {waliKelas}
+                                </p>
+                           </div>
+                        </AccordionTrigger>
                         <AccordionContent>
                             <div className="flex justify-end mb-2">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenDialog(null, { hari, kelas })}>
