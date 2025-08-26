@@ -16,6 +16,9 @@ import {
   UserCheck,
   Scale,
   ShieldAlert,
+  Trophy,
+  BookOpen,
+  FileBarChart,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -40,6 +43,8 @@ const navItemsByRole = {
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Manajemen Kehadiran Guru"},
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Manajemen Ekskul dan Prestasi" },
+    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Tindakan dan Pelanggaran Siswa"},
     { href: "/dashboard/laporan", icon: FileText, label: "Manajemen Wakasek Kesiswaan" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
@@ -167,3 +172,5 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
+
+    

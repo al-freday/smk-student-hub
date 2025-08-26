@@ -1,0 +1,197 @@
+
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Printer, Download, User, BarChart2, TrendingDown, TrendingUp, Trophy, ShieldAlert } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
+
+// --- Interface Definitions ---
+interface Siswa {
+  id: number;
+  nis: string;
+  nama: string;
+  kelas: string;
+}
+
+interface CatatanSiswa {
+  id: number;
+  tanggal: string;
+  tipe: 'pelanggaran' | 'prestasi';
+  nis: string;
+  siswa: string;
+  kelas: string;
+  deskripsi: string;
+  poin?: number; // Poin untuk pelanggaran
+}
+
+const getSourceData = (key: string, defaultValue: any) => {
+    if (typeof window === 'undefined') return defaultValue;
+    try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.error(`Error reading from localStorage: ${key}`, error);
+        return defaultValue;
+    }
+};
+
+export default function LaporanPelanggaranPage() {
+  const { toast } = useToast();
+  
+  // --- Data States ---
+  const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [riwayatCatatan, setRiwayatCatatan] = useState<CatatanSiswa[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
+  
+  // --- Filter States ---
+  const [selectedKelas, setSelectedKelas] = useState<string>("Semua Kelas");
+
+  useEffect(() => {
+    const siswaData = getSourceData('siswaData', []);
+    const catatanData = getSourceData('riwayatCatatan', []);
+    setDaftarSiswa(siswaData);
+    setRiwayatCatatan(catatanData);
+    
+    const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s: Siswa) => s.kelas)))];
+    setDaftarKelas(kelasUnik);
+  }, []);
+
+  const filteredSiswa = useMemo(() => {
+      if (selectedKelas === "Semua Kelas") {
+          return daftarSiswa;
+      }
+      return daftarSiswa.filter(s => s.kelas === selectedKelas);
+  }, [selectedKelas, daftarSiswa]);
+
+  const siswaDenganPoin = useMemo(() => {
+    return filteredSiswa.map(siswa => {
+      const catatanSiswa = riwayatCatatan.filter(c => c.nis === siswa.nis);
+      const totalPoin = catatanSiswa
+        .filter(c => c.tipe === 'pelanggaran' && c.poin)
+        .reduce((sum, c) => sum + c.poin!, 0);
+      const totalPelanggaran = catatanSiswa.filter(c => c.tipe === 'pelanggaran').length;
+      const totalPrestasi = catatanSiswa.filter(c => c.tipe === 'prestasi').length;
+      return { ...siswa, totalPoin, totalPelanggaran, totalPrestasi, catatanSiswa };
+    }).sort((a, b) => b.totalPoin - a.totalPoin);
+  }, [filteredSiswa, riwayatCatatan]);
+
+  const summary = useMemo(() => {
+      const totalPelanggaran = riwayatCatatan.filter(c => c.tipe === 'pelanggaran').length;
+      const totalPrestasi = riwayatCatatan.filter(c => c.tipe === 'prestasi').length;
+      const siswaMelanggar = new Set(riwayatCatatan.filter(c => c.tipe === 'pelanggaran').map(c => c.nis)).size;
+      return { totalPelanggaran, totalPrestasi, siswaMelanggar };
+  }, [riwayatCatatan]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExport = () => {
+      const headers = ['NIS', 'Nama', 'Kelas', 'Total Poin', 'Jumlah Pelanggaran', 'Jumlah Prestasi'];
+      const csvContent = [
+          headers.join(','),
+          ...siswaDenganPoin.map(s => [s.nis, `"${s.nama}"`, s.kelas, s.totalPoin, s.totalPelanggaran, s.totalPrestasi].join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.setAttribute('download', `laporan_pelanggaran_${selectedKelas}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: "Ekspor Berhasil", description: "Laporan telah diunduh sebagai file CSV." });
+  };
+
+  return (
+    <div className="flex-1 space-y-6 report-container">
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Tindakan & Pelanggaran Siswa</h2>
+          <p className="text-muted-foreground">Analisis dan rekapitulasi data pelanggaran dan prestasi siswa.</p>
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" />Unduh</Button>
+            <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak</Button>
+        </div>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print:hidden">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Siswa</CardTitle><User/></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{daftarSiswa.length}</div></CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Siswa Melanggar</CardTitle><TrendingDown className="text-destructive"/></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{summary.siswaMelanggar}</div></CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Pelanggaran</CardTitle><ShieldAlert className="text-destructive"/></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{summary.totalPelanggaran}</div></CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Prestasi</CardTitle><Trophy className="text-blue-500"/></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{summary.totalPrestasi}</div></CardContent>
+          </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <CardTitle>Rekapitulasi Poin Siswa</CardTitle>
+                    <CardDescription>Daftar siswa diurutkan berdasarkan total poin pelanggaran tertinggi.</CardDescription>
+                </div>
+                 <div className="flex items-center gap-2 print:hidden">
+                    <Label htmlFor="filter-kelas">Filter Kelas:</Label>
+                    <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                        <SelectTrigger id="filter-kelas" className="w-[180px]"><SelectValue/></SelectTrigger>
+                        <SelectContent>{daftarKelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
+                    </Select>
+                 </div>
+            </div>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Peringkat</TableHead>
+                        <TableHead>NIS</TableHead>
+                        <TableHead>Nama Siswa</TableHead>
+                        <TableHead>Kelas</TableHead>
+                        <TableHead className="text-center">Total Poin</TableHead>
+                        <TableHead className="text-center">Jml. Pelanggaran</TableHead>
+                        <TableHead className="text-center">Jml. Prestasi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {siswaDenganPoin.length > 0 ? siswaDenganPoin.map((s, index) => (
+                        <TableRow key={s.id}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>{s.nis}</TableCell>
+                            <TableCell className="font-medium">{s.nama}</TableCell>
+                            <TableCell>{s.kelas}</TableCell>
+                            <TableCell className="text-center"><Badge variant={s.totalPoin > 0 ? "destructive" : "secondary"}>{s.totalPoin}</Badge></TableCell>
+                            <TableCell className="text-center">{s.totalPelanggaran}</TableCell>
+                            <TableCell className="text-center">{s.totalPrestasi}</TableCell>
+                        </TableRow>
+                    )) : (
+                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Tidak ada data untuk ditampilkan.</TableCell></TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+    
