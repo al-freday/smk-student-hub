@@ -1,12 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BookCheck, AlertTriangle, Scale, UserX, Shirt, Trash2, Sprout, Speech, GraduationCap, WifiOff, School, ShieldAlert, BookWarning } from "lucide-react";
+import { UserX, Shirt, Trash2, Speech, GraduationCap, WifiOff, School, ShieldAlert, BookMarked } from "lucide-react";
 import { tataTertibData } from "@/lib/tata-tertib-data";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -54,7 +53,7 @@ export default function ManajemenTataTertibPage() {
         <CardHeader>
           <div className="flex items-center gap-4">
               <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                <BookWarning className="h-8 w-8" />
+                <BookMarked className="h-8 w-8" />
               </div>
               <div>
                 <CardTitle>Sistem Poin Sanksi</CardTitle>
