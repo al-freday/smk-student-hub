@@ -33,6 +33,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -57,23 +58,6 @@ interface Prestasi {
   deskripsi: string;
   tingkat: 'Sekolah' | 'Kabupaten' | 'Provinsi' | 'Nasional' | 'Internasional';
 }
-
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') return defaultValue;
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.error(`Error reading from localStorage: ${key}`, error);
-        return defaultValue;
-    }
-};
-
-const updateSourceData = (key: string, data: any) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(key, JSON.stringify(data));
-    }
-};
 
 export default function EkskulPrestasiPage() {
   const { toast } = useToast();
@@ -104,6 +88,13 @@ export default function EkskulPrestasiPage() {
 
   useEffect(() => {
     loadData();
+    
+    const handleDataChange = () => loadData();
+    window.addEventListener('dataUpdated', handleDataChange);
+
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataChange);
+    };
   }, []);
 
   const handleSaveChanges = () => {
@@ -306,5 +297,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
-    

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { getSourceData } from "@/lib/data-manager";
 
 interface TeacherAttendanceRecord {
   id: number;
@@ -17,19 +18,6 @@ interface TeacherAttendanceRecord {
   keterangan: string;
   dicatatOleh: string;
 }
-
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') {
-        return defaultValue;
-    }
-    try {
-        const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
-        return defaultValue;
-    }
-};
 
 export default function KehadiranGuruPage() {
   const [allRecords, setAllRecords] = useState<TeacherAttendanceRecord[]>([]);

@@ -1,5 +1,6 @@
 
 import { format } from "date-fns";
+import { getSourceData } from "./data-manager";
 
 // Tipe data yang relevan
 interface Guru { id: number; nama: string; }
@@ -7,21 +8,6 @@ interface Kelas { id: number; nama: string; }
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface Kehadiran { id: string; tanggal: string; status: string; }
 interface CatatanSiswa { id: number; tanggal: string; tipe: 'pelanggaran' | 'prestasi'; }
-
-
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') {
-        return defaultValue;
-    }
-    try {
-        const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
-        return defaultValue;
-    }
-};
-
 
 // Fungsi utama untuk mengambil semua statistik dasbor
 export const getDashboardStats = () => {
@@ -36,7 +22,6 @@ export const getDashboardStats = () => {
         // Tambah 1 untuk Wakasek Kesiswaan yang mungkin tidak ada di daftar
         totalGuru = 1;
         
-        // Hapus schoolInfo sebelum menghitung
         const { schoolInfo, ...roles } = teachersData;
 
         Object.values(roles).forEach((roleArray: any) => {
@@ -57,11 +42,11 @@ export const getDashboardStats = () => {
     const kehadiranHariIni = Array.isArray(riwayatKehadiran) ? riwayatKehadiran.filter(k => k.tanggal === today) : [];
     const hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
     
-    // Gunakan totalSiswa yang valid untuk perhitungan persentase
     const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(0) + "%" : "0%";
 
-    // 5. Pelanggaran Hari Ini (Placeholder since Tata Tertib is removed)
-    const pelanggaranHariIni = 0;
+    // 5. Pelanggaran Hari Ini
+    const riwayatPelanggaran: CatatanSiswa[] = getSourceData('riwayatPelanggaran', []);
+    const pelanggaranHariIni = Array.isArray(riwayatPelanggaran) ? riwayatPelanggaran.filter(p => p.tanggal === today && p.tipe === 'pelanggaran').length : 0;
 
     return {
         totalSiswa,

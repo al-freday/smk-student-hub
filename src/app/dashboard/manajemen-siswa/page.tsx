@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface Siswa {
   id: number;
@@ -86,20 +87,18 @@ export default function ManajemenSiswaPage() {
   const loadData = () => {
     setIsLoading(true);
     try {
-        const savedSiswa = localStorage.getItem('siswaData');
-        const savedKelas = localStorage.getItem('kelasData');
-        setSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
-        setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
+        const savedSiswa = getSourceData('siswaData', []);
+        const savedKelas = getSourceData('kelasData', []);
+        setSiswa(savedSiswa);
+        setDaftarKelas(savedKelas);
 
         const role = localStorage.getItem('userRole');
         setUserRole(role);
 
         if (role === 'wali_kelas') {
-            const currentUserData = localStorage.getItem('currentUser');
-            const teachersDataData = localStorage.getItem('teachersData');
-            if(currentUserData && teachersDataData) {
-                const currentUser = JSON.parse(currentUserData);
-                const teachersData = JSON.parse(teachersDataData);
+            const currentUser = getSourceData('currentUser', null);
+            const teachersData = getSourceData('teachersData', {});
+            if(currentUser && teachersData) {
                 const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
                 if (waliKelasData) {
                     setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
@@ -114,14 +113,21 @@ export default function ManajemenSiswaPage() {
         setIsLoading(false);
     }
   };
-
+  
   useEffect(() => {
-      loadData();
+    loadData(); // Initial load
+    
+    const handleDataChange = () => loadData();
+    window.addEventListener('dataUpdated', handleDataChange);
+    
+    return () => {
+        window.removeEventListener('dataUpdated', handleDataChange);
+    };
   }, []);
 
   const handleSaveChanges = () => {
-    localStorage.setItem('siswaData', JSON.stringify(siswa));
-    localStorage.setItem('kelasData', JSON.stringify(daftarKelas));
+    updateSourceData('siswaData', siswa);
+    updateSourceData('kelasData', daftarKelas);
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
@@ -432,5 +438,3 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
-
-    

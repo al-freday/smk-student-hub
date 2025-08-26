@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ interface WaliKelasInfo {
 export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   
@@ -83,37 +85,44 @@ export default function ManajemenSiswaPage() {
   const [kelasFormData, setKelasFormData] = useState<Partial<Kelas>>({});
 
   const loadData = () => {
-    const savedSiswa = getSourceData('siswaData', []);
-    const savedKelas = getSourceData('kelasData', []);
-    setSiswa(savedSiswa);
-    setDaftarKelas(savedKelas);
-    toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
+    setIsLoading(true);
+    try {
+        const savedSiswa = getSourceData('siswaData', []);
+        const savedKelas = getSourceData('kelasData', []);
+        setSiswa(savedSiswa);
+        setDaftarKelas(savedKelas);
+
+        const role = localStorage.getItem('userRole');
+        setUserRole(role);
+
+        if (role === 'wali_kelas') {
+            const currentUser = getSourceData('currentUser', null);
+            const teachersData = getSourceData('teachersData', {});
+            if(currentUser && teachersData) {
+                const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
+                if (waliKelasData) {
+                    setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+                }
+            }
+        }
+        toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
+    } catch (error) {
+        console.error("Gagal memuat data:", error);
+        toast({ title: "Gagal Memuat Data", description: "Terjadi kesalahan saat memuat data.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
   };
-
+  
   useEffect(() => {
-      const role = localStorage.getItem('userRole');
-      setUserRole(role);
-
-      loadData(); // Initial load
-
-      if (role === 'wali_kelas') {
-          const currentUser = getSourceData('currentUser', {});
-          const teachersData = getSourceData('teachersData', {});
-          const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
-          if (waliKelasData) {
-              setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
-          }
-      }
-      
-      const handleDataChange = () => {
-        loadData();
-      };
+    loadData(); // Initial load
     
-      window.addEventListener('dataUpdated', handleDataChange);
-      
-      return () => {
-          window.removeEventListener('dataUpdated', handleDataChange);
-      };
+    const handleDataChange = () => loadData();
+    window.addEventListener('dataUpdated', handleDataChange);
+    
+    return () => {
+        window.removeEventListener('dataUpdated', handleDataChange);
+    };
   }, []);
 
   const handleSaveChanges = () => {
@@ -123,7 +132,6 @@ export default function ManajemenSiswaPage() {
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
     });
-    window.dispatchEvent(new Event('dataUpdated'));
   };
 
   const resetSiswaForm = () => {
@@ -275,12 +283,19 @@ export default function ManajemenSiswaPage() {
     ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
     : daftarKelas;
 
+  if (isLoading) {
+    return (
+        <div className="flex-1 space-y-6 flex justify-center items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa & Kelas</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa</h2>
           <p className="text-muted-foreground">
              Kelola data siswa dan daftar kelas di sekolah.
           </p>
@@ -312,7 +327,7 @@ export default function ManajemenSiswaPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {daftarKelas.length > 0 ? daftarKelas.map(k => (
+                            {Array.isArray(daftarKelas) && daftarKelas.length > 0 ? daftarKelas.map(k => (
                                 <TableRow key={k.id}>
                                     <TableCell className="font-medium">{k.nama}</TableCell>
                                     <TableCell className="text-right">
@@ -340,7 +355,7 @@ export default function ManajemenSiswaPage() {
                 </CardHeader>
                 <CardContent>
                 <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas?.[0]}>
-                    {displayedKelas.map((k) => {
+                    {Array.isArray(displayedKelas) && displayedKelas.map((k) => {
                     const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
                     return (
                         <AccordionItem value={k.nama} key={k.id}>
@@ -390,7 +405,7 @@ export default function ManajemenSiswaPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={siswaFormData.nis || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nis: e.target.value})} className="col-span-3"/></div>
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={siswaFormData.nama || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nama: e.target.value})} className="col-span-3"/></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{daftarKelas.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{Array.isArray(daftarKelas) && daftarKelas.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
             </div>
             <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><Button onClick={handleSaveSiswa}>Simpan</Button></DialogFooter>
           </DialogContent>

@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Siren, Award, UserX, UserCheck, Bell, MessageSquareWarning } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { getSourceData } from "@/lib/data-manager";
 
 type NotificationType = 'PELANGGARAN' | 'PRESTASI' | 'ABSENSI_SISWA' | 'ABSENSI_GURU';
 
@@ -17,20 +16,6 @@ interface Notification {
   timestamp: number;
   time: string;
 }
-
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') {
-        return defaultValue;
-    }
-    try {
-        const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
-        return defaultValue;
-    }
-};
-
 
 const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -64,77 +49,97 @@ export default function NotifikasiPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  
+  const generateNotifications = () => {
+      setIsLoading(true);
+      const role = localStorage.getItem('userRole');
+      setUserRole(role);
+
+      if (role === 'wakasek_kesiswaan') {
+        try {
+          const allNotifications: Notification[] = [];
+
+          // 1. Get Infractions
+          const riwayatPelanggaran = getSourceData('riwayatPelanggaran', []);
+          riwayatPelanggaran.forEach((item: any, index: number) => {
+              const timestamp = new Date(item.tanggal).getTime() + (riwayatPelanggaran.length - index) * 60000;
+              allNotifications.push({
+                  id: `pelanggaran-${item.id}`,
+                  type: 'PELANGGARAN',
+                  title: 'Pelanggaran Siswa',
+                  description: `Siswa **${item.namaSiswa} (${item.kelas})** tercatat melakukan pelanggaran: *${item.pelanggaran}*.`,
+                  timestamp: timestamp,
+                  time: formatTimeAgo(timestamp),
+              });
+          });
+
+          // 2. Get Achievements
+          const daftarPrestasi = getSourceData('prestasiData', []);
+          daftarPrestasi.forEach((item: any, index: number) => {
+              const timestamp = new Date(item.tanggal).getTime() + (daftarPrestasi.length - index) * 60000;
+              allNotifications.push({
+                  id: `prestasi-${item.id}`,
+                  type: 'PRESTASI',
+                  title: 'Prestasi Siswa',
+                  description: `Siswa **${item.namaSiswa} (${item.kelas})** meraih prestasi: *${item.deskripsi}*.`,
+                  timestamp: timestamp,
+                  time: formatTimeAgo(timestamp),
+              });
+          });
+
+          // 3. Get Student Absences (only non-hadir)
+          const kehadiranSiswa = getSourceData('kehadiranSiswa', []);
+          kehadiranSiswa.forEach((item: any, index: number) => {
+              if (item.status !== 'Hadir') {
+                  const timestamp = new Date(item.tanggal).getTime() + (kehadiranSiswa.length - index) * 60000;
+                  allNotifications.push({
+                      id: `absen-siswa-${item.id}`,
+                      type: 'ABSENSI_SISWA',
+                      title: `Absensi Siswa (${item.status})`,
+                      description: `Siswa **${item.nama} (${item.kelas})** tercatat **${item.status}** pada tanggal ${item.tanggal}.`,
+                      timestamp: timestamp,
+                      time: formatTimeAgo(timestamp),
+                  });
+              }
+          });
+
+          // 4. Get Teacher Absences (only non-hadir)
+          const teacherAttendance = getSourceData('teacherAttendanceData', []);
+          teacherAttendance.forEach((item: any, index: number) => {
+               if (item.status !== 'Hadir') {
+                  const timestamp = new Date(item.tanggal).getTime() + (teacherAttendance.length - index) * 60000;
+                  allNotifications.push({
+                      id: `absen-guru-${item.id}`,
+                      type: 'ABSENSI_GURU',
+                      title: `Kehadiran Guru (${item.status})`,
+                      description: `Guru **${item.namaGuru}** tercatat **${item.status}**. Keterangan: *${item.keterangan}*.`,
+                      timestamp: timestamp,
+                      time: formatTimeAgo(timestamp),
+                  });
+               }
+          });
+          
+          allNotifications.sort((a, b) => b.timestamp - a.timestamp);
+          
+          setNotifications(allNotifications);
+
+        } catch (error) {
+          console.error("Gagal memuat data notifikasi:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+          setNotifications([]);
+          setIsLoading(false);
+      }
+  };
 
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
-
-    if (role === 'wakasek_kesiswaan') {
-      try {
-        const allNotifications: Notification[] = [];
-        const now = new Date().getTime();
-
-        // 1. Get Infractions and Achievements
-        const riwayatCatatan = getSourceData('riwayatCatatan', []);
-        riwayatCatatan.forEach((item: any, index: number) => {
-            const timestamp = new Date(item.tanggal).getTime() + (riwayatCatatan.length - index) * 1000;
-            allNotifications.push({
-                id: `catatan-${item.id}`,
-                type: item.tipe === 'pelanggaran' ? 'PELANGGARAN' : 'PRESTASI',
-                title: item.tipe === 'pelanggaran' ? 'Pelanggaran Siswa' : 'Prestasi Siswa',
-                description: `Siswa **${item.siswa} (${item.kelas})** tercatat ${item.tipe === 'pelanggaran' ? 'melakukan pelanggaran' : 'meraih prestasi'}: *${item.deskripsi}*.`,
-                timestamp: timestamp,
-                time: formatTimeAgo(timestamp),
-            });
-        });
-
-        // 2. Get Student Absences (only non-hadir)
-        const kehadiranSiswa = getSourceData('kehadiranSiswa', []);
-        kehadiranSiswa.forEach((item: any, index: number) => {
-            if (item.status !== 'Hadir') {
-                const timestamp = new Date(item.tanggal).getTime() + (kehadiranSiswa.length - index) * 1000;
-                allNotifications.push({
-                    id: `absen-siswa-${item.id}`,
-                    type: 'ABSENSI_SISWA',
-                    title: `Absensi Siswa (${item.status})`,
-                    description: `Siswa **${item.nama} (${item.kelas})** tercatat **${item.status}** pada tanggal ${item.tanggal}.`,
-                    timestamp: timestamp,
-                    time: formatTimeAgo(timestamp),
-                });
-            }
-        });
-
-        // 3. Get Teacher Absences (only non-hadir)
-        const teacherAttendance = getSourceData('teacherAttendanceData', []);
-        teacherAttendance.forEach((item: any, index: number) => {
-             if (item.status !== 'Hadir') {
-                const timestamp = new Date(item.tanggal).getTime() + (teacherAttendance.length - index) * 1000;
-                allNotifications.push({
-                    id: `absen-guru-${item.id}`,
-                    type: 'ABSENSI_GURU',
-                    title: `Kehadiran Guru (${item.status})`,
-                    description: `Guru **${item.namaGuru}** tercatat **${item.status}**. Keterangan: *${item.keterangan}*.`,
-                    timestamp: timestamp,
-                    time: formatTimeAgo(timestamp),
-                });
-             }
-        });
-        
-        // Sort all notifications by timestamp descending
-        allNotifications.sort((a, b) => b.timestamp - a.timestamp);
-        
-        setNotifications(allNotifications);
-
-      } catch (error) {
-        console.error("Gagal memuat data notifikasi:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-        // Fallback for other roles
-        setNotifications([]);
-        setIsLoading(false);
-    }
+    generateNotifications();
+    window.addEventListener('dataUpdated', generateNotifications);
+    return () => {
+      window.removeEventListener('dataUpdated', generateNotifications);
+    };
   }, []);
   
   const renderDescription = (description: string) => {
