@@ -43,7 +43,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 
 interface Guru {
-  id: number;
+  id: number | string;
   nama: string;
   mapel?: string;
   kelas?: string;
@@ -72,12 +72,13 @@ const getRoleName = (roleKey: TeacherRole | string) => {
 };
 
 
-const createEmailFromName = (name: string, id: number) => {
+const createEmailFromName = (name: string, id: number | string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    return `${namePart}${id}@schoolemail.com`;
+    const idPart = String(id).split('-').pop();
+    return `${namePart}${idPart}@schoolemail.com`;
 };
 
-const initialTeachers: { [key in TeacherRole]: Guru[] } = {
+const initialTeachers: { [key in TeacherRole]: Guru[] } & { schoolInfo?: any } = {
     wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
 };
 
@@ -97,7 +98,9 @@ export default function AdminManajemenPenggunaPage() {
 
   const loadDataFromStorage = () => {
     try {
-        const teachersData = getSourceData('teachersData', initialTeachers);
+        const fullData = getSourceData('teachersData', initialTeachers);
+        const { schoolInfo, ...teachersData } = fullData;
+
         const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
         
         for (const roleKey in teachersData) {
@@ -128,16 +131,16 @@ export default function AdminManajemenPenggunaPage() {
     }
     loadDataFromStorage();
     
-    const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'teachersData') {
-            loadDataFromStorage();
-        }
+    const handleStorageChange = () => {
+        loadDataFromStorage();
     };
     
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('dataUpdated', handleStorageChange);
     
     return () => {
         window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('dataUpdated', handleStorageChange);
     };
   }, [router, toast]);
   
@@ -155,7 +158,7 @@ export default function AdminManajemenPenggunaPage() {
         setFormData(user);
       } else {
         setEditingUser(null);
-        setFormData({role: activeTab, password: ''});
+        setFormData({role: activeTab, password: 'password123'});
       }
       setIsDialogOpen(true);
   };
@@ -167,7 +170,8 @@ export default function AdminManajemenPenggunaPage() {
           return;
       }
       
-      const teachersData = getSourceData('teachersData', initialTeachers);
+      const fullData = getSourceData('teachersData', initialTeachers);
+      const { schoolInfo, ...teachersData } = fullData;
       let updatedTeachers = { ...teachersData };
 
       if (editingUser && editingUser.originalRole !== role) {
@@ -182,17 +186,18 @@ export default function AdminManajemenPenggunaPage() {
           if (userIndex > -1) {
             currentList[userIndex] = { ...currentList[userIndex], ...cleanGuruData };
           } else {
+             // This case handles when role is changed, so we add to the new list
             currentList.push(cleanGuruData as Guru);
           }
       } else {
-          const newId = Date.now();
+          const newId = Date.now().toString();
           currentList.push({ ...cleanGuruData, id: newId } as Guru);
       }
       
       updatedTeachers[role] = currentList;
-      updateSourceData('teachersData', updatedTeachers);
+      updateSourceData('teachersData', { ...updatedTeachers, schoolInfo });
+      window.dispatchEvent(new Event('dataUpdated'));
       
-      loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
@@ -200,21 +205,28 @@ export default function AdminManajemenPenggunaPage() {
   const handleDelete = () => {
       if (!userToDelete) return;
       
-      const roleKey = roleOptions.find(r => r.label === userToDelete.role)?.value;
+      const roleKey = Object.keys(roleOptions).find(key => roleOptions[key as any].label === userToDelete.role) as TeacherRole | undefined;
       if (!roleKey) return;
 
-      const teachersData = getSourceData('teachersData', initialTeachers);
+      const fullData = getSourceData('teachersData', initialTeachers);
+      const { schoolInfo, ...teachersData } = fullData;
+
+      if (!teachersData[roleKey]) return;
+
       const updatedList = teachersData[roleKey].filter((t: Guru) => t.id !== userToDelete.id);
       const updatedTeachers = { ...teachersData, [roleKey]: updatedList };
 
-      updateSourceData('teachersData', updatedTeachers);
-      loadDataFromStorage(); 
+      updateSourceData('teachersData', { ...updatedTeachers, schoolInfo });
+      window.dispatchEvent(new Event('dataUpdated'));
+
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
   const handleExportData = () => {
-    const teachersData = getSourceData('teachersData', initialTeachers);
+    const fullData = getSourceData('teachersData', initialTeachers);
+    const { schoolInfo, ...teachersData } = fullData;
+
     let allUsers: User[] = [];
 
     for (const roleKey in teachersData) {
@@ -230,7 +242,7 @@ export default function AdminManajemenPenggunaPage() {
         }
     }
 
-    const headers = ['ID', 'Nama', 'Email', 'Role', 'Password', 'Kelas Binaan', 'Mapel', 'Hari Piket'];
+    const headers = ['ID', 'Nama', 'Email', 'Role', 'Password'];
     const csvContent = [
         headers.join(','),
         ...allUsers.map(user => [
@@ -238,10 +250,7 @@ export default function AdminManajemenPenggunaPage() {
             `"${user.nama}"`,
             user.email,
             user.role,
-            user.password,
-            user.kelas || '',
-            user.mapel || '',
-            user.hariPiket || ''
+            user.password
         ].join(','))
     ].join('\n');
 
@@ -273,7 +282,7 @@ export default function AdminManajemenPenggunaPage() {
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="password" className="text-right">Sandi</Label>
-        <Input id="password" type="password" value={formData.password || ''} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="col-span-3"/>
+        <Input id="password" value={formData.password || ''} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="col-span-3"/>
       </div>
     </>
   );
@@ -333,7 +342,7 @@ export default function AdminManajemenPenggunaPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users[key as TeacherRole].length > 0 ? (
+                        {users[key as TeacherRole]?.length > 0 ? (
                         users[key as TeacherRole].map((user) => (
                             <TableRow key={user.id}>
                             <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
@@ -404,5 +413,3 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
-
-    

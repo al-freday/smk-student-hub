@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
+import { getSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -30,7 +31,7 @@ const getRoleName = (roleKey: string) => {
     return roles[roleKey] || 'Guru';
 };
 
-const createEmailFromName = (name: string, roleKey: string, id: string) => {
+const createEmailFromName = (name: string, id: string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     const idPart = id.split('-').pop(); // Ambil bagian numerik dari ID
     return `${namePart}${idPart}@schoolemail.com`;
@@ -49,34 +50,32 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const savedTeachers = localStorage.getItem('teachersData');
-      if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
-        const users: User[] = [];
-        
-        users.push({
-            id: 'wakasek_kesiswaan-0', // ID unik untuk wakasek
-            nama: 'Wakasek Kesiswaan',
-            roleKey: 'wakasek_kesiswaan',
-            roleName: 'Wakasek Kesiswaan'
-        });
+      const teachersData = getSourceData('teachersData', {});
+      const users: User[] = [];
+      
+      users.push({
+          id: 'wakasek_kesiswaan-0',
+          nama: 'Wakasek Kesiswaan',
+          roleKey: 'wakasek_kesiswaan',
+          roleName: 'Wakasek Kesiswaan'
+      });
 
-        Object.keys(teachersData).forEach(roleKey => {
-          const formattedRoleKey = roleKey.replace(/([A-Z])/g, '_$1').toLowerCase();
-          if (Array.isArray(teachersData[roleKey])) {
-            teachersData[roleKey].forEach((guru: any) => {
-              const uniqueId = `${formattedRoleKey}-${guru.id}`;
+      const { schoolInfo, ...roles } = teachersData;
+
+      Object.keys(roles).forEach(roleKey => {
+          if (Array.isArray(roles[roleKey])) {
+            roles[roleKey].forEach((guru: any) => {
+              const uniqueId = `${roleKey}-${guru.id}`;
               users.push({
                 id: uniqueId,
                 nama: guru.nama,
-                roleKey: formattedRoleKey,
-                roleName: getRoleName(formattedRoleKey),
+                roleKey: roleKey,
+                roleName: getRoleName(roleKey),
               });
             });
           }
-        });
-        setAllUsers(users);
-      }
+      });
+      setAllUsers(users);
     } catch (error) {
       console.error("Gagal memuat data pengguna:", error);
       toast({
@@ -99,7 +98,7 @@ export default function AdminDashboardPage() {
         const userForSettings = {
             nama: userToImpersonate.nama,
             role: userToImpersonate.roleName,
-            email: createEmailFromName(userToImpersonate.nama, userToImpersonate.roleKey, userToImpersonate.id),
+            email: createEmailFromName(userToImpersonate.nama, userToImpersonate.id),
         };
         localStorage.setItem('currentUser', JSON.stringify(userForSettings));
 

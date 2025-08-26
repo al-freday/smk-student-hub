@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats } from "@/lib/data";
 import { useRouter } from "next/navigation";
+import { getSourceData } from "@/lib/data-manager";
 
 const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -101,7 +102,7 @@ const WakasekDashboard = () => {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <Card>
-                         <Link href="/dashboard/laporan">
+                         <Link href="/dashboard/tata-tertib">
                             <CardHeader>
                                 <CardTitle>Laporan Terbaru</CardTitle>
                                 <CardDescription>Daftar pelanggaran dan prestasi siswa yang baru saja dicatat.</CardDescription>
@@ -146,27 +147,31 @@ const WaliKelasDashboard = () => {
         kehadiranRataRata: "0%",
         totalPelanggaran: 0,
         siswaBermasalah: 0,
-        kelasBinaan: "",
+        kelasBinaan: [],
     });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+        const currentUser = getSourceData('currentUser', {});
+        const teachersData = getSourceData('teachersData', {});
         const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
 
-        if (waliKelasData) {
+        if (waliKelasData && Array.isArray(waliKelasData.kelas)) {
             const kelasBinaan = waliKelasData.kelas;
-            const siswaData = JSON.parse(localStorage.getItem('siswaData') || '[]');
-            const siswaDiKelas = siswaData.filter((s: any) => s.kelas === kelasBinaan);
+            const siswaData = getSourceData('siswaData', []);
+            const siswaDiKelas = siswaData.filter((s: any) => kelasBinaan.includes(s.kelas));
             
             const jumlahSiswa = siswaDiKelas.length;
             
+            // Placeholder logic for stats
+            const riwayatCatatan = getSourceData('riwayatCatatan', []);
+            const pelanggaranDiKelas = riwayatCatatan.filter((r:any) => r.tipe === 'pelanggaran' && kelasBinaan.includes(r.kelas));
+            
             setStats({
                 jumlahSiswa: jumlahSiswa,
-                kehadiranRataRata: "97%", 
-                totalPelanggaran: 15,
-                siswaBermasalah: 3,
+                kehadiranRataRata: "97%", // Placeholder
+                totalPelanggaran: pelanggaranDiKelas.length,
+                siswaBermasalah: 3, // Placeholder
                 kelasBinaan: kelasBinaan,
             });
         }
@@ -175,19 +180,19 @@ const WaliKelasDashboard = () => {
 
 
     const studentsNeedingAttention = [
-        { id: 1, name: "Siswa A", class: stats.kelasBinaan, points: 45, reason: "Sering terlambat" },
-        { id: 2, name: "Siswa B", class: stats.kelasBinaan, points: 30, reason: "Tidak mengerjakan PR 3x" },
-        { id: 3, name: "Siswa C", class: stats.kelasBinaan, points: 25, reason: "Absen tanpa keterangan" },
+        { id: 1, name: "Siswa A", class: stats.kelasBinaan[0] || '', points: 45, reason: "Sering terlambat" },
+        { id: 2, name: "Siswa B", class: stats.kelasBinaan[0] || '', points: 30, reason: "Tidak mengerjakan PR 3x" },
+        { id: 3, name: "Siswa C", class: stats.kelasBinaan[0] || '', points: 25, reason: "Absen tanpa keterangan" },
     ];
 
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                  <StatCard
-                    title="Jumlah Siswa Kelas"
+                    title="Jumlah Siswa Binaan"
                     value={stats.jumlahSiswa.toString()}
                     icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    description={`Kelas ${stats.kelasBinaan}`}
+                    description={`Di ${stats.kelasBinaan.length} kelas`}
                     isLoading={isLoading}
                 />
                  <StatCard

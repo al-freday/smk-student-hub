@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Download, FileCheck2 } from "lucide-react";
+import { Download, FileCheck2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData } from "@/lib/data-manager";
 
 const reportTypesByRole = {
   wakasek_kesiswaan: [
@@ -17,23 +18,20 @@ const reportTypesByRole = {
     { title: "Laporan Guru BK", href: "/dashboard/laporan/guru-bk", description: "Rekapitulasi sesi bimbingan dan konseling." },
   ],
   wali_kelas: [
-    { title: "Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas", description: "Buat dan kelola laporan lengkap untuk kelas Anda." },
+    { title: "Laporan Administrasi Kelas", href: "/dashboard/laporan/wali-kelas", description: "Buat dan kelola laporan lengkap untuk kelas Anda." },
   ],
   guru_bk: [
     { title: "Layanan Konseling & Tindak Lanjut", href: "/dashboard/laporan/guru-bk", description: "Kelola semua kasus dan catatan tindak lanjut siswa." },
-    { title: "Lihat Laporan Wali Kelas", href: "/dashboard/laporan/wali-kelas-wakasek", description: "Akses rekapitulasi laporan dari para wali kelas." },
-    { title: "Lihat Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Akses catatan perkembangan akademik dari guru mapel." },
-    { title: "Lihat Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Pantau laporan harian dari guru yang bertugas piket." },
     { title: "Rekap Program & Laporan", href: "/dashboard/laporan/guru-bk/rekap", description: "Buat rekapitulasi program untuk dikirim ke Wakasek." },
   ],
   guru_mapel: [
-    { title: "Laporan Guru Mapel", href: "/dashboard/laporan/guru-mapel", description: "Buat laporan perkembangan akademik siswa." },
+    { title: "Penilaian & Laporan", href: "/dashboard/laporan/guru-mapel", description: "Input nilai, absensi, dan kirim laporan." },
   ],
   guru_piket: [
-    { title: "Laporan Guru Piket", href: "/dashboard/laporan/guru-piket", description: "Isi laporan harian selama jam piket Anda." },
+    { title: "Laporan Piket Harian", href: "/dashboard/laporan/guru-piket", description: "Isi laporan harian selama jam piket Anda." },
   ],
   guru_pendamping: [
-    { title: "Laporan Refleksi Perkembangan", href: "/dashboard/laporan/guru-pendamping", description: "Buat laporan reflektif mengenai perkembangan siswa selama masa pembimbingan." },
+    { title: "Catatan Bimbingan & Laporan", href: "/dashboard/laporan/guru-pendamping", description: "Buat catatan dan laporan perkembangan siswa." },
   ],
   siswa: [],
   orang_tua: [],
@@ -59,22 +57,19 @@ export default function LaporanPage() {
   });
 
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof reportTypesByRole) || 'wakasek_kesiswaan';
+    const role = (localStorage.getItem('userRole') as keyof typeof reportTypesByRole) || null;
     setUserRole(role);
 
     if (role === 'wakasek_kesiswaan') {
       try {
-        const savedTeachers = localStorage.getItem('teachersData');
-        if (savedTeachers) {
-          const teachersData = JSON.parse(savedTeachers);
-          setReportCounts({
+        const teachersData = getSourceData('teachersData', {});
+        setReportCounts({
             wali_kelas: teachersData.wali_kelas?.length || 0,
             guru_mapel: teachersData.guru_mapel?.length || 0,
             guru_pendamping: teachersData.guru_pendamping?.length || 0,
             guru_piket: teachersData.guru_piket?.length || 0,
             guru_bk: teachersData.guru_bk?.length || 0,
-          });
-        }
+        });
       } catch (error) {
         console.error("Gagal memuat data rekapitulasi:", error);
       }
@@ -104,19 +99,8 @@ export default function LaporanPage() {
 
   if (!userRole) {
     return (
-      <div className="flex-1 space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Memuat Laporan...</h2>
-          <p className="text-muted-foreground">Menyesuaikan laporan berdasarkan peran Anda.</p>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader><div className="h-6 w-3/4 bg-muted rounded"></div></CardHeader>
-              <CardContent><div className="h-4 w-full bg-muted rounded mb-4"></div><div className="h-10 w-full bg-muted rounded"></div></CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex-1 space-y-6 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }

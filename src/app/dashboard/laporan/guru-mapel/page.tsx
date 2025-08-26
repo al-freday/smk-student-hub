@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, BookOpen } from "lucide-react";
+import { Printer, Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, BookOpen, Send } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,10 @@ import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 // --- Tipe Data untuk Laporan (Wakasek View) ---
-interface GuruMapelFromWakasek { id: number; nama: string; mapel?: string; }
+interface GuruMapelFromWakasek { id: number; nama: string; teachingAssignments?: any[] }
 type ReportStatus = 'Terkirim' | 'Diproses' | 'Diterima';
 interface ReceivedReport { id: number; guru: string; mapel: string; tanggal: string; catatan: string; status: ReportStatus; }
 
@@ -30,8 +30,8 @@ interface NilaiSiswa { nilaiHarian: string; nilaiUjian: string; catatanMateri: s
 interface AbsenSiswa { status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa'; }
 interface TeachingAssignment {
     subject: string;
-    classes: string[];
-    assignmentId: number;
+    className: string;
+    id: number;
 }
 
 export default function LaporanGuruMapelPage() {
@@ -50,7 +50,7 @@ export default function LaporanGuruMapelPage() {
   // --- State untuk Dialog Nilai & Absen ---
   const [isNilaiDialogOpen, setIsNilaiDialogOpen] = useState(false);
   const [selectedSiswa, setSelectedSiswa] = useState<Siswa | null>(null);
-  const [selectedAssignment, setSelectedAssignment] = useState<{ id: number, mapel: string } | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<{ id: number, subject: string, className: string } | null>(null);
   const [nilaiFormData, setNilaiFormData] = useState<Partial<NilaiSiswa>>({});
   const [absenFormData, setAbsenFormData] = useState<Partial<AbsenSiswa>>({});
 
@@ -77,12 +77,16 @@ export default function LaporanGuruMapelPage() {
       const savedStatuses = getSourceData(reportStatusStorageKey, {});
       
       const guruMapelList: GuruMapelFromWakasek[] = teachersData.guru_mapel || [];
-      const reports = guruMapelList.map((guru, index) => ({
-        id: guru.id, guru: guru.nama, mapel: guru.mapel || `Mapel ${index + 1}`,
-        tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
-        catatan: `Laporan rutin untuk mata pelajaran ${guru.mapel || `Mapel ${index + 1}`}.`,
-        status: savedStatuses[guru.id] || 'Terkirim',
-      }));
+      const reports = guruMapelList.map((guru, index) => {
+          const assignmentCount = guru.teachingAssignments?.length || 0;
+          return {
+            id: guru.id, guru: guru.nama, 
+            mapel: assignmentCount > 0 ? `${assignmentCount} tugas mengajar` : "Belum ada tugas",
+            tanggal: format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd"),
+            catatan: `Laporan rutin dari guru mata pelajaran.`,
+            status: savedStatuses[guru.id] || 'Terkirim',
+          };
+      });
       setReceivedReports(reports);
       
     } catch (error) { console.error("Gagal memuat data guru mapel:", error); } 
@@ -108,31 +112,11 @@ export default function LaporanGuruMapelPage() {
   };
 
   // --- Logika untuk Guru Mapel View ---
-  const loadGuruMapelData = (currentUserName: string) => {
+ const loadGuruMapelData = (currentUserName: string) => {
     try {
         const teachersData = getSourceData('teachersData', {});
-        const assignmentsRaw: GuruMapelFromWakasek[] = teachersData.guru_mapel?.filter((guru: GuruMapelFromWakasek) => guru.nama === currentUserName) || [];
-        
-        const assignmentsBySubject: { [key: string]: { classes: string[], assignmentId: number } } = {};
-
-        assignmentsRaw.forEach(assignment => {
-            if (!assignment.mapel) return;
-            const [subject, className] = assignment.mapel.split(" - ").map(s => s.trim());
-            if (!subject || !className) return;
-
-            if (!assignmentsBySubject[subject]) {
-                assignmentsBySubject[subject] = { classes: [], assignmentId: assignment.id };
-            }
-            assignmentsBySubject[subject].classes.push(className);
-        });
-        
-        const groupedAssignments: TeachingAssignment[] = Object.entries(assignmentsBySubject).map(([subject, data]) => ({
-            subject,
-            classes: data.classes,
-            assignmentId: data.assignmentId
-        }));
-        
-        setMyTeachingAssignments(groupedAssignments);
+        const guruData = teachersData.guru_mapel?.find((guru: GuruMapelFromWakasek) => guru.nama === currentUserName);
+        setMyTeachingAssignments(guruData?.teachingAssignments || []);
 
     } catch (error) {
         console.error("Gagal memuat data pengajaran:", error);
@@ -140,11 +124,11 @@ export default function LaporanGuruMapelPage() {
     setIsLoading(false);
   };
   
-  const handleOpenNilaiDialog = (siswa: Siswa, subject: string, assignmentId: number) => {
+  const handleOpenNilaiDialog = (siswa: Siswa, assignment: TeachingAssignment) => {
     setSelectedSiswa(siswa);
-    setSelectedAssignment({ id: assignmentId, mapel: subject }); // Menggunakan subject sebagai mapel
-    const nilaiKey = `nilai_${assignmentId}_${siswa.id}`;
-    const absenKey = `absen_${assignmentId}_${siswa.id}`;
+    setSelectedAssignment(assignment);
+    const nilaiKey = `nilai_${assignment.id}_${siswa.id}`;
+    const absenKey = `absen_${assignment.id}_${siswa.id}`;
     const savedNilai = getSourceData(nilaiKey, {});
     const savedAbsen = getSourceData(absenKey, {});
     setNilaiFormData(savedNilai || {});
@@ -156,10 +140,17 @@ export default function LaporanGuruMapelPage() {
     if (!selectedSiswa || !selectedAssignment) return;
     const nilaiKey = `nilai_${selectedAssignment.id}_${selectedSiswa.id}`;
     const absenKey = `absen_${selectedAssignment.id}_${selectedSiswa.id}`;
-    localStorage.setItem(nilaiKey, JSON.stringify(nilaiFormData));
-    localStorage.setItem(absenKey, JSON.stringify(absenFormData));
+    updateSourceData(nilaiKey, nilaiFormData);
+    updateSourceData(absenKey, absenFormData);
     toast({ title: "Data Disimpan", description: `Nilai dan absen untuk ${selectedSiswa.nama} telah disimpan.` });
     setIsNilaiDialogOpen(false);
+  };
+  
+  const handleSendReport = () => {
+    toast({
+      title: "Laporan Terkirim",
+      description: "Laporan penilaian dan absensi Anda telah dikirim ke Wakasek Kesiswaan.",
+    });
   };
 
   if (isLoading) {
@@ -175,9 +166,15 @@ export default function LaporanGuruMapelPage() {
   if (userRole === 'guru_mapel') {
     return (
       <div className="flex-1 space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Penilaian & Laporan</h2>
-          <p className="text-muted-foreground">Kelola nilai dan absensi siswa pada kelas dan mata pelajaran yang Anda ajar.</p>
+        <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Penilaian & Laporan</h2>
+              <p className="text-muted-foreground">Kelola nilai dan absensi siswa pada kelas dan mata pelajaran yang Anda ajar.</p>
+            </div>
+             <Button onClick={handleSendReport}>
+                <Send className="mr-2 h-4 w-4" />
+                Kirim Laporan
+            </Button>
         </div>
         <Card>
           <CardHeader>
@@ -187,43 +184,41 @@ export default function LaporanGuruMapelPage() {
           <CardContent>
             {myTeachingAssignments.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
-                    {myTeachingAssignments.map((assignment) => (
-                         <AccordionItem value={assignment.subject} key={assignment.subject}>
-                            <AccordionTrigger>
-                                <span className="font-semibold text-lg">{assignment.subject}</span>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                {assignment.classes.map(kelas => {
-                                    const siswaDiKelas = allSiswa.filter(s => s.kelas === kelas);
-                                    return (
-                                        <div key={kelas} className="p-4 border rounded-md mb-4">
-                                            <h4 className="font-medium mb-2">Kelas: {kelas}</h4>
-                                            {siswaDiKelas.length > 0 ? (
-                                                <Table>
-                                                    <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                                                    <TableBody>
-                                                        {siswaDiKelas.map(siswa => (
-                                                            <TableRow key={siswa.id}>
-                                                                <TableCell>{siswa.nis}</TableCell>
-                                                                <TableCell className="font-medium">{siswa.nama}</TableCell>
-                                                                <TableCell className="text-right">
-                                                                    <Button variant="outline" size="sm" onClick={() => handleOpenNilaiDialog(siswa, assignment.subject, assignment.assignmentId)}>
-                                                                        <BookOpen className="mr-2 h-4 w-4" /> Input Nilai & Absen
-                                                                    </Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            ) : (
-                                                <p className="text-center text-muted-foreground py-4">Data siswa untuk kelas ini belum tersedia.</p>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
+                    {myTeachingAssignments.map((assignment) => {
+                        const siswaDiKelas = allSiswa.filter(s => s.kelas === assignment.className);
+                        return (
+                            <AccordionItem value={String(assignment.id)} key={assignment.id}>
+                                <AccordionTrigger>
+                                    <div className="text-left">
+                                        <p className="font-semibold text-lg">{assignment.subject}</p>
+                                        <p className="text-sm text-muted-foreground">Kelas: {assignment.className}</p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    {siswaDiKelas.length > 0 ? (
+                                        <Table>
+                                            <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {siswaDiKelas.map(siswa => (
+                                                    <TableRow key={siswa.id}>
+                                                        <TableCell>{siswa.nis}</TableCell>
+                                                        <TableCell className="font-medium">{siswa.nama}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button variant="outline" size="sm" onClick={() => handleOpenNilaiDialog(siswa, assignment)}>
+                                                                <BookOpen className="mr-2 h-4 w-4" /> Input Nilai & Absen
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-4">Data siswa untuk kelas ini belum tersedia.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        )
+                    })}
                 </Accordion>
             ) : (
                 <div className="text-center text-muted-foreground py-10">
@@ -238,7 +233,7 @@ export default function LaporanGuruMapelPage() {
           <DialogContent>
             <DialogHeader>
                 <DialogTitle>Input Nilai & Absen untuk {selectedSiswa?.nama}</DialogTitle>
-                <DialogDescription>Mapel: {selectedAssignment?.mapel} - Kelas: {selectedSiswa?.kelas}</DialogDescription>
+                <DialogDescription>Mapel: {selectedAssignment?.subject} - Kelas: {selectedSiswa?.kelas}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
                 <div>
@@ -294,7 +289,7 @@ export default function LaporanGuruMapelPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tanggal</TableHead><TableHead>Nama Guru</TableHead><TableHead>Mata Pelajaran</TableHead><TableHead>Catatan</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead>
+                <TableHead>Tanggal</TableHead><TableHead>Nama Guru</TableHead><TableHead>Tugas</TableHead><TableHead>Catatan</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

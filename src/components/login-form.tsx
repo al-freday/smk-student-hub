@@ -19,10 +19,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 const getRoleDisplayName = (role: string) => {
@@ -72,20 +73,25 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+    const teachersData = getSourceData('teachersData', {});
     let foundUser = null;
     let userRoleKey = '';
     const emailToSearch = values.email.toLowerCase();
 
-    for (const role in teachersData) {
-        if (!Array.isArray(teachersData[role])) continue;
+    // Pisahkan logic pencarian agar lebih mudah dibaca
+    const { schoolInfo, ...roles } = teachersData;
 
-        const user = teachersData[role].find((u: any) => {
+    for (const role in roles) {
+        if (!Array.isArray(roles[role])) continue;
+
+        const user = roles[role].find((u: any) => {
             if (!u.nama || typeof u.nama !== 'string' || u.id === undefined) return false;
+            
             const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-            // ID bisa berupa angka atau string dari Date.now()
-            const expectedEmail = `${namePart}${u.id}@schoolemail.com`;
-            return expectedEmail === emailToSearch;
+            const idPart = String(u.id).split('-').pop();
+            const expectedEmail = `${namePart}${idPart}@schoolemail.com`;
+            
+            return expectedEmail === emailToSearch && u.password === values.password;
         });
 
         if (user) {
@@ -96,8 +102,8 @@ export function LoginForm() {
     }
     
     // Hardcoded check for wakasek
-    if (emailToSearch === 'wakasek@schoolemail.com' || emailToSearch === 'wakasek@email.com') { // Added alias for backward compatibility
-        foundUser = { nama: 'Wakasek Kesiswaan' };
+    if (!foundUser && (emailToSearch === 'wakasek@schoolemail.com' || emailToSearch === 'wakasek@email.com') && values.password === 'password123') {
+        foundUser = { nama: 'Wakasek Kesiswaan', id: 0, password: 'password123' };
         userRoleKey = 'wakasek_kesiswaan';
     }
 
@@ -108,11 +114,11 @@ export function LoginForm() {
       } else {
          toast({
           title: "Login Gagal",
-          description: "Pengguna tidak ditemukan atau password salah. Silakan hubungi admin.",
+          description: "Email atau password salah. Silakan hubungi admin jika lupa.",
           variant: "destructive",
         });
       }
-    }, 1500);
+    }, 1000);
   }
 
   function onGoogleSignIn() {

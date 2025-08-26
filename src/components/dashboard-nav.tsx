@@ -21,19 +21,14 @@ import {
   HeartHandshake,
   ClipboardList,
   UserCheck,
-  Building,
-  Briefcase,
   FileSignature,
-  BookCopy,
-  BadgeHelp,
   MessageSquare,
-  ClipboardCheck,
+  SendToBack,
   TrafficCone,
   Siren,
   FolderKanban,
   FileHeart,
   MessagesSquare,
-  SendToBack
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -42,19 +37,16 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
 import { Separator } from "./ui/separator";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { getSourceData } from "@/lib/data-manager";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
@@ -64,41 +56,33 @@ const navItemsByRole = {
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
-    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
-    { href: "/dashboard/manajemen-siswa", icon: UserPlus, label: "Manajemen Siswa" },
-    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-    { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
-    { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
-    { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
    wali_kelas: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan/wali-kelas", icon: BookUser, label: "Administrasi Kelas" },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Siswa Binaan" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pembinaan Disiplin" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Pembinaan Karakter" },
-    { href: "/dashboard/laporan/wali-kelas", icon: HeartHandshake, label: "Kesejahteraan Siswa" },
-    { href: "/dashboard/laporan/wali-kelas", icon: Handshake, label: "Hubungan Orang Tua" },
-    { href: "/dashboard/laporan", icon: ClipboardList, label: "Laporan Bulanan" },
   ],
   guru_bk: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan/guru-bk", icon: MessageSquare, label: "Layanan Konseling" },
-    { href: "/dashboard/laporan", icon: FileText, label: "Pusat Laporan" },
     { href: "/dashboard/laporan/guru-bk/rekap", icon: SendToBack, label: "Rekap Program" },
   ],
   guru_mapel: [
-    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal & Rencana" },
-    { href: "/dashboard/manajemen-siswa", icon: UserCheck, label: "Aktivitas & Absensi" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan/guru-mapel", icon: FileSignature, label: "Penilaian & Laporan" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
   ],
   guru_pendamping: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/tata-tertib", icon: HeartHandshake, label: "Pembinaan Karakter" },
     { href: "/dashboard/laporan/guru-pendamping", icon: FileHeart, label: "Catatan Bimbingan" },
-    { href: "/dashboard/laporan/wali-kelas", icon: MessagesSquare, label: "Komunikasi Orang Tua" },
-    { href: "/dashboard/laporan", icon: FolderKanban, label: "Laporan Perkembangan" },
   ],
   guru_piket: [
-    { href: "/dashboard/tata-tertib", icon: TrafficCone, label: "Disiplin & Ketertiban" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan/guru-piket", icon: Siren, label: "Laporan Piket Harian" },
+    { href: "/dashboard/tata-tertib", icon: TrafficCone, label: "Disiplin & Ketertiban" },
   ]
 };
 
@@ -112,9 +96,9 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
     setUserRole(role);
 
-    const savedSchoolInfo = localStorage.getItem("schoolInfo");
-    if (savedSchoolInfo) {
-      setSchoolInfo(JSON.parse(savedSchoolInfo));
+    const teachersData = getSourceData('teachersData', {});
+    if (teachersData.schoolInfo) {
+      setSchoolInfo(teachersData.schoolInfo);
     }
   }, []);
 
@@ -126,33 +110,32 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const containerClass = isMobile ? "flex flex-col h-full" : "";
   
   const renderNavItems = () => {
-    if (!userRole) return null;
+    const navItems = userRole ? (navItemsByRole[userRole] || []) : [];
+    if (navItems.length === 0 && userRole !== 'admin') return null;
     
-    // For guru_bk, we already have a dashboard link in its specific nav items.
-    // For other roles, we add it manually if it doesn't exist.
-    const hasDashboardLink = (navItemsByRole[userRole] || []).some(item => item.href === "/dashboard");
-
-    const navItems = navItemsByRole[userRole] || [];
-
-    if (navItems.length === 0) return null;
+    // Special case for admin to show link to admin panel
+    if(userRole === 'admin') {
+      return (
+         <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/admin/dashboard">
+                <SidebarMenuButton tooltip="Admin Panel" isActive={pathname === "/admin/dashboard"}>
+                  <LayoutDashboard className="size-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+         </SidebarMenu>
+      )
+    }
 
     return (
       <SidebarMenu>
-        {!hasDashboardLink && (
-          <SidebarMenuItem>
-            <Link href="/dashboard">
-              <SidebarMenuButton tooltip="Dashboard" isActive={pathname === "/dashboard"}>
-                <LayoutDashboard className="size-4" />
-                <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        )}
         {navItems.map((item) => (
           'href' in item ? (
             <SidebarMenuItem key={item.label}>
               <Link href={item.href}>
-                <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== "/dashboard" || pathname === "/dashboard")}>
+                <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")}>
                     <item.icon className="size-4" />
                     <span className="group-data-[collapsible=icon]:hidden">
                       {item.label}
