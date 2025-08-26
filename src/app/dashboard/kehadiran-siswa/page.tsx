@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
-import { Save, CalendarIcon } from "lucide-react";
+import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,13 @@ interface Siswa {
   nis: string;
   nama: string;
   kelas: string;
+}
+
+interface AttendanceSummary {
+    hadir: number;
+    sakit: number;
+    izin: number;
+    alpa: number;
 }
 
 const statusOptions: KehadiranStatus[] = ['Hadir', 'Sakit', 'Izin', 'Alpa'];
@@ -76,6 +83,21 @@ export default function KehadiranSiswaPage() {
     setAttendanceState(newAttendanceState);
   }, [selectedDate, selectedKelas, studentsInSelectedClass, allRecords]);
 
+  const attendanceSummary: AttendanceSummary = useMemo(() => {
+    const summary: AttendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpa: 0 };
+    studentsInSelectedClass.forEach(siswa => {
+        const status = attendanceState.get(siswa.nis);
+        switch (status) {
+            case 'Hadir': summary.hadir++; break;
+            case 'Sakit': summary.sakit++; break;
+            case 'Izin': summary.izin++; break;
+            case 'Alpa': summary.alpa++; break;
+        }
+    });
+    return summary;
+  }, [attendanceState, studentsInSelectedClass]);
+
+
   const handleStatusChange = (nis: string, status: KehadiranStatus) => {
     const newAttendanceState = new Map(attendanceState);
     newAttendanceState.set(nis, status);
@@ -92,10 +114,10 @@ export default function KehadiranSiswaPage() {
       return;
     }
 
-    const newRecords: Kehadiran[] = [];
+    const newRecordsForDay: Kehadiran[] = [];
     studentsInSelectedClass.forEach(siswa => {
       const status = attendanceState.get(siswa.nis) || 'Hadir';
-      newRecords.push({
+      newRecordsForDay.push({
         id: `${siswa.nis}-${selectedDate}`,
         nis: siswa.nis,
         nama: siswa.nama,
@@ -105,13 +127,12 @@ export default function KehadiranSiswaPage() {
       });
     });
 
-    const updatedRecords = [
-      ...allRecords.filter(r => !newRecords.some(nr => nr.id === r.id)),
-      ...newRecords
-    ];
+    const otherRecords = allRecords.filter(r => r.tanggal !== selectedDate || r.kelas !== selectedKelas);
+    
+    const updatedRecords = [...otherRecords, ...newRecordsForDay];
     
     updateSourceData('kehadiranSiswa', updatedRecords);
-    setAllRecords(updatedRecords);
+    setAllRecords(updatedRecords); // Update state lokal untuk memicu re-render
     
     toast({
       title: "Kehadiran Disimpan",
@@ -191,7 +212,7 @@ export default function KehadiranSiswaPage() {
                             <RadioGroup
                                 value={attendanceState.get(siswa.nis) || 'Hadir'}
                                 onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
-                                className="flex justify-center space-x-4"
+                                className="flex justify-center space-x-2 sm:space-x-4"
                             >
                                 {statusOptions.map(status => (
                                 <div key={status} className="flex items-center space-x-2">
@@ -215,6 +236,48 @@ export default function KehadiranSiswaPage() {
           </div>
         </CardContent>
       </Card>
+      
+       {selectedKelas && studentsInSelectedClass.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Rekapitulasi Kehadiran</CardTitle>
+              <CardDescription>
+                Ringkasan kehadiran untuk kelas {selectedKelas} pada tanggal {selectedDate}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-4">
+                <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                    <UserCheck className="h-8 w-8 text-green-500"/>
+                    <div>
+                        <p className="text-2xl font-bold">{attendanceSummary.hadir}</p>
+                        <p className="text-sm text-muted-foreground">Hadir</p>
+                    </div>
+                </div>
+                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                    <Thermometer className="h-8 w-8 text-blue-500"/>
+                    <div>
+                        <p className="text-2xl font-bold">{attendanceSummary.sakit}</p>
+                        <p className="text-sm text-muted-foreground">Sakit</p>
+                    </div>
+                </div>
+                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                    <MailQuestion className="h-8 w-8 text-yellow-500"/>
+                    <div>
+                        <p className="text-2xl font-bold">{attendanceSummary.izin}</p>
+                        <p className="text-sm text-muted-foreground">Izin</p>
+                    </div>
+                </div>
+                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
+                    <UserX className="h-8 w-8 text-destructive"/>
+                    <div>
+                        <p className="text-2xl font-bold">{attendanceSummary.alpa}</p>
+                        <p className="text-sm text-muted-foreground">Alpa</p>
+                    </div>
+                </div>
+            </CardContent>
+          </Card>
+      )}
+
     </div>
   );
 }
