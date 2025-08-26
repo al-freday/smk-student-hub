@@ -49,10 +49,7 @@ import { getSourceData } from "@/lib/data-manager";
 const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
-    { href: "/dashboard/kehadiran-siswa", icon: CalendarCheck, label: "Kehadiran Siswa" },
-    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru" },
-    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
+    { href: "/dashboard/data-induk-siswa", icon: Database, label: "Data Induk Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
@@ -64,8 +61,8 @@ const navItemsByRole = {
   ],
    wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/laporan/wali-kelas", icon: BookUser, label: "Administrasi Kelas" },
-    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Siswa Binaan" },
+    { href: "/dashboard/kehadiran-siswa", icon: CalendarCheck, label: "Kehadiran Siswa" },
+    { href: "/dashboard/laporan/wali-kelas", icon: BookUser, label: "Laporan Administrasi" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Pembinaan Disiplin" },
   ],
   guru_bk: [
@@ -86,7 +83,7 @@ const navItemsByRole = {
   guru_piket: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan/guru-piket", icon: Siren, label: "Laporan Piket Harian" },
-    { href: "/dashboard/tata-tertib", icon: TrafficCone, label: "Disiplin & Ketertiban" },
+    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru" },
   ]
 };
 
