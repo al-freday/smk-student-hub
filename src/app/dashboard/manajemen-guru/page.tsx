@@ -207,15 +207,21 @@ export default function ManajemenGuruPage() {
   
   const handleHariPiketChange = (hari: string, checked: boolean) => {
       const currentHari = formData.hariPiket || [];
+      let newHariPiket;
       if (checked) {
-          setFormData({ ...formData, hariPiket: [...currentHari, hari].sort((a, b) => daftarHari.indexOf(a) - daftarHari.indexOf(b)) });
+          newHariPiket = [...currentHari, hari].sort((a, b) => daftarHari.indexOf(a) - daftarHari.indexOf(b));
       } else {
-          const newHariPiket = currentHari.filter(h => h !== hari);
-          setFormData({ ...formData, hariPiket: newHariPiket });
-          // Reset selected dates if number of days is less than selected dates
-          if (selectedDates.length > newHariPiket.length) {
-              setSelectedDates([]);
-          }
+          newHariPiket = currentHari.filter(h => h !== hari);
+      }
+      setFormData({ ...formData, hariPiket: newHariPiket });
+
+      // Reset selected dates if number of selected days changes to avoid inconsistency
+      if (selectedDates.length > 0) {
+          setSelectedDates([]);
+          toast({
+              title: "Tanggal Direset",
+              description: "Pilihan tanggal piket khusus telah direset karena ada perubahan pada hari rutin.",
+          });
       }
   };
   
@@ -380,7 +386,7 @@ export default function ManajemenGuruPage() {
   const isDateDisabled = (date: Date) => {
     const selectedDays = formData.hariPiket?.map(day => hariToDayIndex[day]) || [];
     if (selectedDays.length === 0) {
-      return false;
+      return false; // Allow selection if no routine day is set, handle it in onSelect
     }
     return !selectedDays.includes(getDay(date));
   };
@@ -403,7 +409,8 @@ export default function ManajemenGuruPage() {
             description: `Anda hanya dapat memilih ${maxDates} tanggal sesuai jumlah hari rutin.`,
             variant: "destructive"
         });
-        const limitedDates = dates.slice(-maxDates);
+        // Limit selection to the last `maxDates` selected dates to enforce the rule
+        const limitedDates = dates.slice(dates.length - maxDates);
         setSelectedDates(limitedDates);
     } else {
         setSelectedDates(dates || []);
