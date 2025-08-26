@@ -214,10 +214,14 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleDownload = () => {
-    const headers = ['id', 'nis', 'nama', 'kelas'];
+    const headers = ['NIS', 'Nama Siswa', 'Kelas'];
     const csvContent = [
         headers.join(','),
-        ...siswa.map(s => [s.id, s.nis, `"${s.nama}"`, s.kelas].join(','))
+        ...siswa.map(s => [
+            s.nis,
+            `"${s.nama}"`, // Tanda kutip untuk menangani koma di dalam nama
+            s.kelas
+        ].join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -244,23 +248,24 @@ export default function ManajemenSiswaPage() {
         
         rows.forEach(row => {
             if (!row.trim()) return;
-            const columns = row.split(',');
-            const [id, nis, nama, kelas] = columns;
+            // Handle CSV columns that might contain commas
+            const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(field => field.replace(/"/g, '')) || [];
             
-            if (id && nis && nama && kelas) {
+            const [nis, nama, kelas] = columns;
+            
+            if (nis && nama && kelas) {
+                // Find max id to avoid collision
+                const maxId = newSiswaList.length > 0 ? Math.max(...newSiswaList.map(s => s.id)) : 0;
+                
                 const siswaObj: Siswa = {
-                    id: parseInt(id),
+                    id: maxId + 1 + importedCount, // ensure unique id on import
                     nis: nis.trim(),
-                    nama: nama.trim().replace(/"/g, ''),
+                    nama: nama.trim(),
                     kelas: kelas.trim(),
                 };
                 
-                const existingIndex = newSiswaList.findIndex(s => s.id === siswaObj.id);
-                if (existingIndex > -1) {
-                    newSiswaList[existingIndex] = siswaObj; // Update
-                } else {
-                    newSiswaList.push(siswaObj); // Add new
-                }
+                // For simplicity, we add new students. A more complex logic could handle updates.
+                newSiswaList.push(siswaObj);
                 importedCount++;
             }
         });
