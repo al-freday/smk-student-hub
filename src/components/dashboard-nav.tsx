@@ -14,6 +14,7 @@ import {
   UserCog,
   User,
   UserCheck,
+  Scale,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -36,6 +37,7 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Manajemen Jadwal Pelajaran" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Manajemen Kehadiran Guru"},
+    { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Manajemen Wakasek Kesiswaan" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
