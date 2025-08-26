@@ -46,6 +46,7 @@ const navItemsByRole = {
     { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Manajemen Ekskul dan Prestasi" },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Tindakan dan Pelanggaran Siswa"},
     { href: "/dashboard/laporan", icon: FileText, label: "Manajemen Wakasek" },
+    { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Wakasek" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   admin: [
