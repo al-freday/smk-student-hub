@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +63,7 @@ interface WaliKelasInfo {
 export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   
@@ -83,32 +84,39 @@ export default function ManajemenSiswaPage() {
   const [kelasFormData, setKelasFormData] = useState<Partial<Kelas>>({});
 
   const loadData = () => {
-    const savedSiswa = localStorage.getItem('siswaData');
-    const savedKelas = localStorage.getItem('kelasData');
-    setSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
-    setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
-    toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
+    setIsLoading(true);
+    try {
+        const savedSiswa = localStorage.getItem('siswaData');
+        const savedKelas = localStorage.getItem('kelasData');
+        setSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
+        setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
+
+        const role = localStorage.getItem('userRole');
+        setUserRole(role);
+
+        if (role === 'wali_kelas') {
+            const currentUserData = localStorage.getItem('currentUser');
+            const teachersDataData = localStorage.getItem('teachersData');
+            if(currentUserData && teachersDataData) {
+                const currentUser = JSON.parse(currentUserData);
+                const teachersData = JSON.parse(teachersDataData);
+                const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
+                if (waliKelasData) {
+                    setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+                }
+            }
+        }
+        toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
+    } catch (error) {
+        console.error("Gagal memuat data:", error);
+        toast({ title: "Gagal Memuat Data", description: "Terjadi kesalahan saat memuat data.", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-      const role = localStorage.getItem('userRole');
-      setUserRole(role);
-
-      loadData(); // Initial load
-
-      if (role === 'wali_kelas') {
-          const currentUserData = localStorage.getItem('currentUser');
-          const teachersDataData = localStorage.getItem('teachersData');
-
-          if(currentUserData && teachersDataData) {
-            const currentUser = JSON.parse(currentUserData);
-            const teachersData = JSON.parse(teachersDataData);
-            const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
-            if (waliKelasData) {
-                setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
-            }
-          }
-      }
+      loadData();
   }, []);
 
   const handleSaveChanges = () => {
@@ -265,16 +273,23 @@ export default function ManajemenSiswaPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
   
-  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo && Array.isArray(daftarKelas)
+  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo
     ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
     : daftarKelas;
 
+  if (isLoading) {
+    return (
+        <div className="flex-1 space-y-6 flex justify-center items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa & Kelas</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Manajemen Siswa</h2>
           <p className="text-muted-foreground">
              Kelola data siswa dan daftar kelas di sekolah.
           </p>
