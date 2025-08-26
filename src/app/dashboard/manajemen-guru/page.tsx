@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -34,6 +34,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+
 
 interface Kelas {
   id: number;
@@ -46,10 +48,18 @@ interface Siswa {
   kelas: string;
 }
 
+interface TeachingAssignment {
+  id: number;
+  subject: string;
+  className: string;
+  day: string;
+  session: string;
+}
+
 interface Guru {
   id: number;
   nama: string;
-  mapel?: string;
+  teachingAssignments?: TeachingAssignment[];
   kelas?: string[];
   hariPiket?: string[];
   tanggalPiket?: string[];
@@ -75,7 +85,9 @@ const getRoleName = (roleKey: string) => {
     return roleOptions.find(r => r.value === roleKey)?.label || 'Guru';
 };
 
-const daftarHariPiket = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
+
+const sesiPelajaran = [ "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export default function ManajemenGuruPage() {
   const { toast } = useToast();
@@ -90,8 +102,11 @@ export default function ManajemenGuruPage() {
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   
-  // State for multi-date picker
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  
+  // State for Guru Mapel assignment form
+  const [currentAssignment, setCurrentAssignment] = useState<Partial<TeachingAssignment>>({});
+
 
   const loadDataFromStorage = () => {
     try {
@@ -188,7 +203,7 @@ export default function ManajemenGuruPage() {
   };
 
   const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
-      const currentSiswa = formData.siswaBinaan || [];
+      const currentSiswa = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
       if (checked) {
           setFormData({ ...formData, siswaBinaan: [...currentSiswa, siswaNama] });
       } else {
@@ -196,6 +211,23 @@ export default function ManajemenGuruPage() {
       }
   };
   
+  const handleAddAssignment = () => {
+    if (!currentAssignment.subject || !currentAssignment.className || !currentAssignment.day || !currentAssignment.session) {
+        toast({ title: "Gagal", description: "Harap lengkapi semua detail tugas mengajar.", variant: "destructive" });
+        return;
+    }
+    const newAssignment = { ...currentAssignment, id: Date.now() } as TeachingAssignment;
+    const existingAssignments = formData.teachingAssignments || [];
+    setFormData({ ...formData, teachingAssignments: [...existingAssignments, newAssignment] });
+    setCurrentAssignment({}); // Reset form
+  };
+
+  const handleDeleteAssignment = (assignmentId: number) => {
+    const updatedAssignments = formData.teachingAssignments?.filter(a => a.id !== assignmentId);
+    setFormData({ ...formData, teachingAssignments: updatedAssignments });
+  };
+
+
   const formatPiketDetails = (guru: Guru) => {
       const hariPiketArray = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
       const hari = hariPiketArray.length > 0 ? `Hari: ${hariPiketArray.join(', ')}` : '';
@@ -211,11 +243,19 @@ export default function ManajemenGuruPage() {
 
   const getTugasDetail = (guru: Guru, role: TeacherRole): string => {
       switch(role) {
-          case 'wali_kelas': return `Kelas Binaan: ${(Array.isArray(guru.kelas) ? guru.kelas : []).join(', ') || '-'}`;
-          case 'guru_mapel': return `Mengajar: ${guru.mapel || '-'}`;
-          case 'guru_piket': return formatPiketDetails(guru);
-          case 'guru_bk': return `Tugas Pembinaan: ${guru.tugasKelas || '-'}`;
-          case 'guru_pendamping': return `Mendampingi: ${(Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : []).join(', ') || '-'}`;
+          case 'wali_kelas': 
+              const kelasBinaan = Array.isArray(guru.kelas) ? guru.kelas : [];
+              return `Kelas Binaan: ${kelasBinaan.join(', ') || '-'}`;
+          case 'guru_mapel': 
+              const assignmentCount = guru.teachingAssignments?.length || 0;
+              return assignmentCount > 0 ? `Mengajar di ${assignmentCount} kelas/sesi` : 'Belum ada tugas mengajar';
+          case 'guru_piket': 
+              return formatPiketDetails(guru);
+          case 'guru_bk': 
+              return `Tugas Pembinaan: ${guru.tugasKelas || '-'}`;
+          case 'guru_pendamping': 
+              const siswaBinaan = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
+              return `Mendampingi: ${siswaBinaan.join(', ') || '-'}`;
           default: return '-';
       }
   };
@@ -225,13 +265,15 @@ export default function ManajemenGuruPage() {
 
     for (const roleKey in teachers) {
         const typedRoleKey = roleKey as TeacherRole;
-        teachers[typedRoleKey].forEach((guru: Guru) => {
-            allUsers.push({
-                "Nama": guru.nama,
-                "Peran": getRoleName(typedRoleKey),
-                "Detail Tugas": getTugasDetail(guru, typedRoleKey),
+        if (Array.isArray(teachers[typedRoleKey])) {
+            teachers[typedRoleKey].forEach((guru: Guru) => {
+                allUsers.push({
+                    "Nama": guru.nama,
+                    "Peran": getRoleName(typedRoleKey),
+                    "Detail Tugas": getTugasDetail(guru, typedRoleKey),
+                });
             });
-        });
+        }
     }
 
     const headers = ['Nama', 'Peran', 'Detail Tugas'];
@@ -287,9 +329,64 @@ export default function ManajemenGuruPage() {
         </div>
       )}
       {activeTab === 'guru_mapel' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="mapel" className="text-right">Mata Pelajaran</Label>
-          <Input id="mapel" value={formData.mapel || ''} onChange={(e) => setFormData({ ...formData, mapel: e.target.value })} className="col-span-3" placeholder="Contoh: Matematika - X TKJ 1" />
+        <div className="space-y-6">
+            <div>
+                <Label>Daftar Tugas Mengajar</Label>
+                <ScrollArea className="h-40 mt-2 rounded-md border p-2">
+                    {formData.teachingAssignments && formData.teachingAssignments.length > 0 ? (
+                        formData.teachingAssignments.map(a => (
+                            <div key={a.id} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted">
+                                <div>
+                                    <p className="font-medium">{a.subject} - {a.className}</p>
+                                    <p className="text-xs text-muted-foreground">{a.day}, Sesi {a.session}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteAssignment(a.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-sm text-muted-foreground pt-4">Belum ada tugas mengajar yang ditambahkan.</p>
+                    )}
+                </ScrollArea>
+            </div>
+            <Separator />
+            <div>
+                <h4 className="font-medium mb-2">Tambah Tugas Baru</h4>
+                <div className="space-y-4 rounded-md border p-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="subject">Mata Pelajaran</Label>
+                        <Input id="subject" value={currentAssignment.subject || ''} onChange={e => setCurrentAssignment({...currentAssignment, subject: e.target.value})} placeholder="Contoh: Matematika" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="className">Kelas</Label>
+                             <Select value={currentAssignment.className} onValueChange={value => setCurrentAssignment({...currentAssignment, className: value})}>
+                                <SelectTrigger id="className"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                                <SelectContent>{availableKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}</SelectContent>
+                             </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="day">Hari</Label>
+                             <Select value={currentAssignment.day} onValueChange={value => setCurrentAssignment({...currentAssignment, day: value})}>
+                                <SelectTrigger id="day"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                                <SelectContent>{daftarHari.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                             </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="session">Jam Ke-</Label>
+                              <Select value={currentAssignment.session} onValueChange={value => setCurrentAssignment({...currentAssignment, session: value})}>
+                                <SelectTrigger id="session"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                                <SelectContent>{sesiPelajaran.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                             </Select>
+                        </div>
+                    </div>
+                     <Button size="sm" onClick={handleAddAssignment} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambahkan ke Daftar
+                    </Button>
+                </div>
+            </div>
         </div>
       )}
       {activeTab === 'guru_piket' && (
@@ -297,7 +394,7 @@ export default function ManajemenGuruPage() {
             <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">Hari Piket Rutin</Label>
                 <div className="col-span-3 space-y-2">
-                    {daftarHariPiket.map(hari => (
+                    {daftarHari.map(hari => (
                         <div key={hari} className="flex items-center space-x-2">
                             <Checkbox 
                                 id={`hari-${hari}`} 
@@ -343,7 +440,7 @@ export default function ManajemenGuruPage() {
                          <div key={siswa.id} className="flex items-center space-x-2">
                             <Checkbox
                                 id={`siswa-${siswa.id}`}
-                                checked={Array.isArray(formData.siswaBinaan) && formData.siswaBinaan.includes(siswa.nama)}
+                                checked={(Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : []).includes(siswa.nama)}
                                 onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
                             />
                             <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
@@ -410,24 +507,20 @@ export default function ManajemenGuruPage() {
                     </TableHeader>
                     <TableBody>
                         {teachers[key as TeacherRole]?.length > 0 ? (
-                        teachers[key as TeacherRole].map((guru) => {
-                            const kelasBinaanArray = Array.isArray(guru.kelas) ? guru.kelas : [];
-                            const siswaBinaanArray = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
-                            return (
-                                <TableRow key={guru.id}>
-                                <TableCell className="font-medium">{guru.nama}</TableCell>
-                                <TableCell>
-                                    {getTugasDetail(guru, key as TeacherRole)}
-                                </TableCell>
-                                <TableCell className="text-right print:hidden">
-                                    <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Atur Tugas
-                                    </Button>
-                                </TableCell>
-                                </TableRow>
-                            )
-                        })
+                        teachers[key as TeacherRole].map((guru) => (
+                            <TableRow key={guru.id}>
+                            <TableCell className="font-medium">{guru.nama}</TableCell>
+                            <TableCell>
+                                {getTugasDetail(guru, key as TeacherRole)}
+                            </TableCell>
+                            <TableCell className="text-right print:hidden">
+                                <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Atur Tugas
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))
                         ) : (
                         <TableRow>
                             <TableCell colSpan={3} className="h-24 text-center">
@@ -445,22 +538,24 @@ export default function ManajemenGuruPage() {
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className={activeTab === 'guru_mapel' ? "sm:max-w-2xl" : "sm:max-w-md"}>
               <DialogHeader>
                   <DialogTitle>Atur Penugasan Guru</DialogTitle>
                   <DialogDescription>
                       Lengkapi detail penugasan untuk {editingTeacher?.nama}.
                   </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="py-4">
                  {renderFormFields()}
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                  <Button onClick={handleSave}>Simpan</Button>
+                  <Button onClick={handleSave}>Simpan Perubahan</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+    
