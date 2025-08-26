@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 
 interface Guru {
@@ -332,13 +333,16 @@ export default function AdminManajemenPenggunaPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherRole)}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-              {roleOptions.map(role => (
-                 <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
-              ))}
-            </TabsList>
+            <ScrollArea className="w-full whitespace-nowrap">
+                <TabsList>
+                {roleOptions.map(role => (
+                    <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
+                ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
-            <div className="flex justify-end my-4 gap-2">
+            <div className="flex flex-col sm:flex-row justify-end my-4 gap-2">
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
                 <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="mr-2 h-4 w-4" />
@@ -441,6 +445,8 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
+
+    
 
     
 

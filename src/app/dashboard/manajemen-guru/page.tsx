@@ -372,7 +372,7 @@ export default function ManajemenGuruPage() {
                         <Label htmlFor="subject">Mata Pelajaran</Label>
                         <Input id="subject" value={currentAssignment.subject || ''} onChange={e => setCurrentAssignment({...currentAssignment, subject: e.target.value})} placeholder="Contoh: Matematika" />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="className">Kelas</Label>
                              <Select value={currentAssignment.className} onValueChange={value => setCurrentAssignment({...currentAssignment, className: value})}>
@@ -471,14 +471,14 @@ export default function ManajemenGuruPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between print:hidden">
         <div>
             <h2 className="text-3xl font-bold tracking-tight">Manajemen Guru</h2>
             <p className="text-muted-foreground">
             Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
             </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4 sm:mt-0">
             <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
             <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
         </div>
@@ -575,3 +575,5 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
+    
