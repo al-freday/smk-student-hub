@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { getSourceData } from "@/lib/data-manager";
 
 
 // Data Types
@@ -38,7 +39,7 @@ interface Rapor { id: number; nis: string; nama: string; tanggal: string; peneri
 interface Komite { id: number; nis: string; nama: string; status: 'Lunas' | 'Belum Lunas'; tanggal: string; }
 interface Kehadiran { totalSiswa: number; hadir: number; sakit: number; izin: number; alpa: number; }
 interface KehadiranSiswa { id: string; nis: string; nama: string; kelas: string; tanggal: string; status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';}
-interface WaliKelasInfo { nama: string; kelas: string; }
+interface WaliKelasInfo { nama: string; kelas: string[]; }
 
 export default function LaporanWaliKelasPage() {
   const { toast } = useToast();
@@ -121,11 +122,11 @@ export default function LaporanWaliKelasPage() {
   useEffect(() => {
     const role = localStorage.getItem('userRole');
     if (role === 'wali_kelas') {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+        const currentUser = getSourceData('currentUser', {});
+        const teachersData = getSourceData('teachersData', {});
         const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
         if (waliKelasData) {
-            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
+            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: Array.isArray(waliKelasData.kelas) ? waliKelasData.kelas : [waliKelasData.kelas] });
         }
     }
 
@@ -170,7 +171,7 @@ export default function LaporanWaliKelasPage() {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`Laporan Wali Kelas - ${waliKelasInfo?.kelas || 'Kelas'} - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      pdf.save(`Laporan Wali Kelas - ${waliKelasInfo?.kelas.join(', ') || 'Kelas'} - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
       toast({
         title: "Laporan Diunduh",
@@ -192,7 +193,7 @@ export default function LaporanWaliKelasPage() {
   const handleSendReport = () => {
     toast({
       title: "Laporan Terkirim",
-      description: `Laporan bulanan kelas ${waliKelasInfo?.kelas || ''} telah berhasil dikirim ke Wakasek Kesiswaan.`,
+      description: `Laporan bulanan kelas ${waliKelasInfo?.kelas.join(', ') || ''} telah berhasil dikirim ke Wakasek Kesiswaan.`,
     });
   };
 
@@ -383,7 +384,7 @@ export default function LaporanWaliKelasPage() {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {waliKelasInfo?.kelas || 'Kelas Anda'}</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {waliKelasInfo?.kelas.join(', ') || 'Kelas Anda'}</h2>
           <p className="text-muted-foreground">
             Rekapitulasi lengkap data kelas binaan.
           </p>
