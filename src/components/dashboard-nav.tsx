@@ -41,11 +41,6 @@ const navItemsByRole = {
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
-   wali_kelas: [],
-  guru_bk: [],
-  guru_mapel: [],
-  guru_pendamping: [],
-  guru_piket: []
 };
 
 
@@ -55,7 +50,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || null;
+    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek_kesiswaan';
     setUserRole(role);
 
     const savedTeachers = localStorage.getItem('teachersData');
@@ -75,8 +70,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const containerClass = isMobile ? "flex flex-col h-full" : "";
   
   const renderNavItems = () => {
-    const navItems = userRole ? (navItemsByRole[userRole] || []) : [];
-    if (navItems.length === 0) return null;
+    const navItems = userRole ? (navItemsByRole[userRole] || []) : navItemsByRole['wakasek_kesiswaan'];
     
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
@@ -84,7 +78,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
          <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/admin/dashboard">
-                <SidebarMenuButton tooltip="Admin Panel" isActive={pathname === "/admin/dashboard"}>
+                <SidebarMenuButton tooltip="Admin Panel" isActive={pathname.startsWith("/admin")}>
                   <LayoutDashboard className="size-4" />
                   <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
                 </SidebarMenuButton>

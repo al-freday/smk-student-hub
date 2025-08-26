@@ -11,19 +11,6 @@ import Link from "next/link";
 import { getDashboardStats } from "@/lib/data";
 import { useRouter } from "next/navigation";
 
-const getRoleDisplayName = (role: string) => {
-    switch (role) {
-        case 'wali_kelas': return 'Wali Kelas';
-        case 'guru_bk': return 'Guru BK';
-        case 'guru_mapel': return 'Guru Mata Pelajaran';
-        case 'guru_piket': return 'Guru Piket';
-        case 'guru_pendamping': return 'Guru Pendamping';
-        case 'wakasek_kesiswaan': return 'Wakasek Kesiswaan';
-        case 'admin': return 'Administrator';
-        default: return 'Pengguna';
-    }
-};
-
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
         totalSiswa: 0,
@@ -153,7 +140,9 @@ export default function DashboardPage() {
     return (
         <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Dasbor {getRoleDisplayName(userRole)}</h2>
+                <h2 className="text-3xl font-bold tracking-tight">
+                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor Wakasek Kesiswaan'}
+                </h2>
             </div>
             
             {renderDashboardByRole(userRole)}
