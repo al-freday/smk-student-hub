@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Download, FileCheck2, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const reportTypesByRole = {
   wakasek_kesiswaan: [
@@ -21,44 +20,16 @@ const reportTypesByRole = {
   orang_tua: [],
 };
 
-interface ReportCounts {
-  wali_kelas: number;
-}
-
 export default function LaporanPage() {
-  const { toast } = useToast();
   const [userRole, setUserRole] = useState<keyof typeof reportTypesByRole | null>(null);
-  const [reportCounts, setReportCounts] = useState<ReportCounts>({
-    wali_kelas: 0,
-  });
-
+  
   useEffect(() => {
     const role = (localStorage.getItem('userRole') as keyof typeof reportTypesByRole) || null;
     setUserRole(role);
-
-    if (role === 'wakasek_kesiswaan') {
-      try {
-        const savedData = localStorage.getItem('teachersData');
-        const teachersData = savedData ? JSON.parse(savedData) : {};
-
-        setReportCounts({
-            wali_kelas: teachersData.wali_kelas?.length || 0,
-        });
-      } catch (error) {
-        console.error("Gagal memuat data rekapitulasi:", error);
-      }
-    }
   }, []);
 
-  const handleDownloadRekap = () => {
-    toast({
-      title: "Rekapitulasi Diunduh",
-      description: "File rekapitulasi semua laporan sedang disiapkan.",
-    });
-  };
-  
   const getPageTitle = () => {
-    return "Pusat Laporan";
+    return "Laporan Penugasan Wakasek";
   };
 
   const getPageDescription = () => {
@@ -83,28 +54,6 @@ export default function LaporanPage() {
         <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
         <p className="text-muted-foreground">{getPageDescription()}</p>
       </div>
-
-      {userRole === 'wakasek_kesiswaan' && (
-        <Card className="bg-secondary/50 border-primary/20">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span>Rekapitulasi Laporan Masuk</span>
-                     <Button onClick={handleDownloadRekap}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Unduh Rekapitulasi
-                    </Button>
-                </CardTitle>
-                <CardDescription>Ringkasan jumlah laporan yang telah dikirim oleh setiap peran guru.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 text-center">
-                <div className="p-4 bg-background rounded-lg shadow-sm">
-                    <FileCheck2 className="mx-auto h-8 w-8 text-primary mb-2" />
-                    <p className="text-2xl font-bold">{reportCounts.wali_kelas}</p>
-                    <p className="text-sm text-muted-foreground">Laporan Wali Kelas</p>
-                </div>
-            </CardContent>
-        </Card>
-      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {availableReports.length > 0 ? (
