@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+
 
 type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 
@@ -56,6 +58,12 @@ export default function KehadiranSiswaPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>("");
 
   const [attendanceState, setAttendanceState] = useState<Map<string, KehadiranStatus>>(new Map());
+  
+  const dataExistsForSelection = useMemo(() => {
+    if (!selectedKelas || !selectedDate) return false;
+    return allRecords.some(r => r.kelas === selectedKelas && r.tanggal === selectedDate);
+  }, [allRecords, selectedKelas, selectedDate]);
+
 
   const loadData = () => {
     setAllRecords(getSourceData('kehadiranSiswa', []));
@@ -127,7 +135,7 @@ export default function KehadiranSiswaPage() {
       });
     });
 
-    const otherRecords = allRecords.filter(r => r.tanggal !== selectedDate || r.kelas !== selectedKelas);
+    const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === selectedKelas));
     
     const updatedRecords = [...otherRecords, ...newRecordsForDay];
     
@@ -138,6 +146,16 @@ export default function KehadiranSiswaPage() {
       title: "Kehadiran Disimpan",
       description: `Data kehadiran untuk kelas ${selectedKelas} pada tanggal ${selectedDate} telah disimpan.`,
     });
+  };
+  
+  const getBadgeVariant = (status: KehadiranStatus) => {
+    switch(status) {
+        case 'Hadir': return 'default';
+        case 'Sakit': return 'secondary';
+        case 'Izin': return 'secondary';
+        case 'Alpa': return 'destructive';
+        default: return 'outline';
+    }
   };
 
   return (
@@ -186,10 +204,12 @@ export default function KehadiranSiswaPage() {
                 <CalendarIcon className="h-5 w-5"/>
                 <span className="font-medium text-lg">{format(new Date(selectedDate), "eeee, dd MMMM yyyy")}</span>
             </div>
-            <Button onClick={handleSaveAttendance} disabled={!selectedKelas}>
-              <Save className="mr-2 h-4 w-4" />
-              Simpan Kehadiran
-            </Button>
+            {!dataExistsForSelection && (
+                <Button onClick={handleSaveAttendance} disabled={!selectedKelas}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Simpan Kehadiran
+                </Button>
+            )}
           </div>
           <div className="border rounded-md">
             <Table>
@@ -208,19 +228,25 @@ export default function KehadiranSiswaPage() {
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>{siswa.nis}</TableCell>
                         <TableCell className="font-medium">{siswa.nama}</TableCell>
-                        <TableCell>
-                            <RadioGroup
-                                value={attendanceState.get(siswa.nis) || 'Hadir'}
-                                onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
-                                className="flex justify-center space-x-2 sm:space-x-4"
-                            >
-                                {statusOptions.map(status => (
-                                <div key={status} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={status} id={`${siswa.nis}-${status}`} />
-                                    <Label htmlFor={`${siswa.nis}-${status}`}>{status}</Label>
-                                </div>
-                                ))}
-                            </RadioGroup>
+                        <TableCell className="text-center">
+                           {dataExistsForSelection ? (
+                                <Badge variant={getBadgeVariant(attendanceState.get(siswa.nis) || 'Hadir')}>
+                                    {attendanceState.get(siswa.nis)}
+                                </Badge>
+                           ) : (
+                                <RadioGroup
+                                    value={attendanceState.get(siswa.nis) || 'Hadir'}
+                                    onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
+                                    className="flex justify-center space-x-2 sm:space-x-4"
+                                >
+                                    {statusOptions.map(status => (
+                                    <div key={status} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={status} id={`${siswa.nis}-${status}`} />
+                                        <Label htmlFor={`${siswa.nis}-${status}`}>{status}</Label>
+                                    </div>
+                                    ))}
+                                </RadioGroup>
+                           )}
                         </TableCell>
                     </TableRow>
                     ))
