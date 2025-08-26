@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogC
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -302,7 +303,7 @@ export default function KehadiranSiswaPage() {
           <DialogHeader>
             <DialogTitle>Catat Kehadiran Kelas {filterKelas}</DialogTitle>
             <DialogDescription>
-              Tanggal: {format(new Date(), "eeee, dd MMMM yyyy")}. Tandai status kehadiran untuk setiap siswa di bawah ini.
+              {format(new Date(), "eeee, dd MMMM yyyy", { locale: id })}. Tandai status kehadiran untuk setiap siswa di bawah ini.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] p-4">
@@ -313,6 +314,7 @@ export default function KehadiranSiswaPage() {
                   <RadioGroup
                     id={`absen-${siswa.nis}`}
                     defaultValue="Hadir"
+                    value={absenFormData[siswa.nis] || 'Hadir'}
                     onValueChange={(value) => setAbsenFormData(prev => ({...prev, [siswa.nis]: value as KehadiranStatus}))}
                     className="flex items-center gap-4"
                   >
