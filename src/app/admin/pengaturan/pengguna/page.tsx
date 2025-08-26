@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Eye, Download } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Eye, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -69,6 +69,11 @@ const getRoleName = (roleKey: TeacherRole | string) => {
     return role ? role.label : 'Pengguna';
 };
 
+const getRoleKey = (roleName: string) => {
+    const role = roleOptions.find(r => r.label === roleName);
+    return role ? role.value : null;
+}
+
 
 const createEmailFromName = (name: string, id: number) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
@@ -83,6 +88,7 @@ const initialTeachers: { [key in TeacherRole]: Guru[] } = {
 export default function AdminManajemenPenggunaPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [users, setUsers] = useState<{ [key in TeacherRole]: User[] }>({
         wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
   });
@@ -195,7 +201,11 @@ export default function AdminManajemenPenggunaPage() {
   
   const handleExportData = () => {
     const savedData = localStorage.getItem('teachersData');
-    const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
+    if (!savedData) {
+        toast({ title: "Gagal", description: "Tidak ada data untuk diekspor.", variant: "destructive" });
+        return;
+    }
+    const teachersData = JSON.parse(savedData);
     let allUsers: User[] = [];
 
     const { schoolInfo, ...roles } = teachersData;
@@ -213,12 +223,12 @@ export default function AdminManajemenPenggunaPage() {
         }
     }
 
-    const headers = ['ID', 'Nama', 'Email', 'Role', 'Password'];
+    const headers = ['id', 'nama', 'email', 'role', 'password'];
     const csvContent = [
         headers.join(','),
         ...allUsers.map(user => [
             user.id,
-            `"${user.nama}"`,
+            `"${user.nama.replace(/"/g, '""')}"`, // Handle quotes in names
             user.email,
             user.role,
             user.password
@@ -227,15 +237,75 @@ export default function AdminManajemenPenggunaPage() {
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    if (link.href) URL.revokeObjectURL(link.href);
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', 'user_data.csv');
+    link.setAttribute('download', 'data_pengguna.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    toast({ title: "Ekspor Berhasil", description: "Data pengguna telah diunduh sebagai user_data.csv." });
+    toast({ title: "Ekspor Berhasil", description: "Data pengguna telah diunduh sebagai data_pengguna.csv." });
+  };
+
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target?.result as string;
+            const rows = text.split('\n').slice(1); // Skip header row
+            if (rows.length === 0) {
+                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
+                return;
+            }
+
+            const savedData = localStorage.getItem('teachersData');
+            const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
+            const { schoolInfo, ...roles } = teachersData;
+
+            let importedCount = 0;
+            let updatedCount = 0;
+
+            rows.forEach(row => {
+                if (!row.trim()) return;
+                const [id, nama, email, roleName, password] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+                
+                const roleKey = getRoleKey(roleName);
+                if (!roleKey || !id || !nama || !password) return;
+
+                const roleList: Guru[] = roles[roleKey] || [];
+                const existingUserIndex = roleList.findIndex(u => u.id === parseInt(id));
+                const userData = { id: parseInt(id), nama, password };
+
+                if (existingUserIndex > -1) {
+                    roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...userData };
+                    updatedCount++;
+                } else {
+                    roleList.push(userData);
+                    importedCount++;
+                }
+                roles[roleKey] = roleList;
+            });
+
+            const finalDataToSave = { ...teachersData, ...roles };
+            localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+            loadDataFromStorage();
+            toast({ 
+                title: "Impor Selesai", 
+                description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
+            });
+
+        } catch (error) {
+            console.error("Error importing data:", error);
+            toast({ title: "Error", description: "Gagal memproses file. Pastikan format CSV sudah benar.", variant: "destructive" });
+        } finally {
+            if(fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+    reader.readAsText(file);
   };
 
 
@@ -268,18 +338,24 @@ export default function AdminManajemenPenggunaPage() {
               ))}
             </TabsList>
 
+            <div className="flex justify-end my-4 gap-2">
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Impor Data
+                </Button>
+                <Button variant="outline" onClick={handleExportData}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Ekspor Data
+                </Button>
+                <Button onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah Pengguna
+                </Button>
+            </div>
+            
             {Object.keys(users).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
-                 <div className="flex justify-end mb-4 gap-2">
-                    <Button variant="outline" onClick={handleExportData}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export Data User
-                    </Button>
-                    <Button onClick={() => handleOpenDialog()}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambah {getRoleName(key as TeacherRole)}
-                    </Button>
-                </div>
                 <div className="overflow-x-auto">
                     <Table>
                     <TableHeader>
@@ -365,5 +441,7 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
+
+    
 
     
