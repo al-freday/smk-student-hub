@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { format, getDay } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
@@ -63,7 +63,6 @@ interface Guru {
   nama: string;
   teachingAssignments?: TeachingAssignment[];
   kelas?: string[];
-  hariPiket?: string[];
   tanggalPiket?: string[];
   tugasKelas?: string; 
   siswaBinaan?: string[];
@@ -88,10 +87,6 @@ const getRoleName = (roleKey: string) => {
 };
 
 const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
-
-const hariToDayIndex: { [key: string]: number } = {
-    "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5,
-};
 
 const sesiPelajaran = [ "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
@@ -205,26 +200,6 @@ export default function ManajemenGuruPage() {
       setIsDialogOpen(false);
   };
   
-  const handleHariPiketChange = (hari: string, checked: boolean) => {
-      const currentHari = formData.hariPiket || [];
-      let newHariPiket;
-      if (checked) {
-          newHariPiket = [...currentHari, hari].sort((a, b) => daftarHari.indexOf(a) - daftarHari.indexOf(b));
-      } else {
-          newHariPiket = currentHari.filter(h => h !== hari);
-      }
-      setFormData({ ...formData, hariPiket: newHariPiket });
-
-      // Reset selected dates if number of selected days changes to avoid inconsistency
-      if (selectedDates.length > 0) {
-          setSelectedDates([]);
-          toast({
-              title: "Tanggal Direset",
-              description: "Pilihan tanggal piket khusus telah direset karena ada perubahan pada hari rutin.",
-          });
-      }
-  };
-  
   const handleKelasBinaanChange = (namaKelas: string, checked: boolean) => {
       const currentKelas = formData.kelas || [];
       if (checked) {
@@ -261,14 +236,9 @@ export default function ManajemenGuruPage() {
 
 
   const formatPiketDetails = (guru: Guru) => {
-      const hariPiketArray = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
-      const hari = hariPiketArray.length > 0 ? `Hari: ${hariPiketArray.join(', ')}` : '';
-      
       const tanggalPiketArray = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
       const tanggal = tanggalPiketArray.length > 0 ? `Tanggal: ${tanggalPiketArray.map(d => format(new Date(d), 'dd/MM/yy')).join(', ')}` : '';
       
-      if (hari && tanggal) return `${hari} | ${tanggal}`;
-      if (hari) return hari;
       if (tanggal) return tanggal;
       return '-';
   };
@@ -293,13 +263,11 @@ export default function ManajemenGuruPage() {
                  </div>
               );
           case 'guru_piket': 
-               const hariPiket = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
                const tglPiket = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
-               if (hariPiket.length === 0 && tglPiket.length === 0) return <span className="text-muted-foreground">-</span>;
+               if (tglPiket.length === 0) return <span className="text-muted-foreground">-</span>;
                return (
                   <div className="flex flex-col gap-1">
-                      {hariPiket.length > 0 && <Badge variant="outline">Rutin: {hariPiket.join(', ')}</Badge>}
-                      {tglPiket.length > 0 && <Badge variant="outline">Khusus: {tglPiket.length} tanggal</Badge>}
+                      {tglPiket.length > 0 && <Badge variant="outline">Tugas pada: {tglPiket.length} tanggal</Badge>}
                   </div>
                );
           case 'guru_bk': 
@@ -381,40 +349,6 @@ export default function ManajemenGuruPage() {
 
   const handlePrint = () => {
       window.print();
-  };
-  
-  const isDateDisabled = (date: Date) => {
-    const selectedDays = formData.hariPiket?.map(day => hariToDayIndex[day]) || [];
-    if (selectedDays.length === 0) {
-      return false; // Allow selection if no routine day is set, handle it in onSelect
-    }
-    return !selectedDays.includes(getDay(date));
-  };
-  
-  const handleDateSelect = (dates: Date[] | undefined) => {
-    const maxDates = formData.hariPiket?.length || 0;
-    if (maxDates === 0) {
-        toast({
-            title: "Pilih Hari Rutin Dahulu",
-            description: "Silakan pilih hari piket rutin sebelum memilih tanggal khusus.",
-            variant: "destructive"
-        });
-        setSelectedDates([]);
-        return;
-    }
-
-    if (dates && dates.length > maxDates) {
-        toast({
-            title: "Batas Pemilihan Tercapai",
-            description: `Anda hanya dapat memilih ${maxDates} tanggal sesuai jumlah hari rutin.`,
-            variant: "destructive"
-        });
-        // Limit selection to the last `maxDates` selected dates to enforce the rule
-        const limitedDates = dates.slice(dates.length - maxDates);
-        setSelectedDates(limitedDates);
-    } else {
-        setSelectedDates(dates || []);
-    }
   };
 
   const siswaByKelas = useMemo(() => {
@@ -518,37 +452,20 @@ export default function ManajemenGuruPage() {
         </div>
       )}
       {activeTab === 'guru_piket' && (
-        <>
-            <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">Hari Piket Rutin</Label>
-                <div className="col-span-3 space-y-2">
-                    {daftarHari.map(hari => (
-                        <div key={hari} className="flex items-center space-x-2">
-                            <Checkbox 
-                                id={`hari-${hari}`} 
-                                checked={formData.hariPiket?.includes(hari)}
-                                onCheckedChange={(checked) => handleHariPiketChange(hari, !!checked)}
-                            />
-                            <label htmlFor={`hari-${hari}`} className="text-sm font-medium leading-none">{hari}</label>
-                        </div>
-                    ))}
-                </div>
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Tanggal Piket Khusus</Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("col-span-3 font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Pilih tanggal"}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="multiple" selected={selectedDates} onSelect={handleDateSelect} disabled={isDateDisabled} />
-                    </PopoverContent>
-                </Popover>
-            </div>
-        </>
+        <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Pilih Tanggal Piket</Label>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("col-span-3 font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Pilih tanggal"}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="multiple" selected={selectedDates} onSelect={setSelectedDates} />
+                </PopoverContent>
+            </Popover>
+        </div>
       )}
        {activeTab === 'guru_bk' && (
         <div className="grid grid-cols-4 items-center gap-4">
