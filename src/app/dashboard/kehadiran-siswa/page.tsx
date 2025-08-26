@@ -5,30 +5,26 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion } from "lucide-react";
+import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion, SkipForward, Clock4 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
-
-type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
+type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa' | 'Bolos';
 
 interface Kehadiran {
-  id: string; // Composite key: nis-tanggal
+  id: string; // Composite key: nis-tanggal-sesi
   nis: string;
   nama: string;
   kelas: string;
   tanggal: string;
+  sesi: string;
   status: KehadiranStatus;
-}
-
-interface Kelas {
-    id: number;
-    nama: string;
+  guruPencatat: string;
 }
 
 interface Siswa {
@@ -38,123 +34,142 @@ interface Siswa {
   kelas: string;
 }
 
-interface AttendanceSummary {
-    hadir: number;
-    sakit: number;
-    izin: number;
-    alpa: number;
+interface TeachingAssignment {
+    id: number;
+    subject: string;
+    className: string;
+    day: string;
+    session: string;
 }
 
-const statusOptions: KehadiranStatus[] = ['Hadir', 'Sakit', 'Izin', 'Alpa'];
+interface JadwalMengajar {
+    guru: string;
+    mapel: string;
+    kelas: string;
+    hari: string;
+    sesi: string;
+}
+
+const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
+    { value: 'Hadir', icon: UserCheck },
+    { value: 'Sakit', icon: Thermometer },
+    { value: 'Izin', icon: MailQuestion },
+    { value: 'Alpa', icon: UserX },
+    { value: 'Bolos', icon: SkipForward },
+];
+
+const getDayNameFromDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const dayIndex = date.getDay();
+    const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    return days[dayIndex];
+};
+
 
 export default function KehadiranSiswaPage() {
   const { toast } = useToast();
   const [allRecords, setAllRecords] = useState<Kehadiran[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
-  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
-  const [schoolName, setSchoolName] = useState("SMK Student Hub");
+  const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedKelas, setSelectedKelas] = useState<string>("");
-
-  const [attendanceState, setAttendanceState] = useState<Map<string, KehadiranStatus>>(new Map());
+  const [jadwalHariIni, setJadwalHariIni] = useState<JadwalMengajar[]>([]);
   
-  const dataExistsForSelection = useMemo(() => {
-    if (!selectedKelas || !selectedDate) return false;
-    return allRecords.some(r => r.kelas === selectedKelas && r.tanggal === selectedDate);
-  }, [allRecords, selectedKelas, selectedDate]);
-
+  // Map<sesi-kelas, Map<nis, status>>
+  const [attendanceState, setAttendanceState] = useState<Map<string, Map<string, KehadiranStatus>>>(new Map());
 
   const loadData = () => {
-    const savedKehadiran = localStorage.getItem('kehadiranSiswa');
-    const savedSiswa = localStorage.getItem('siswaData');
-    const savedKelas = localStorage.getItem('kelasData');
-    const savedTeachers = localStorage.getItem('teachersData');
-
-    setAllRecords(savedKehadiran ? JSON.parse(savedKehadiran) : []);
-    setDaftarSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
-    setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
-    
-    if (savedTeachers) {
-      const teachersData = JSON.parse(savedTeachers);
-      if (teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
-        setSchoolName(teachersData.schoolInfo.schoolName);
-      }
-    }
+    setAllRecords(getSourceData('kehadiranSiswa', []));
+    setDaftarSiswa(getSourceData('siswaData', []));
+    setCurrentUser(getSourceData('currentUser', null));
   };
   
   useEffect(() => {
     loadData();
+    window.addEventListener('dataUpdated', loadData);
+    return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
-  
-  const studentsInSelectedClass = useMemo(() => {
-    if (!selectedKelas) return [];
-    return daftarSiswa.filter(s => s.kelas === selectedKelas);
-  }, [selectedKelas, daftarSiswa]);
 
   useEffect(() => {
-    const newAttendanceState = new Map<string, KehadiranStatus>();
-    studentsInSelectedClass.forEach(siswa => {
-      const record = allRecords.find(r => r.nis === siswa.nis && r.tanggal === selectedDate);
-      newAttendanceState.set(siswa.nis, record ? record.status : 'Hadir');
+    if (!currentUser) return;
+    
+    const teachersData = getSourceData('teachersData', {});
+    const guruMapel = teachersData.guru_mapel || [];
+    const myAssignments: TeachingAssignment[] = guruMapel.find((g: any) => g.nama === currentUser.nama)?.teachingAssignments || [];
+    
+    const dayName = getDayNameFromDate(selectedDate);
+    const filteredJadwal = myAssignments
+        .filter(a => a.day === dayName)
+        .map(a => ({
+            guru: currentUser.nama,
+            mapel: a.subject,
+            kelas: a.className,
+            hari: a.day,
+            sesi: a.session,
+        }))
+        .sort((a,b) => a.sesi.localeCompare(b.sesi));
+
+    setJadwalHariIni(filteredJadwal);
+    
+    // Initialize attendance state for today's schedule
+    const newAttendanceState = new Map<string, Map<string, KehadiranStatus>>();
+    filteredJadwal.forEach(jadwal => {
+      const sessionKey = `${jadwal.sesi}-${jadwal.kelas}`;
+      const sessionMap = new Map<string, KehadiranStatus>();
+      const studentsInClass = daftarSiswa.filter(s => s.kelas === jadwal.kelas);
+
+      studentsInClass.forEach(siswa => {
+        const record = allRecords.find(r => r.nis === siswa.nis && r.tanggal === selectedDate && r.sesi === jadwal.sesi);
+        sessionMap.set(siswa.nis, record ? record.status : 'Hadir');
+      });
+      newAttendanceState.set(sessionKey, sessionMap);
     });
     setAttendanceState(newAttendanceState);
-  }, [selectedDate, selectedKelas, studentsInSelectedClass, allRecords]);
 
-  const attendanceSummary: AttendanceSummary = useMemo(() => {
-    const summary: AttendanceSummary = { hadir: 0, sakit: 0, izin: 0, alpa: 0 };
-    studentsInSelectedClass.forEach(siswa => {
-        const status = attendanceState.get(siswa.nis);
-        switch (status) {
-            case 'Hadir': summary.hadir++; break;
-            case 'Sakit': summary.sakit++; break;
-            case 'Izin': summary.izin++; break;
-            case 'Alpa': summary.alpa++; break;
-        }
-    });
-    return summary;
-  }, [attendanceState, studentsInSelectedClass]);
+  }, [selectedDate, currentUser, daftarSiswa, allRecords]);
 
-
-  const handleStatusChange = (nis: string, status: KehadiranStatus) => {
+  const handleStatusChange = (sessionKey: string, nis: string, status: KehadiranStatus) => {
     const newAttendanceState = new Map(attendanceState);
-    newAttendanceState.set(nis, status);
+    const sessionMap = new Map(newAttendanceState.get(sessionKey));
+    sessionMap.set(nis, status);
+    newAttendanceState.set(sessionKey, sessionMap);
     setAttendanceState(newAttendanceState);
   };
 
-  const handleSaveAttendance = () => {
-    if (!selectedKelas) {
-      toast({
-        title: "Gagal Menyimpan",
-        description: "Silakan pilih kelas terlebih dahulu.",
-        variant: "destructive"
-      });
+  const handleSaveAttendance = (jadwal: JadwalMengajar) => {
+    const sessionKey = `${jadwal.sesi}-${jadwal.kelas}`;
+    const sessionAttendance = attendanceState.get(sessionKey);
+
+    if (!sessionAttendance) {
+      toast({ title: "Gagal", description: "Data absensi tidak ditemukan.", variant: "destructive" });
       return;
     }
 
-    const newRecordsForDay: Kehadiran[] = [];
-    studentsInSelectedClass.forEach(siswa => {
-      const status = attendanceState.get(siswa.nis) || 'Hadir';
-      newRecordsForDay.push({
-        id: `${siswa.nis}-${selectedDate}`,
+    const studentsInClass = daftarSiswa.filter(s => s.kelas === jadwal.kelas);
+    const newRecordsForSession: Kehadiran[] = [];
+
+    studentsInClass.forEach(siswa => {
+      const status = sessionAttendance.get(siswa.nis) || 'Hadir';
+      newRecordsForSession.push({
+        id: `${siswa.nis}-${selectedDate}-${jadwal.sesi}`,
         nis: siswa.nis,
         nama: siswa.nama,
         kelas: siswa.kelas,
         tanggal: selectedDate,
+        sesi: jadwal.sesi,
         status: status,
+        guruPencatat: currentUser?.nama || 'Guru',
       });
     });
 
-    const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === selectedKelas));
+    const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === jadwal.kelas && r.sesi === jadwal.sesi));
     
-    const updatedRecords = [...otherRecords, ...newRecordsForDay];
-    
-    localStorage.setItem('kehadiranSiswa', JSON.stringify(updatedRecords));
-    setAllRecords(updatedRecords); // Update state lokal untuk memicu re-render
+    const updatedRecords = [...otherRecords, ...newRecordsForSession];
+    updateSourceData('kehadiranSiswa', updatedRecords);
     
     toast({
       title: "Kehadiran Disimpan",
-      description: `Data kehadiran untuk kelas ${selectedKelas} pada tanggal ${selectedDate} telah disimpan.`,
+      description: `Data untuk kelas ${jadwal.kelas} sesi ${jadwal.sesi} telah disimpan.`,
     });
   };
   
@@ -163,29 +178,32 @@ export default function KehadiranSiswaPage() {
         case 'Hadir': return 'default';
         case 'Sakit': return 'secondary';
         case 'Izin': return 'secondary';
+        case 'Bolos': return 'outline';
         case 'Alpa': return 'destructive';
         default: return 'outline';
     }
   };
 
+  const isSessionRecorded = (jadwal: JadwalMengajar) => {
+    return allRecords.some(r => r.kelas === jadwal.kelas && r.tanggal === selectedDate && r.sesi === jadwal.sesi);
+  };
+
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Daftar Hadir Siswa {schoolName}</h2>
-        <p className="text-muted-foreground">Pilih tanggal dan kelas untuk mencatat absensi harian siswa.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Daftar Hadir Sesuai Jadwal</h2>
+        <p className="text-muted-foreground">Pilih tanggal untuk melihat jadwal mengajar Anda dan mengisi absensi per sesi.</p>
       </div>
-      <Card>
+       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle>Lembar Absensi Digital</CardTitle>
-              <CardDescription>
-                {selectedKelas ? `Menampilkan daftar siswa untuk kelas ${selectedKelas}` : "Pilih kelas untuk menampilkan daftar siswa."}
-              </CardDescription>
+             <div>
+                <CardTitle>Pilih Tanggal Absensi</CardTitle>
+                <CardDescription>Jadwal mengajar Anda akan muncul di bawah.</CardDescription>
             </div>
              <div className="flex items-center gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="filter-tanggal">Tanggal Absensi</Label>
+                    <Label htmlFor="filter-tanggal">Tanggal</Label>
                     <Input
                         id="filter-tanggal"
                         type="date"
@@ -194,126 +212,86 @@ export default function KehadiranSiswaPage() {
                         className="w-fit"
                     />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="filter-kelas">Pilih Kelas</Label>
-                    <Select value={selectedKelas} onValueChange={setSelectedKelas}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Pilih Kelas" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-             <div className="flex items-center gap-2 text-muted-foreground">
-                <CalendarIcon className="h-5 w-5"/>
-                <span className="font-medium text-lg">{format(new Date(selectedDate), "eeee, dd MMMM yyyy")}</span>
-            </div>
-            {!dataExistsForSelection && (
-                <Button onClick={handleSaveAttendance} disabled={!selectedKelas}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Simpan Kehadiran
-                </Button>
-            )}
-          </div>
-          <div className="border rounded-md">
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[50px]">No.</TableHead>
-                    <TableHead>NIS</TableHead>
-                    <TableHead>Nama Siswa</TableHead>
-                    <TableHead className="text-center">Status Kehadiran</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {studentsInSelectedClass.length > 0 ? (
-                    studentsInSelectedClass.map((siswa, index) => (
-                    <TableRow key={siswa.id}>
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>{siswa.nis}</TableCell>
-                        <TableCell className="font-medium">{siswa.nama}</TableCell>
-                        <TableCell className="text-center">
-                           {dataExistsForSelection ? (
-                                <Badge variant={getBadgeVariant(attendanceState.get(siswa.nis) || 'Hadir')}>
-                                    {attendanceState.get(siswa.nis)}
-                                </Badge>
-                           ) : (
-                                <RadioGroup
-                                    value={attendanceState.get(siswa.nis) || 'Hadir'}
-                                    onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
-                                    className="flex justify-center space-x-2 sm:space-x-4"
-                                >
-                                    {statusOptions.map(status => (
-                                    <div key={status} className="flex items-center space-x-2">
-                                        <RadioGroupItem value={status} id={`${siswa.nis}-${status}`} />
-                                        <Label htmlFor={`${siswa.nis}-${status}`}>{status}</Label>
-                                    </div>
-                                    ))}
-                                </RadioGroup>
-                           )}
-                        </TableCell>
-                    </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                            {selectedKelas ? "Tidak ada siswa di kelas ini." : "Silakan pilih kelas terlebih dahulu."}
-                        </TableCell>
-                    </TableRow>
-                )}
-                </TableBody>
-            </Table>
-          </div>
-        </CardContent>
       </Card>
-      
-       {selectedKelas && studentsInSelectedClass.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rekapitulasi Kehadiran</CardTitle>
-              <CardDescription>
-                Ringkasan kehadiran untuk kelas {selectedKelas} pada tanggal {selectedDate}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-4">
-                <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
-                    <UserCheck className="h-8 w-8 text-green-500"/>
-                    <div>
-                        <p className="text-2xl font-bold">{attendanceSummary.hadir}</p>
-                        <p className="text-sm text-muted-foreground">Hadir</p>
-                    </div>
-                </div>
-                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
-                    <Thermometer className="h-8 w-8 text-blue-500"/>
-                    <div>
-                        <p className="text-2xl font-bold">{attendanceSummary.sakit}</p>
-                        <p className="text-sm text-muted-foreground">Sakit</p>
-                    </div>
-                </div>
-                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
-                    <MailQuestion className="h-8 w-8 text-yellow-500"/>
-                    <div>
-                        <p className="text-2xl font-bold">{attendanceSummary.izin}</p>
-                        <p className="text-sm text-muted-foreground">Izin</p>
-                    </div>
-                </div>
-                 <div className="p-4 bg-secondary rounded-lg flex items-center gap-4">
-                    <UserX className="h-8 w-8 text-destructive"/>
-                    <div>
-                        <p className="text-2xl font-bold">{attendanceSummary.alpa}</p>
-                        <p className="text-sm text-muted-foreground">Alpa</p>
-                    </div>
-                </div>
-            </CardContent>
-          </Card>
-      )}
 
+      {jadwalHariIni.length > 0 ? (
+        jadwalHariIni.map(jadwal => {
+            const sessionKey = `${jadwal.sesi}-${jadwal.kelas}`;
+            const studentsInClass = daftarSiswa.filter(s => s.kelas === jadwal.kelas);
+            const isRecorded = isSessionRecorded(jadwal);
+            const sessionState = attendanceState.get(sessionKey);
+
+            return (
+              <Card key={sessionKey}>
+                  <CardHeader>
+                     <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-xl">{jadwal.mapel} - Kelas {jadwal.kelas}</CardTitle>
+                            <CardDescription className="flex items-center gap-2 mt-1">
+                                <Clock4 className="h-4 w-4" /> Jam Pelajaran Ke-{jadwal.sesi}
+                            </CardDescription>
+                        </div>
+                        {!isRecorded && (
+                            <Button onClick={() => handleSaveAttendance(jadwal)}>
+                                <Save className="mr-2 h-4 w-4" /> Simpan Absensi Sesi Ini
+                            </Button>
+                        )}
+                     </div>
+                  </CardHeader>
+                  <CardContent>
+                      <Table>
+                          <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]">No.</TableHead>
+                                <TableHead>NIS</TableHead>
+                                <TableHead>Nama Siswa</TableHead>
+                                <TableHead className="text-center">Status Kehadiran</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {studentsInClass.map((siswa, index) => (
+                              <TableRow key={siswa.id}>
+                                <TableCell>{index + 1}</TableCell>
+                                <TableCell>{siswa.nis}</TableCell>
+                                <TableCell className="font-medium">{siswa.nama}</TableCell>
+                                <TableCell className="text-center">
+                                   {isRecorded ? (
+                                        <Badge variant={getBadgeVariant(sessionState?.get(siswa.nis) || 'Hadir')}>
+                                            {sessionState?.get(siswa.nis)}
+                                        </Badge>
+                                   ) : (
+                                        <RadioGroup
+                                            value={sessionState?.get(siswa.nis) || 'Hadir'}
+                                            onValueChange={(value) => handleStatusChange(sessionKey, siswa.nis, value as KehadiranStatus)}
+                                            className="flex justify-center space-x-2 sm:space-x-4"
+                                        >
+                                            {statusOptions.map(status => (
+                                                <div key={status.value} className="flex items-center space-x-2">
+                                                    <RadioGroupItem value={status.value} id={`${siswa.nis}-${status.value}-${jadwal.sesi}`} />
+                                                    <Label htmlFor={`${siswa.nis}-${status.value}-${jadwal.sesi}`}>{status.value}</Label>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                   )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                      </Table>
+                  </CardContent>
+              </Card>
+            )
+        })
+      ) : (
+        <Card>
+            <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">Tidak ada jadwal mengajar untuk Anda pada tanggal yang dipilih.</p>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
