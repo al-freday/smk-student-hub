@@ -50,7 +50,7 @@ const WakasekDashboard = () => {
 
     return (
         <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Link href="/dashboard/manajemen-siswa">
                     <StatCard
                         title="Total Siswa Aktif"
@@ -69,16 +69,7 @@ const WakasekDashboard = () => {
                         isLoading={isLoading}
                     />
                 </Link>
-                <Link href="/dashboard/manajemen-kelas">
-                    <StatCard
-                        title="Jumlah Kelas"
-                        value={stats.totalKelas.toLocaleString()}
-                        icon={<School className="h-4 w-4 text-muted-foreground" />}
-                        description="Data dari Manajemen Kelas"
-                        isLoading={isLoading}
-                    />
-                </Link>
-                <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
+                <Link href="/dashboard/kehadiran-siswa">
                     <StatCard
                         title="Kehadiran Hari Ini"
                         value={stats.kehadiranHariIni}
