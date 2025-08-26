@@ -17,6 +17,7 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { getSourceData } from "@/lib/data-manager";
 
 interface Siswa {
   id: number;
@@ -41,10 +42,9 @@ export default function ManajemenKelasPage() {
   const [kelas, setKelas] = useState<Kelas[]>([]);
 
   useEffect(() => {
-    const savedSiswa = localStorage.getItem('siswaData');
-    if (savedSiswa) {
+    const siswaData: Siswa[] = getSourceData('siswaData', []);
+    if (siswaData) {
       try {
-        const siswaData: Siswa[] = JSON.parse(savedSiswa);
         const kelasMap = new Map<string, number>();
 
         siswaData.forEach(siswa => {

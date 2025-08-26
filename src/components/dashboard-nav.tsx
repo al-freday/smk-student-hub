@@ -49,9 +49,10 @@ import { getSourceData } from "@/lib/data-manager";
 const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/data-induk-siswa", icon: Database, label: "Data Induk Siswa" },
-    { href: "/dashboard/kehadiran-siswa", icon: CalendarCheck, label: "Kehadiran Siswa" },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
+    { href: "/dashboard/kehadiran-siswa", icon: UserCheck, label: "Kehadiran Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
+    { href: "/dashboard/manajemen-kelas", icon: School, label: "Manajemen Kelas" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/tata-tertib", icon: ShieldAlert, label: "Tata Tertib" },
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
