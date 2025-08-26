@@ -41,8 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Jadwal {
   id: number;
   hari: string;
-  jamMulai: string;
-  jamSelesai: string;
+  sesi: string;
   kelas: string;
   mataPelajaran: string;
   guru: string;
@@ -56,29 +55,25 @@ const daftarKelas = [
   "XII TAB 1", "XII TAB 2", "XII TKR", "XII AKL", "XII TM"
 ];
 
-// Data ini seharusnya sinkron dengan Manajemen Guru
 const daftarGuruDanMapel = Array.from({ length: 40 }, (_, i) => ({ 
     guru: `Guru Mapel ${i + 1}`, 
     mapel: `Mapel ${i + 1}` 
 }));
 
-// Waktu pelajaran (2 jam pelajaran = 90 menit)
-const jamPelajaran = [
-    { mulai: "07:15", selesai: "08:45" }, // Sesi 1
-    { mulai: "08:45", selesai: "10:15" }, // Sesi 2
-    // Istirahat 10:15 - 10:30
-    { mulai: "10:30", selesai: "12:00" }, // Sesi 3
-    // Istirahat 12:00 - 12:30
-    { mulai: "12:30", selesai: "14:00" }, // Sesi 4
-    { mulai: "14:00", selesai: "15:30" }, // Sesi 5
+const sesiPelajaran = [
+    { id: "I", label: "Sesi I" }, { id: "II", label: "Sesi II" },
+    { id: "III", label: "Sesi III" }, { id: "IV", label: "Sesi IV" },
+    { id: "V", label: "Sesi V" }, { id: "VI", label: "Sesi VI" },
+    { id: "VII", label: "Sesi VII" }, { id: "VIII", label: "Sesi VIII" },
+    { id: "IX", label: "Sesi IX" }, { id: "X", label: "Sesi X" },
 ];
 
 export default function JadwalPelajaranPage() {
   const { toast } = useToast();
   const [jadwal, setJadwal] = useState<Jadwal[]>([
-    { id: 1, hari: "Senin", jamMulai: "07:15", jamSelesai: "08:45", kelas: "X OT 1", mataPelajaran: "Mapel 1", guru: "Guru Mapel 1" },
-    { id: 2, hari: "Senin", jamMulai: "08:45", jamSelesai: "10:15", kelas: "X OT 1", mataPelajaran: "Mapel 2", guru: "Guru Mapel 2" },
-    { id: 3, hari: "Selasa", jamMulai: "10:30", jamSelesai: "12:00", kelas: "XI AKL", mataPelajaran: "Mapel 5", guru: "Guru Mapel 5" },
+    { id: 1, hari: "Senin", sesi: "I", kelas: "X OT 1", mataPelajaran: "Mapel 1", guru: "Guru Mapel 1" },
+    { id: 2, hari: "Senin", sesi: "II", kelas: "X OT 1", mataPelajaran: "Mapel 2", guru: "Guru Mapel 2" },
+    { id: 3, hari: "Selasa", sesi: "III", kelas: "XI AKL", mataPelajaran: "Mapel 5", guru: "Guru Mapel 5" },
   ]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJadwal, setEditingJadwal] = useState<Jadwal | null>(null);
@@ -103,7 +98,7 @@ export default function JadwalPelajaranPage() {
   };
 
   const handleSave = () => {
-    if (formData.hari && formData.jamMulai && formData.jamSelesai && formData.kelas && formData.mataPelajaran && formData.guru) {
+    if (formData.hari && formData.sesi && formData.kelas && formData.mataPelajaran && formData.guru) {
       if (editingJadwal) {
         setJadwal(jadwal.map(j => j.id === editingJadwal.id ? { ...editingJadwal, ...formData } as Jadwal : j));
         toast({ title: "Sukses", description: "Jadwal berhasil diperbarui." });
@@ -157,7 +152,7 @@ export default function JadwalPelajaranPage() {
             <CardContent>
                 <Accordion type="multiple" className="w-full">
                   {daftarKelas.map(kelas => {
-                    const jadwalKelas = jadwalHari.filter(j => j.kelas === kelas).sort((a,b) => a.jamMulai.localeCompare(b.jamMulai));
+                    const jadwalKelas = jadwalHari.filter(j => j.kelas === kelas).sort((a,b) => a.sesi.localeCompare(b.sesi));
                     
                     return (
                       <AccordionItem value={`${hari}-${kelas}`} key={`${hari}-${kelas}`}>
@@ -173,7 +168,7 @@ export default function JadwalPelajaranPage() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>Jam</TableHead>
+                                  <TableHead>Jam Ke-</TableHead>
                                   <TableHead>Mata Pelajaran</TableHead>
                                   <TableHead>Guru</TableHead>
                                   <TableHead className="text-right">Aksi</TableHead>
@@ -182,8 +177,8 @@ export default function JadwalPelajaranPage() {
                               <TableBody>
                                 {jadwalKelas.map((j) => (
                                   <TableRow key={j.id}>
-                                    <TableCell>{j.jamMulai} - {j.jamSelesai}</TableCell>
-                                    <TableCell className="font-medium">{j.mataPelajaran}</TableCell>
+                                    <TableCell className="font-medium text-center">{j.sesi}</TableCell>
+                                    <TableCell>{j.mataPelajaran}</TableCell>
                                     <TableCell>{j.guru}</TableCell>
                                     <TableCell className="text-right">
                                       <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(j)}>
@@ -234,15 +229,12 @@ export default function JadwalPelajaranPage() {
             </div>
              <div className="space-y-2">
                 <Label htmlFor="jam">Sesi Jam Pelajaran</Label>
-                <Select onValueChange={value => {
-                    const [jamMulai, jamSelesai] = value.split('-');
-                    setFormData({ ...formData, jamMulai, jamSelesai });
-                }}>
-                    <SelectTrigger id="jam"><SelectValue placeholder="Pilih Jam" /></SelectTrigger>
+                <Select value={formData.sesi} onValueChange={value => setFormData({ ...formData, sesi: value })}>
+                    <SelectTrigger id="jam"><SelectValue placeholder="Pilih Sesi" /></SelectTrigger>
                     <SelectContent>
-                        {jamPelajaran.map(jam => (
-                            <SelectItem key={jam.mulai} value={`${jam.mulai}-${jam.selesai}`}>
-                                {jam.mulai} - {jam.selesai}
+                        {sesiPelajaran.map(sesi => (
+                            <SelectItem key={sesi.id} value={sesi.id}>
+                                {sesi.label} ({sesi.id})
                             </SelectItem>
                         ))}
                     </SelectContent>
