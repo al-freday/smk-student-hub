@@ -4,36 +4,48 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Siren, Award, UserX, UserCheck, Bell, MessageSquareWarning } from "lucide-react";
+import { getSourceData } from "@/lib/data-manager";
+import { Badge } from "@/components/ui/badge";
 
-interface User {
-  id: number;
-  nama: string;
-  role: string;
-}
+type NotificationType = 'PELANGGARAN' | 'PRESTASI' | 'ABSENSI_SISWA' | 'ABSENSI_GURU';
 
 interface Notification {
-  id: number;
-  user: string;
-  role: string;
+  id: string;
+  type: NotificationType;
+  title: string;
+  description: string;
+  timestamp: number;
   time: string;
-  avatarFallback: string;
 }
 
-const getRoleDisplayName = (roleKey: string) => {
-    const roles: { [key: string]: string } = {
-        wali_kelas: 'Wali Kelas',
-        guru_bk: 'Guru BK',
-        guru_mapel: 'Guru Mapel',
-        guru_piket: 'Guru Piket',
-        guru_pendamping: 'Guru Pendamping',
-    };
-    return roles[roleKey] || 'Guru';
+const getNotificationIcon = (type: NotificationType) => {
+    switch (type) {
+        case 'PELANGGARAN': return <Siren className="h-5 w-5 text-destructive" />;
+        case 'PRESTASI': return <Award className="h-5 w-5 text-blue-500" />;
+        case 'ABSENSI_SISWA': return <UserX className="h-5 w-5 text-orange-500" />;
+        case 'ABSENSI_GURU': return <UserCheck className="h-5 w-5 text-teal-500" />;
+        default: return <Bell className="h-5 w-5 text-muted-foreground" />;
+    }
 };
 
-const getAvatarFallbackFromName = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+const formatTimeAgo = (timestamp: number) => {
+    const now = new Date().getTime();
+    const seconds = Math.floor((now - timestamp) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " tahun lalu";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " bulan lalu";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " hari lalu";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " jam lalu";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " menit lalu";
+    return "Baru saja";
 };
+
 
 export default function NotifikasiPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -46,62 +58,101 @@ export default function NotifikasiPage() {
 
     if (role === 'wakasek_kesiswaan') {
       try {
-        const savedTeachers = localStorage.getItem('teachersData');
-        if (savedTeachers) {
-          const teachersData = JSON.parse(savedTeachers);
-          const allUsers: User[] = [];
+        const allNotifications: Notification[] = [];
+        const now = new Date().getTime();
 
-          Object.keys(teachersData).forEach(roleKey => {
-            teachersData[roleKey].forEach((guru: any) => {
-              allUsers.push({
-                id: guru.id + roleKey,
-                nama: guru.nama,
-                role: getRoleDisplayName(roleKey),
-              });
+        // 1. Get Infractions and Achievements
+        const riwayatCatatan = getSourceData('riwayatCatatan', []);
+        riwayatCatatan.forEach((item: any, index: number) => {
+            const timestamp = new Date(item.tanggal).getTime() + (riwayatCatatan.length - index) * 1000;
+            allNotifications.push({
+                id: `catatan-${item.id}`,
+                type: item.tipe === 'pelanggaran' ? 'PELANGGARAN' : 'PRESTASI',
+                title: item.tipe === 'pelanggaran' ? 'Pelanggaran Siswa' : 'Prestasi Siswa',
+                description: `Siswa **${item.siswa} (${item.kelas})** tercatat ${item.tipe === 'pelanggaran' ? 'melakukan pelanggaran' : 'meraih prestasi'}: *${item.deskripsi}*.`,
+                timestamp: timestamp,
+                time: formatTimeAgo(timestamp),
             });
-          });
-          
-          const generatedNotifications = allUsers.map((user, index) => ({
-            id: user.id,
-            user: user.nama,
-            role: user.role,
-            time: `${index + 2} menit yang lalu`,
-            avatarFallback: getAvatarFallbackFromName(user.nama),
-          }));
-          
-          setNotifications(generatedNotifications);
-        }
+        });
+
+        // 2. Get Student Absences (only non-hadir)
+        const kehadiranSiswa = getSourceData('kehadiranSiswa', []);
+        kehadiranSiswa.forEach((item: any, index: number) => {
+            if (item.status !== 'Hadir') {
+                const timestamp = new Date(item.tanggal).getTime() + (kehadiranSiswa.length - index) * 1000;
+                allNotifications.push({
+                    id: `absen-siswa-${item.id}`,
+                    type: 'ABSENSI_SISWA',
+                    title: `Absensi Siswa (${item.status})`,
+                    description: `Siswa **${item.nama} (${item.kelas})** tercatat **${item.status}** pada tanggal ${item.tanggal}.`,
+                    timestamp: timestamp,
+                    time: formatTimeAgo(timestamp),
+                });
+            }
+        });
+
+        // 3. Get Teacher Absences (only non-hadir)
+        const teacherAttendance = getSourceData('teacherAttendanceData', []);
+        teacherAttendance.forEach((item: any, index: number) => {
+             if (item.status !== 'Hadir') {
+                const timestamp = new Date(item.tanggal).getTime() + (teacherAttendance.length - index) * 1000;
+                allNotifications.push({
+                    id: `absen-guru-${item.id}`,
+                    type: 'ABSENSI_GURU',
+                    title: `Kehadiran Guru (${item.status})`,
+                    description: `Guru **${item.namaGuru}** tercatat **${item.status}**. Keterangan: *${item.keterangan}*.`,
+                    timestamp: timestamp,
+                    time: formatTimeAgo(timestamp),
+                });
+             }
+        });
+        
+        // Sort all notifications by timestamp descending
+        allNotifications.sort((a, b) => b.timestamp - a.timestamp);
+        
+        setNotifications(allNotifications);
+
       } catch (error) {
         console.error("Gagal memuat data notifikasi:", error);
       } finally {
         setIsLoading(false);
       }
     } else {
-        // Tampilan default untuk peran selain wakasek
-        setNotifications([
-            { id: 1, user: "Admin", role: "Wakasek", time: "5 menit yang lalu", avatarFallback: "WK" },
-            { id: 2, user: "Rekan Guru", role: "Guru", time: "10 menit yang lalu", avatarFallback: "RG" },
-        ]);
+        // Fallback for other roles
+        setNotifications([]);
         setIsLoading(false);
     }
   }, []);
+  
+  const renderDescription = (description: string) => {
+    const parts = description.split(/\*\*(.*?)\*\*|\*(.*?)\*/g).filter(Boolean);
+    return parts.map((part, index) => {
+        if (description.includes(`**${part}**`)) {
+            return <strong key={index} className="font-semibold text-primary">{part}</strong>;
+        }
+        if (description.includes(`*${part}*`)) {
+            return <em key={index} className="italic">{part}</em>;
+        }
+        return part;
+    });
+  };
 
   return (
     <div className="flex-1 space-y-6">
        <div>
             <h2 className="text-3xl font-bold tracking-tight">Notifikasi</h2>
             <p className="text-muted-foreground">
-                Lihat semua pemberitahuan dan pembaruan penting.
+                Lihat semua pembaruan penting terkait aktivitas kesiswaan.
             </p>
        </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Pemberitahuan Terbaru</CardTitle>
+          <CardTitle>Aktivitas Terbaru</CardTitle>
           <CardDescription>
             {userRole === 'wakasek_kesiswaan' 
-              ? "Aktivitas login terbaru dari semua pengguna terdaftar."
-              : "Aktivitas terbaru di sistem."
+              ? "Rekapitulasi otomatis dari pelanggaran, prestasi, dan absensi."
+              : "Tidak ada notifikasi untuk peran Anda."
             }
           </CardDescription>
         </CardHeader>
@@ -112,27 +163,33 @@ export default function NotifikasiPage() {
               <p className="ml-4 text-muted-foreground">Memuat notifikasi...</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {notifications.length > 0 ? (
                 notifications.map((notification) => (
-                <div key={notification.id} className="flex items-center gap-4">
-                  <Avatar className="h-9 w-9">
-                     <AvatarFallback>{notification.avatarFallback}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid gap-1">
-                    <p className="text-sm font-medium leading-none">
-                      <span className="font-semibold">{notification.user}</span> ({notification.role}) baru saja login.
-                    </p>
+                <div key={notification.id} className="flex items-start gap-4">
+                  <div className="mt-1">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="grid gap-1 flex-1">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium leading-none">
+                            {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {notification.time}
+                        </p>
+                    </div>
                     <p className="text-sm text-muted-foreground">
-                      {notification.time}
+                       {renderDescription(notification.description)}
                     </p>
                   </div>
                 </div>
               ))
              ) : (
-                <div className="text-center text-sm text-muted-foreground py-10">
-                    <p>Belum ada pengguna terdaftar di Manajemen Guru.</p>
-                    <p>Tidak ada notifikasi untuk ditampilkan.</p>
+                <div className="text-center text-muted-foreground py-10">
+                    <MessageSquareWarning className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-semibold">Belum Ada Aktivitas</h3>
+                    <p className="mt-1 text-sm">Tidak ada notifikasi baru untuk ditampilkan saat ini.</p>
                 </div>
              )}
             </div>
