@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, ShieldAlert, Search, ChevronsUpDown, Check, Info } from "lucide-react";
+import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -48,16 +50,20 @@ interface TataTertib {
   kategori: string;
 }
 
-interface CatatanSiswa {
+type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
+
+interface CatatanPelanggaran {
   id: number;
   tanggal: string;
-  tipe: 'pelanggaran' | 'prestasi';
   nis: string;
-  siswa: string;
+  namaSiswa: string;
   kelas: string;
-  deskripsi: string;
+  pelanggaran: string;
   poin: number;
-  dicatatOleh: string;
+  guruPelapor: string;
+  tindakanAwal: string;
+  status: StatusLaporan;
+  tindakLanjutWaliKelas?: string;
 }
 
 const getSourceData = (key: string, defaultValue: any) => {
@@ -84,41 +90,45 @@ export default function ManajemenPelanggaranPage() {
   // --- Data States ---
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarTataTertib, setDaftarTataTertib] = useState<TataTertib[]>([]);
-  const [riwayatCatatan, setRiwayatCatatan] = useState<CatatanSiswa[]>([]);
-  const [currentUser, setCurrentUser] = useState({ nama: "Wakasek" });
+  const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
+  const [currentUser, setCurrentUser] = useState({ nama: "Wakasek Kesiswaan" });
+  
+  // --- Filter State ---
+  const [filter, setFilter] = useState("");
 
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [catatanToDelete, setCatatanToDelete] = useState<CatatanSiswa | null>(null);
+  const [catatanToDelete, setCatatanToDelete] = useState<CatatanPelanggaran | null>(null);
   
   // --- Form Data States ---
   const [selectedNis, setSelectedNis] = useState<string>("");
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
-  const [keterangan, setKeterangan] = useState("");
+  const [tindakanAwal, setTindakanAwal] = useState("");
 
   useEffect(() => {
     const siswa = getSourceData('siswaData', []);
     const tataTertibData = getSourceData('tataTertibData', { Kerajinan: [], Kerapian: [], Perilaku: [] });
-    const catatan = getSourceData('riwayatCatatan', []);
-    const user = getSourceData('currentUser', { nama: "Wakasek" });
+    const pelanggaran = getSourceData('riwayatPelanggaran', []);
+    const user = getSourceData('currentUser', { nama: "Wakasek Kesiswaan" });
 
     setDaftarSiswa(siswa);
     setDaftarTataTertib(Object.values(tataTertibData).flat());
-    setRiwayatCatatan(catatan);
+    setRiwayatPelanggaran(pelanggaran);
     setCurrentUser(user);
   }, []);
 
-  const poinSiswa = riwayatCatatan.reduce((acc, curr) => {
-    if (curr.tipe === 'pelanggaran') {
-        acc[curr.nis] = (acc[curr.nis] || 0) + curr.poin;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  const filteredPelanggaran = useMemo(() => {
+    return riwayatPelanggaran.filter(item => 
+      item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
+      item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
+      item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
+    ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  }, [riwayatPelanggaran, filter]);
 
   const handleOpenDialog = () => {
     setSelectedNis("");
     setSelectedRuleId(null);
-    setKeterangan("");
+    setTindakanAwal("");
     setIsDialogOpen(true);
   };
 
@@ -131,21 +141,22 @@ export default function ManajemenPelanggaranPage() {
       return;
     }
 
-    const newCatatan: CatatanSiswa = {
-      id: riwayatCatatan.length > 0 ? Math.max(...riwayatCatatan.map(c => c.id)) + 1 : 1,
+    const newCatatan: CatatanPelanggaran = {
+      id: riwayatPelanggaran.length > 0 ? Math.max(...riwayatPelanggaran.map(c => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
-      tipe: 'pelanggaran',
       nis: siswa.nis,
-      siswa: siswa.nama,
+      namaSiswa: siswa.nama,
       kelas: siswa.kelas,
-      deskripsi: `${aturan.deskripsi}${keterangan ? ` (${keterangan})` : ''}`,
+      pelanggaran: aturan.deskripsi,
       poin: aturan.poin,
-      dicatatOleh: currentUser.nama,
+      guruPelapor: currentUser.nama,
+      tindakanAwal: tindakanAwal,
+      status: 'Dilaporkan',
     };
 
-    const updatedRiwayat = [...riwayatCatatan, newCatatan];
-    setRiwayatCatatan(updatedRiwayat);
-    updateSourceData('riwayatCatatan', updatedRiwayat);
+    const updatedRiwayat = [...riwayatPelanggaran, newCatatan];
+    setRiwayatPelanggaran(updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Sukses", description: "Catatan pelanggaran berhasil disimpan." });
     setIsDialogOpen(false);
@@ -154,12 +165,31 @@ export default function ManajemenPelanggaranPage() {
   const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    const updatedRiwayat = riwayatCatatan.filter(c => c.id !== catatanToDelete.id);
-    setRiwayatCatatan(updatedRiwayat);
-    updateSourceData('riwayatCatatan', updatedRiwayat);
+    const updatedRiwayat = riwayatPelanggaran.filter(c => c.id !== catatanToDelete.id);
+    setRiwayatPelanggaran(updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
-    toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.siswa} telah dihapus.` });
+    toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
+  };
+  
+  const handleStatusChange = (id: number, status: StatusLaporan) => {
+    const updatedRiwayat = riwayatPelanggaran.map(item => 
+        item.id === id ? { ...item, status: status } : item
+    );
+    setRiwayatPelanggaran(updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
+  };
+  
+  const getStatusBadgeVariant = (status: StatusLaporan) => {
+    switch (status) {
+        case 'Dilaporkan': return 'destructive';
+        case 'Ditindaklanjuti Wali Kelas': return 'secondary';
+        case 'Diteruskan ke BK': return 'default';
+        case 'Selesai': return 'outline';
+        default: return 'outline';
+    }
   };
 
   return (
@@ -170,56 +200,82 @@ export default function ManajemenPelanggaranPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Riwayat Pelanggaran</CardTitle>
-              <CardDescription>Daftar semua catatan pelanggaran yang telah dibuat.</CardDescription>
+        <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                 <div>
+                    <CardTitle>Riwayat Pelanggaran</CardTitle>
+                    <CardDescription>Daftar semua catatan pelanggaran yang telah dibuat.</CardDescription>
+                </div>
+                 <div className="flex w-full sm:w-auto gap-2">
+                    <Input 
+                        placeholder="Cari (nama, kelas, pelanggaran)..." 
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="w-full sm:w-64"
+                    />
+                    <Button onClick={handleOpenDialog} className="whitespace-nowrap">
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        Catat Baru
+                    </Button>
+                </div>
             </div>
-            <Button onClick={handleOpenDialog}>
-                <PlusCircle className="mr-2 h-4 w-4"/>
-                Catat Pelanggaran Baru
-            </Button>
         </CardHeader>
         <CardContent>
              <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Tanggal</TableHead>
                         <TableHead>Siswa</TableHead>
-                        <TableHead>Kelas</TableHead>
-                        <TableHead>Deskripsi Pelanggaran</TableHead>
-                        <TableHead className="text-center">Poin</TableHead>
-                        <TableHead>Dicatat Oleh</TableHead>
+                        <TableHead>Detail Pelanggaran</TableHead>
+                        <TableHead>Pelapor & Tindakan Awal</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {riwayatCatatan.filter(c => c.tipe === 'pelanggaran').length > 0 ? (
-                        riwayatCatatan.filter(c => c.tipe === 'pelanggaran').map(catatan => (
+                    {filteredPelanggaran.length > 0 ? (
+                        filteredPelanggaran.map(catatan => (
                             <TableRow key={catatan.id}>
-                                <TableCell>{catatan.tanggal}</TableCell>
-                                <TableCell className="font-medium">
-                                    {catatan.siswa}
-                                    <Badge variant="secondary" className="ml-2">
-                                        Total Poin: {poinSiswa[catatan.nis] || 0}
-                                    </Badge>
+                                <TableCell>
+                                    <p className="font-medium">{catatan.namaSiswa}</p>
+                                    <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
                                 </TableCell>
-                                <TableCell>{catatan.kelas}</TableCell>
-                                <TableCell>{catatan.deskripsi}</TableCell>
+                                <TableCell>
+                                    <p>{catatan.pelanggaran}</p>
+                                    <Badge variant="destructive">{catatan.poin} Poin</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <p className="font-medium">{catatan.guruPelapor}</p>
+                                    <p className="text-xs text-muted-foreground">{catatan.tindakanAwal || "-"}</p>
+                                </TableCell>
                                 <TableCell className="text-center">
-                                    <Badge variant="destructive">{catatan.poin}</Badge>
+                                    <Badge variant={getStatusBadgeVariant(catatan.status)}>{catatan.status}</Badge>
                                 </TableCell>
-                                <TableCell>{catatan.dicatatOleh}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => setCatatanToDelete(catatan)}>
-                                        <Trash2 className="h-4 w-4 text-destructive"/>
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                             <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}>
+                                                <UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}>
+                                                <MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}>
+                                                <CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center h-24">Belum ada catatan pelanggaran.</TableCell>
+                            <TableCell colSpan={5} className="text-center h-24">Belum ada catatan pelanggaran.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>
@@ -291,13 +347,13 @@ export default function ManajemenPelanggaranPage() {
                     </Popover>
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><Info/>Keterangan Tambahan (Opsional)</Label>
-                    <Textarea value={keterangan} onChange={e => setKeterangan(e.target.value)} placeholder="Contoh: Terlambat saat upacara bendera."/>
+                    <Label>Tindakan Awal yang Dilakukan (Opsional)</Label>
+                    <Textarea value={tindakanAwal} onChange={e => setTindakanAwal(e.target.value)} placeholder="Contoh: Ditegur secara lisan di tempat."/>
                 </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                <Button onClick={handleSaveCatatan}>Simpan Catatan</Button>
+                <Button onClick={handleSaveCatatan}>Simpan Laporan</Button>
             </DialogFooter>
           </DialogContent>
       </Dialog>
@@ -318,5 +374,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
