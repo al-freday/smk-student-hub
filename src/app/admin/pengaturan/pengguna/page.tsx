@@ -101,13 +101,14 @@ export default function AdminManajemenPenggunaPage() {
         const fullData = getSourceData('teachersData', initialTeachers);
         const { schoolInfo, ...teachersData } = fullData;
 
-        const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
+        const usersData: { [key in TeacherRole]: User[] } = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] };
         
         for (const roleKey in teachersData) {
-            if (usersData.hasOwnProperty(roleKey) && Array.isArray(teachersData[roleKey])) {
-                usersData[roleKey as TeacherRole] = teachersData[roleKey].map((guru: Guru) => ({
+            const typedRoleKey = roleKey as TeacherRole;
+            if (usersData.hasOwnProperty(typedRoleKey) && Array.isArray(teachersData[typedRoleKey])) {
+                usersData[typedRoleKey] = teachersData[typedRoleKey].map((guru: Guru) => ({
                     ...guru,
-                    role: getRoleName(roleKey),
+                    role: getRoleName(typedRoleKey),
                     email: createEmailFromName(guru.nama, guru.id),
                     password: guru.password || "password123", 
                 }));
@@ -131,16 +132,16 @@ export default function AdminManajemenPenggunaPage() {
     }
     loadDataFromStorage();
     
-    const handleStorageChange = () => {
+    const handleDataChange = () => {
         loadDataFromStorage();
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('dataUpdated', handleStorageChange);
+    window.addEventListener('storage', handleDataChange);
+    window.addEventListener('dataUpdated', handleDataChange);
     
     return () => {
-        window.removeEventListener('storage', handleStorageChange);
-        window.removeEventListener('dataUpdated', handleStorageChange);
+        window.removeEventListener('storage', handleDataChange);
+        window.removeEventListener('dataUpdated', handleDataChange);
     };
   }, [router, toast]);
   
@@ -176,21 +177,19 @@ export default function AdminManajemenPenggunaPage() {
 
       if (editingUser && editingUser.originalRole !== role) {
          updatedTeachers[editingUser.originalRole] = (updatedTeachers[editingUser.originalRole] || []).filter((g: Guru) => g.id !== editingUser.id);
+      } else if (editingUser) {
+         // Jika peran tidak berubah, hapus dari list lama dulu untuk di-update
+         updatedTeachers[editingUser.originalRole] = (updatedTeachers[editingUser.originalRole] || []).filter((g: Guru) => g.id !== editingUser.id);
       }
+
 
       let currentList: Guru[] = updatedTeachers[role] || [];
       const cleanGuruData = { id: guruData.id, nama: guruData.nama, password: guruData.password };
           
       if (editingUser) {
-          const userIndex = currentList.findIndex((u: Guru) => u.id === editingUser.id);
-          if (userIndex > -1) {
-            currentList[userIndex] = { ...currentList[userIndex], ...cleanGuruData };
-          } else {
-             // This case handles when role is changed, so we add to the new list
-            currentList.push(cleanGuruData as Guru);
-          }
+         currentList.push({ ...(editingUser as Omit<User, 'role'|'email'>), ...cleanGuruData });
       } else {
-          const newId = Date.now().toString();
+          const newId = `${role}-${Date.now()}`;
           currentList.push({ ...cleanGuruData, id: newId } as Guru);
       }
       
@@ -205,7 +204,7 @@ export default function AdminManajemenPenggunaPage() {
   const handleDelete = () => {
       if (!userToDelete) return;
       
-      const roleKey = Object.keys(roleOptions).find(key => roleOptions[key as any].label === userToDelete.role) as TeacherRole | undefined;
+      const roleKey = roleOptions.find(opt => opt.label === userToDelete.role)?.value;
       if (!roleKey) return;
 
       const fullData = getSourceData('teachersData', initialTeachers);

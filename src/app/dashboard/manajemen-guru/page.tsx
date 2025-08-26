@@ -57,7 +57,7 @@ interface TeachingAssignment {
 }
 
 interface Guru {
-  id: number;
+  id: number | string;
   nama: string;
   teachingAssignments?: TeachingAssignment[];
   kelas?: string[];
@@ -69,7 +69,7 @@ interface Guru {
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
 
-const initialTeachers: { [key in TeacherRole]: Guru[] } & { schoolInfo?: any } = {
+const initialTeachersState: { [key in TeacherRole]: Guru[] } = {
     wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
 };
 
@@ -91,7 +91,7 @@ const sesiPelajaran = [ "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", 
 
 export default function ManajemenGuruPage() {
   const { toast } = useToast();
-  const [teachers, setTeachers] = useState<{ [key in TeacherRole]: Guru[] }>(initialTeachers);
+  const [teachers, setTeachers] = useState<{ [key in TeacherRole]: Guru[] }>(initialTeachersState);
   const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -108,15 +108,36 @@ export default function ManajemenGuruPage() {
 
   const loadData = () => {
     try {
-        const fullData = getSourceData('teachersData', initialTeachers);
-        const { schoolInfo, ...teachersData } = fullData;
-        setTeachers(teachersData);
-        toast({ title: "Data Dimuat", description: "Data penugasan guru terbaru telah dimuat." });
+        // Get the master data of all users from the Admin panel source
+        const fullData = getSourceData('teachersData', {});
+        const { schoolInfo, ...teachersDataFromAdmin } = fullData;
+
+        // Initialize a clean state
+        const newState = { ...initialTeachersState };
+
+        // Populate the state with users from the master data, keeping their assignments
+        for (const roleKey of roleOptions.map(r => r.value)) {
+            const usersInRole = teachersDataFromAdmin[roleKey] || [];
+            newState[roleKey] = usersInRole.map((user: any) => {
+                // Find existing teacher data to preserve assignments
+                const existingTeacher = teachers[roleKey]?.find(t => t.id === user.id);
+                return {
+                    id: user.id,
+                    nama: user.nama,
+                    // Preserve existing assignments or initialize if new
+                    ...existingTeacher,
+                };
+            });
+        }
+        
+        setTeachers(newState);
+        toast({ title: "Data Dimuat", description: "Data guru terbaru telah dimuat dari sumber utama." });
     } catch (error) {
         console.error("Gagal memuat data guru:", error);
         toast({ title: "Gagal Memuat", description: "Tidak dapat memuat data guru.", variant: "destructive" });
     }
   };
+  
 
   useEffect(() => {
     loadData();
@@ -136,14 +157,19 @@ export default function ManajemenGuruPage() {
     const siswaData: Siswa[] = getSourceData('siswaData', []);
     setDaftarSiswa(siswaData);
 
-    const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'siswaData') setDaftarSiswa(getSourceData('siswaData', []));
-        if (event.key === 'kelasData') setAvailableKelas(getSourceData('kelasData', []));
-        if (event.key === 'teachersData') loadData();
+    const handleDataChange = () => {
+        setDaftarSiswa(getSourceData('siswaData', []));
+        setAvailableKelas(getSourceData('kelasData', []));
+        loadData();
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', handleDataChange);
+    window.addEventListener('dataUpdated', handleDataChange);
+
+    return () => {
+      window.removeEventListener('storage', handleDataChange)
+      window.removeEventListener('dataUpdated', handleDataChange)
+    };
   }, []);
   
   const handleSaveChanges = () => {

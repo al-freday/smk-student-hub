@@ -53,6 +53,7 @@ export default function AdminDashboardPage() {
       const teachersData = getSourceData('teachersData', {});
       const users: User[] = [];
       
+      // Hardcoded Wakasek Kesiswaan
       users.push({
           id: 'wakasek_kesiswaan-0',
           nama: 'Wakasek Kesiswaan',
@@ -60,18 +61,22 @@ export default function AdminDashboardPage() {
           roleName: 'Wakasek Kesiswaan'
       });
 
+      // Dynamic users from teachersData
       const { schoolInfo, ...roles } = teachersData;
 
       Object.keys(roles).forEach(roleKey => {
           if (Array.isArray(roles[roleKey])) {
             roles[roleKey].forEach((guru: any) => {
-              const uniqueId = `${roleKey}-${guru.id}`;
-              users.push({
-                id: uniqueId,
-                nama: guru.nama,
-                roleKey: roleKey,
-                roleName: getRoleName(roleKey),
-              });
+              // Ensure guru object has id and nama
+              if (guru && guru.id !== undefined && guru.nama) {
+                const uniqueId = `${roleKey}-${guru.id}`;
+                users.push({
+                  id: uniqueId,
+                  nama: guru.nama,
+                  roleKey: roleKey,
+                  roleName: getRoleName(roleKey),
+                });
+              }
             });
           }
       });

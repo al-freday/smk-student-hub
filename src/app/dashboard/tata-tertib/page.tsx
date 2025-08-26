@@ -63,6 +63,11 @@ interface Siswa {
     kelas: string;
 }
 
+interface Kelas {
+    id: number;
+    nama: string;
+}
+
 interface WaliKelas {
     kelas: string[];
     nama: string;
@@ -87,7 +92,7 @@ export default function TataTertibPage() {
   const [activeTab, setActiveTab] = useState("pelanggaran");
   
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
-  const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [daftarWaliKelas, setDaftarWaliKelas] = useState<WaliKelas[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [riwayat, setRiwayat] = useState<CatatanSiswa[]>([]);
@@ -119,7 +124,7 @@ export default function TataTertibPage() {
       setDaftarSiswa(savedSiswa);
       
       const savedKelas = getSourceData('kelasData', []);
-      setDaftarKelas(savedKelas.map((k: {nama: string}) => k.nama));
+      setDaftarKelas(savedKelas);
 
       const savedTeachers = getSourceData('teachersData', {});
       const waliKelasList = savedTeachers.wali_kelas || [];
@@ -261,7 +266,7 @@ export default function TataTertibPage() {
                                     <Label htmlFor="kelas-pelanggaran">Pilih Kelas</Label>
                                     <Select value={selectedKelas} onValueChange={(value) => { setSelectedKelas(value); setSelectedSiswaPelanggaran(""); }}>
                                         <SelectTrigger id="kelas-pelanggaran"><SelectValue placeholder="-- Kelas --" /></SelectTrigger>
-                                        <SelectContent>{daftarKelas.map(kelas => (<SelectItem key={kelas} value={kelas}>{kelas}</SelectItem>))}</SelectContent>
+                                        <SelectContent>{daftarKelas.map(kelas => (<SelectItem key={kelas.id} value={kelas.nama}>{kelas.nama}</SelectItem>))}</SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
