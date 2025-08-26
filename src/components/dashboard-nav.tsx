@@ -15,6 +15,7 @@ import {
   User,
   UserCheck,
   Scale,
+  ShieldAlert,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -38,6 +39,7 @@ const navItemsByRole = {
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Manajemen Jadwal Pelajaran" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Manajemen Kehadiran Guru"},
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { href: "/dashboard/laporan", icon: FileText, label: "Manajemen Wakasek Kesiswaan" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
@@ -123,7 +125,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
            ) : (
              <Icons.logo className="h-7 w-7 text-primary"/>
            )}
-           <span className="text-lg font-semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
+           <span className="text-lg font.semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
             {schoolInfo.schoolName}
            </span>
          </Link>
