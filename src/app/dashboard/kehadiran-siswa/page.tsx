@@ -46,17 +46,23 @@ const months = [
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 
+// Gabungan data siswa dengan rekap kehadiran mereka untuk bulan yang dipilih
+interface RekapSiswa {
+    siswa: Siswa;
+    kehadiran: Kehadiran[]; // Semua catatan di bulan/tahun terpilih
+}
+
 export default function KehadiranSiswaPage() {
   const { toast } = useToast();
   const [allRecords, setAllRecords] = useState<Kehadiran[]>([]);
-  const [filteredRecords, setFilteredRecords] = useState<Kehadiran[]>([]);
+  const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [schoolName, setSchoolName] = useState("Sekolah");
   
   // Filter states
   const [filterMonth, setFilterMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [filterYear, setFilterYear] = useState<string>(currentYear.toString());
-  const [filterKelas, setFilterKelas] = useState<string>("semua");
+  const [filterKelas, setFilterKelas] = useState<string>("");
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -67,13 +73,11 @@ export default function KehadiranSiswaPage() {
   const [formStatus, setFormStatus] = useState<Kehadiran['status']>('Hadir');
 
   const loadData = () => {
-    const records = getSourceData('kehadiranSiswa', []);
-    const kelasData = getSourceData('kelasData', []);
+    setAllRecords(getSourceData('kehadiranSiswa', []));
+    setDaftarSiswa(getSourceData('siswaData', []));
+    setDaftarKelas(getSourceData('kelasData', []));
+    
     const teachersData = getSourceData('teachersData', {});
-    
-    setAllRecords(records);
-    setDaftarKelas(kelasData);
-    
     if (teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
         setSchoolName(teachersData.schoolInfo.schoolName);
     }
@@ -85,14 +89,23 @@ export default function KehadiranSiswaPage() {
     return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
   
-  useEffect(() => {
-    const yearMonth = `${filterYear}-${filterMonth}`;
-    let results = allRecords.filter(r => r.tanggal.startsWith(yearMonth));
-    if (filterKelas !== "semua") {
-      results = results.filter(r => r.kelas === filterKelas);
+  const rekapitulasiSiswaDiKelas = useMemo<RekapSiswa[]>(() => {
+    if (!filterKelas) {
+      return [];
     }
-    setFilteredRecords(results.sort((a,b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime() || a.nama.localeCompare(b.nama)));
-  }, [filterMonth, filterYear, filterKelas, allRecords]);
+    
+    const siswaDiKelas = daftarSiswa.filter(s => s.kelas === filterKelas);
+    const yearMonth = `${filterYear}-${filterMonth}`;
+
+    return siswaDiKelas.map(siswa => {
+      const kehadiranSiswa = allRecords.filter(r => r.nis === siswa.nis && r.tanggal.startsWith(yearMonth));
+      return {
+        siswa: siswa,
+        kehadiran: kehadiranSiswa.sort((a,b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime()),
+      };
+    });
+  }, [filterKelas, filterMonth, filterYear, daftarSiswa, allRecords]);
+
 
   const getBadgeVariant = (status: Kehadiran['status']) => {
     switch (status) {
@@ -153,9 +166,8 @@ export default function KehadiranSiswaPage() {
                     <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={filterKelas} onValueChange={setFilterKelas}>
-                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih Kelas..." /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="semua">Semua Kelas</SelectItem>
                         {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -166,31 +178,40 @@ export default function KehadiranSiswaPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tanggal</TableHead>
                 <TableHead>NIS</TableHead>
                 <TableHead>Nama Siswa</TableHead>
-                <TableHead>Kelas</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableHead>Rekap Kehadiran (Bulan Ini)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{record.tanggal}</TableCell>
-                    <TableCell>{record.nis}</TableCell>
-                    <TableCell className="font-medium">{record.nama}</TableCell>
-                    <TableCell>{record.kelas}</TableCell>
-                    <TableCell><Badge variant={getBadgeVariant(record.status)}>{record.status}</Badge></TableCell>
-                    <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(record)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setRecordToDelete(record)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              {filterKelas && rekapitulasiSiswaDiKelas.length > 0 ? (
+                rekapitulasiSiswaDiKelas.map(({ siswa, kehadiran }) => (
+                  <TableRow key={siswa.id}>
+                    <TableCell>{siswa.nis}</TableCell>
+                    <TableCell className="font-medium">{siswa.nama}</TableCell>
+                    <TableCell>
+                      {kehadiran.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                            {kehadiran.map(rec => (
+                                <div key={rec.id} className="flex items-center gap-2">
+                                     <Badge variant={getBadgeVariant(rec.status)}>{rec.tanggal}</Badge>
+                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenDialog(rec)}><Edit className="h-3 w-3" /></Button>
+                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setRecordToDelete(rec)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                                </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Belum ada data kehadiran bulan ini.</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center">Tidak ada data kehadiran untuk filter yang dipilih.</TableCell></TableRow>
+                <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center">
+                        {filterKelas ? "Tidak ada siswa di kelas ini." : "Silakan pilih kelas untuk menampilkan data."}
+                    </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
