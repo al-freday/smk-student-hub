@@ -85,7 +85,7 @@ export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
-  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[] | null>(null);
   const [riwayatMutasi, setRiwayatMutasi] = useState<Mutasi[]>([]);
   
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -220,7 +220,7 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleSaveKelas = () => {
-    if (kelasFormData.nama) {
+    if (kelasFormData.nama && daftarKelas) {
         let updatedKelas;
         if (editingKelas) {
             updatedKelas = daftarKelas.map(k => k.id === editingKelas.id ? { ...k, ...kelasFormData } : k);
@@ -270,7 +270,7 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleDeleteKelas = () => {
-    if (!kelasToDelete) return;
+    if (!kelasToDelete || !daftarKelas) return;
     const updatedKelas = daftarKelas.filter(k => k.id !== kelasToDelete.id);
     setDaftarKelas(updatedKelas);
     setKelasToDelete(null);
@@ -348,7 +348,7 @@ export default function ManajemenSiswaPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
   
-  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo
+  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo && daftarKelas
     ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
     : daftarKelas;
     
@@ -403,7 +403,7 @@ export default function ManajemenSiswaPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {daftarKelas.length > 0 ? daftarKelas.map(k => (
+                            {daftarKelas && daftarKelas.length > 0 ? daftarKelas.map(k => (
                                 <TableRow key={k.id}>
                                     <TableCell className="font-medium">{k.nama}</TableCell>
                                     <TableCell className="text-right">
@@ -457,7 +457,7 @@ export default function ManajemenSiswaPage() {
                 </CardHeader>
                 <CardContent>
                 <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas?.[0]}>
-                    {displayedKelas.map((k) => {
+                    {displayedKelas && displayedKelas.map((k) => {
                     const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
                     return (
                         <AccordionItem value={k.nama} key={k.id}>
@@ -510,7 +510,7 @@ export default function ManajemenSiswaPage() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={siswaFormData.nis || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nis: e.target.value})} className="col-span-3"/></div>
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={siswaFormData.nama || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nama: e.target.value})} className="col-span-3"/></div>
-              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{daftarKelas.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
+              <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{daftarKelas?.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="status" className="text-right">Status</Label>
                 <Select onValueChange={(v) => setSiswaFormData({...siswaFormData, status: v as StudentStatus})} value={siswaFormData.status}>
