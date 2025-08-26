@@ -52,6 +52,7 @@ export default function KehadiranSiswaPage() {
   const [allRecords, setAllRecords] = useState<Kehadiran[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
+  const [schoolName, setSchoolName] = useState("SMK Student Hub");
   
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [selectedKelas, setSelectedKelas] = useState<string>("");
@@ -68,10 +69,18 @@ export default function KehadiranSiswaPage() {
     const savedKehadiran = localStorage.getItem('kehadiranSiswa');
     const savedSiswa = localStorage.getItem('siswaData');
     const savedKelas = localStorage.getItem('kelasData');
+    const savedTeachers = localStorage.getItem('teachersData');
 
     setAllRecords(savedKehadiran ? JSON.parse(savedKehadiran) : []);
     setDaftarSiswa(savedSiswa ? JSON.parse(savedSiswa) : []);
     setDaftarKelas(savedKelas ? JSON.parse(savedKelas) : []);
+    
+    if (savedTeachers) {
+      const teachersData = JSON.parse(savedTeachers);
+      if (teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
+        setSchoolName(teachersData.schoolInfo.schoolName);
+      }
+    }
   };
   
   useEffect(() => {
@@ -162,7 +171,7 @@ export default function KehadiranSiswaPage() {
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Manajemen Kehadiran Siswa</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Daftar Hadir Siswa {schoolName}</h2>
         <p className="text-muted-foreground">Pilih tanggal dan kelas untuk mencatat absensi harian siswa.</p>
       </div>
       <Card>

@@ -32,9 +32,10 @@ const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
-    { href: "/dashboard/kehadiran-siswa", icon: UserCheck, label: "Kehadiran Siswa" },
+    { href: "/dashboard/kehadiran-siswa", icon: UserCheck, label: "Manajemen Kehadiran Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru"},
     { href: "/dashboard/laporan", icon: FileText, label: "Laporan" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
