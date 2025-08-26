@@ -34,6 +34,8 @@ export const getDashboardStats = () => {
     const teachersData = getDataFromLocalStorage('teachersData', {});
     let totalGuru = 0;
     if (teachersData && typeof teachersData === 'object' && !Array.isArray(teachersData)) {
+        // Tambah 1 untuk Wakasek Kesiswaan yang mungkin tidak ada di daftar
+        totalGuru = 1;
         Object.values(teachersData).forEach((roleArray: any) => {
             if (Array.isArray(roleArray)) {
                 totalGuru += roleArray.length;
@@ -53,7 +55,7 @@ export const getDashboardStats = () => {
     const hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
     
     // Gunakan totalSiswa yang valid untuk perhitungan persentase
-    const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(1) + "%" : "0%";
+    const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(0) + "%" : "0%";
 
     // 5. Pelanggaran Hari Ini
     const riwayatCatatan: CatatanSiswa[] = getDataFromLocalStorage('riwayatCatatan', []);

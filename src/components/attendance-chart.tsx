@@ -38,32 +38,36 @@ export default function AttendanceChart() {
   const [chartKey, setChartKey] = useState(0);
 
   useEffect(() => {
-    const rawData = localStorage.getItem("kehadiranSiswa");
-    if (rawData) {
-      const kehadiranSiswa: Kehadiran[] = JSON.parse(rawData);
-      
-      const attendanceByDay: { [key: string]: { hadir: number; alpa: number; izin: number } } = {};
+    try {
+      const rawData = localStorage.getItem("kehadiranSiswa");
+      if (rawData) {
+        const kehadiranSiswa: Kehadiran[] = JSON.parse(rawData);
+        
+        const attendanceByDay: { [key: string]: { hadir: number; alpa: number; izin: number } } = {};
 
-      kehadiranSiswa.forEach(item => {
-        if (!attendanceByDay[item.tanggal]) {
-          attendanceByDay[item.tanggal] = { hadir: 0, alpa: 0, izin: 0 };
-        }
-        if (item.status === 'Hadir') attendanceByDay[item.tanggal].hadir++;
-        else if (item.status === 'Alpa') attendanceByDay[item.tanggal].alpa++;
-        else if (item.status === 'Izin' || item.status === 'Sakit') attendanceByDay[item.tanggal].izin++;
-      });
+        kehadiranSiswa.forEach(item => {
+          if (!attendanceByDay[item.tanggal]) {
+            attendanceByDay[item.tanggal] = { hadir: 0, alpa: 0, izin: 0 };
+          }
+          if (item.status === 'Hadir') attendanceByDay[item.tanggal].hadir++;
+          else if (item.status === 'Alpa') attendanceByDay[item.tanggal].alpa++;
+          else if (item.status === 'Izin' || item.status === 'Sakit') attendanceByDay[item.tanggal].izin++;
+        });
 
-      const sortedDays = Object.keys(attendanceByDay).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-      
-      const lastFiveDaysWithData = sortedDays.slice(0, 5);
+        const sortedDays = Object.keys(attendanceByDay).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+        
+        const lastFiveDaysWithData = sortedDays.slice(0, 5);
 
-      const formattedData = lastFiveDaysWithData.map(day => ({
-        day: format(new Date(day), "EEEE", { locale: id }),
-        ...attendanceByDay[day]
-      })).reverse(); // Reverse to show chronologically
+        const formattedData = lastFiveDaysWithData.map(day => ({
+          day: format(new Date(day), "EEEE", { locale: id }),
+          ...attendanceByDay[day]
+        })).reverse(); // Reverse to show chronologically
 
-      setChartData(formattedData);
-      setChartKey(prevKey => prevKey + 1); // Force re-render of chart
+        setChartData(formattedData);
+        setChartKey(prevKey => prevKey + 1); // Force re-render of chart
+      }
+    } catch(error) {
+        console.error("Failed to parse attendance data:", error);
     }
   }, []);
 

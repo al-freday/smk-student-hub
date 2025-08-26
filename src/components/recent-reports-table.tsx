@@ -29,12 +29,17 @@ export default function RecentReportsTable() {
   useEffect(() => {
     const savedRiwayat = localStorage.getItem('riwayatCatatan');
     if (savedRiwayat) {
-      const allReports: CatatanSiswa[] = JSON.parse(savedRiwayat);
-      // Sort by date descending and take the first 5
-      const sortedReports = allReports
-        .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
-        .slice(0, 5);
-      setReports(sortedReports);
+      try {
+        const allReports: CatatanSiswa[] = JSON.parse(savedRiwayat);
+        // Sort by date descending and take the first 5
+        const sortedReports = allReports
+          .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+          .slice(0, 5);
+        setReports(sortedReports);
+      } catch (error) {
+        console.error("Failed to parse recent reports data", error);
+        setReports([]);
+      }
     }
   }, []);
 

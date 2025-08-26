@@ -13,7 +13,7 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, icon, description, isNegative = false, isLoading = false }: StatCardProps) {
     return (
-        <Card>
+        <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                     {isLoading ? <Skeleton className="h-4 w-24" /> : title}
