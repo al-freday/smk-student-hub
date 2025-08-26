@@ -214,16 +214,22 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleDownload = () => {
+    // 1. Definisikan header kolom yang lebih deskriptif.
     const headers = ['NIS', 'Nama Siswa', 'Kelas'];
+    
+    // 2. Buat konten CSV, dimulai dengan baris header.
     const csvContent = [
-        headers.join(','),
-        ...siswa.map(s => [
-            s.nis,
-            `"${s.nama}"`, // Tanda kutip untuk menangani koma di dalam nama
-            s.kelas
-        ].join(','))
-    ].join('\n');
+      headers.join(','),
+      // 3. Petakan data siswa ke dalam urutan kolom yang benar.
+      //    Memberi tanda kutip (") pada nama untuk mencegah masalah jika nama mengandung koma.
+      ...siswa.map(s => [
+        s.nis,
+        `"${s.nama}"`,
+        s.kelas
+      ].join(','))
+    ].join('\n'); // Gabungkan semua baris dengan karakter baris baru.
 
+    // 4. Buat file dan picu unduhan di browser.
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
