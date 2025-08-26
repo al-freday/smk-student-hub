@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw, Users, BookUser, Shield, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 
 interface Kelas {
@@ -121,15 +122,14 @@ export default function ManajemenGuruPage() {
         for (const roleKey of roleOptions.map(r => r.value)) {
             const usersInRole = roles[roleKey] || [];
             
-            // Mengambil data penugasan yang sudah ada dari state saat ini
             const existingAssignments = teachers[roleKey] || [];
             const assignmentsMap = new Map(existingAssignments.map(t => [t.id, t]));
 
             newState[roleKey] = usersInRole.map((user: any) => {
                 const existingData = assignmentsMap.get(user.id);
                 return {
-                    ...user, // id, nama from admin data
-                    ...(existingData || {}), // assignments from current state
+                    ...user,
+                    ...(existingData || {}),
                 };
             });
         }
@@ -208,7 +208,7 @@ export default function ManajemenGuruPage() {
   const handleHariPiketChange = (hari: string, checked: boolean) => {
       const currentHari = formData.hariPiket || [];
       if (checked) {
-          setFormData({ ...formData, hariPiket: [...currentHari, hari] });
+          setFormData({ ...formData, hariPiket: [...currentHari, hari].sort((a, b) => daftarHari.indexOf(a) - daftarHari.indexOf(b)) });
       } else {
           setFormData({ ...formData, hariPiket: currentHari.filter(h => h !== hari) });
       }
@@ -261,8 +261,59 @@ export default function ManajemenGuruPage() {
       if (tanggal) return tanggal;
       return '-';
   };
+  
+  const getTugasDetailComponent = (guru: Guru, role: TeacherRole) => {
+      switch(role) {
+          case 'wali_kelas': 
+              const kelasBinaan = Array.isArray(guru.kelas) ? guru.kelas : [];
+              if (kelasBinaan.length === 0) return <span className="text-muted-foreground">-</span>;
+              return (
+                  <div className="flex flex-wrap gap-1">
+                      {kelasBinaan.map(k => <Badge key={k} variant="secondary">{k}</Badge>)}
+                  </div>
+              );
+          case 'guru_mapel': 
+              const assignmentCount = guru.teachingAssignments?.length || 0;
+              if (assignmentCount === 0) return <span className="text-muted-foreground">-</span>;
+              return (
+                 <div className="flex items-center gap-2">
+                     <Clock className="h-4 w-4 text-muted-foreground" />
+                     <span>{assignmentCount} Sesi Mengajar/Minggu</span>
+                 </div>
+              );
+          case 'guru_piket': 
+               const hariPiket = Array.isArray(guru.hariPiket) ? guru.hariPiket : [];
+               const tglPiket = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
+               if (hariPiket.length === 0 && tglPiket.length === 0) return <span className="text-muted-foreground">-</span>;
+               return (
+                  <div className="flex flex-col gap-1">
+                      {hariPiket.length > 0 && <Badge variant="outline">Rutin: {hariPiket.join(', ')}</Badge>}
+                      {tglPiket.length > 0 && <Badge variant="outline">Khusus: {tglPiket.length} tanggal</Badge>}
+                  </div>
+               );
+          case 'guru_bk': 
+              if (!guru.tugasKelas) return <span className="text-muted-foreground">-</span>;
+              return (
+                  <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>Binaan {guru.tugasKelas}</span>
+                  </div>
+              );
+          case 'guru_pendamping': 
+              const siswaBinaanCount = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan.length : 0;
+              if (siswaBinaanCount === 0) return <span className="text-muted-foreground">-</span>;
+              return (
+                  <div className="flex items-center gap-2">
+                      <BookUser className="h-4 w-4 text-muted-foreground" />
+                      <span>{siswaBinaanCount} Siswa Binaan</span>
+                  </div>
+              );
+          default: return <span className="text-muted-foreground">-</span>;
+      }
+  };
 
-  const getTugasDetail = (guru: Guru, role: TeacherRole): string => {
+
+  const getTugasDetailForExport = (guru: Guru, role: TeacherRole): string => {
       switch(role) {
           case 'wali_kelas': 
               const kelasBinaan = Array.isArray(guru.kelas) ? guru.kelas : [];
@@ -291,7 +342,7 @@ export default function ManajemenGuruPage() {
                 allUsers.push({
                     "Nama": guru.nama,
                     "Peran": getRoleName(typedRoleKey),
-                    "Detail Tugas": getTugasDetail(guru, typedRoleKey),
+                    "Detail Tugas": getTugasDetailForExport(guru, typedRoleKey),
                 });
             });
         }
@@ -324,7 +375,7 @@ export default function ManajemenGuruPage() {
   const isDateDisabled = (date: Date) => {
     const selectedDays = formData.hariPiket?.map(day => hariToDayIndex[day]) || [];
     if (selectedDays.length === 0) {
-      return false; // Enable all dates if no routine day is selected
+      return false;
     }
     return !selectedDays.includes(getDay(date));
   };
@@ -566,7 +617,7 @@ export default function ManajemenGuruPage() {
                             <TableRow key={guru.id}>
                             <TableCell className="font-medium">{guru.nama}</TableCell>
                             <TableCell>
-                                {getTugasDetail(guru, key as TeacherRole)}
+                                {getTugasDetailComponent(guru, key as TeacherRole)}
                             </TableCell>
                             <TableCell className="text-right print:hidden">
                                 <Button variant="outline" size="sm" onClick={() => handleOpenDialog(guru)}>
@@ -612,3 +663,5 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
+    
