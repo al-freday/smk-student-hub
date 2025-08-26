@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, BookWarning, Search, ChevronsUpDown, Check, Info } from "lucide-react";
+import { PlusCircle, Trash2, User, ShieldAlert, Search, ChevronsUpDown, Check, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -262,7 +262,7 @@ export default function ManajemenPelanggaranPage() {
                     </Popover>
                 </div>
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><BookWarning/>Pilih Jenis Pelanggaran</Label>
+                    <Label className="flex items-center gap-2"><ShieldAlert/>Pilih Jenis Pelanggaran</Label>
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between h-auto text-left">
@@ -318,3 +318,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
