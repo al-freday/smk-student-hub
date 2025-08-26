@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Siren, Award, UserX, UserCheck, Bell, MessageSquareWarning } from "lucide-react";
-import { getSourceData } from "@/lib/data-manager";
 import { Badge } from "@/components/ui/badge";
 
 type NotificationType = 'PELANGGARAN' | 'PRESTASI' | 'ABSENSI_SISWA' | 'ABSENSI_GURU';
@@ -18,6 +17,20 @@ interface Notification {
   timestamp: number;
   time: string;
 }
+
+const getSourceData = (key: string, defaultValue: any) => {
+    if (typeof window === 'undefined') {
+        return defaultValue;
+    }
+    try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
+        return defaultValue;
+    }
+};
+
 
 const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
