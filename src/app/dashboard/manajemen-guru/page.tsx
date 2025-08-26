@@ -31,9 +31,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 
 interface Kelas {
@@ -86,6 +87,10 @@ const getRoleName = (roleKey: string) => {
 
 const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
+const hariToDayIndex: { [key: string]: number } = {
+    "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5,
+};
+
 const sesiPelajaran = [ "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export default function ManajemenGuruPage() {
@@ -107,23 +112,23 @@ export default function ManajemenGuruPage() {
 
   const loadData = () => {
     try {
-        const savedData = localStorage.getItem('teachersData');
-        const fullData = savedData ? JSON.parse(savedData) : {};
-        const { schoolInfo, ...teachersDataFromAdmin } = fullData;
+        const teachersDataFromAdmin = getSourceData('teachersData', {});
+        const { schoolInfo, ...roles } = teachersDataFromAdmin;
 
-        // Initialize a clean state
         const newState = { ...initialTeachersState };
 
-        // Populate the state with users from the master data, keeping their assignments
         for (const roleKey of roleOptions.map(r => r.value)) {
-            const usersInRole = teachersDataFromAdmin[roleKey] || [];
+            const usersInRole = roles[roleKey] || [];
+            
+            // Mengambil data penugasan yang sudah ada dari state saat ini
+            const existingAssignments = teachers[roleKey] || [];
+            const assignmentsMap = new Map(existingAssignments.map(t => [t.id, t]));
+
             newState[roleKey] = usersInRole.map((user: any) => {
-                // Find existing teacher data to preserve assignments
-                const existingTeacher = teachers[roleKey]?.find(t => t.id === user.id);
+                const existingData = assignmentsMap.get(user.id);
                 return {
-                    id: user.id,
-                    nama: user.nama,
-                    ...existingTeacher,
+                    ...user, // id, nama from admin data
+                    ...(existingData || {}), // assignments from current state
                 };
             });
         }
@@ -139,10 +144,10 @@ export default function ManajemenGuruPage() {
 
   useEffect(() => {
     loadData();
-    
-    const savedKelas = localStorage.getItem('kelasData');
-    const kelasData: Kelas[] = savedKelas ? JSON.parse(savedKelas) : [];
-    setAvailableKelas(kelasData);
+    setAvailableKelas(getSourceData('kelasData', []));
+    setDaftarSiswa(getSourceData('siswaData', []));
+
+    const kelasData: Kelas[] = getSourceData('kelasData', []);
     if (kelasData.length > 0) {
         const grades = new Set<string>();
         kelasData.forEach(kelas => {
@@ -152,17 +157,17 @@ export default function ManajemenGuruPage() {
         });
         setAvailableGrades(Array.from(grades).sort());
     }
-    
-    const savedSiswa = localStorage.getItem('siswaData');
-    const siswaData: Siswa[] = savedSiswa ? JSON.parse(savedSiswa) : [];
-    setDaftarSiswa(siswaData);
+
+     window.addEventListener('dataUpdated', loadData);
+     return () => {
+       window.removeEventListener('dataUpdated', loadData);
+     };
   }, []);
   
   const handleSaveChanges = () => {
-    const savedData = localStorage.getItem('teachersData');
-    const currentFullData = savedData ? JSON.parse(savedData) : {};
+    const currentFullData = getSourceData('teachersData', {});
     const updatedData = { ...currentFullData, ...teachers };
-    localStorage.setItem('teachersData', JSON.stringify(updatedData));
+    updateSourceData('teachersData', updatedData);
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada penugasan guru telah disimpan.",
@@ -314,6 +319,15 @@ export default function ManajemenGuruPage() {
   const handlePrint = () => {
       window.print();
   };
+  
+  const isDateDisabled = (date: Date) => {
+    const selectedDays = formData.hariPiket?.map(day => hariToDayIndex[day]) || [];
+    if (selectedDays.length === 0) {
+      return false; // Enable all dates if no routine day is selected
+    }
+    return !selectedDays.includes(getDay(date));
+  };
+
 
   const renderFormFields = () => (
     <>
@@ -430,7 +444,7 @@ export default function ManajemenGuruPage() {
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
+                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} disabled={isDateDisabled} />
                     </PopoverContent>
                 </Popover>
             </div>
@@ -563,7 +577,7 @@ export default function ManajemenGuruPage() {
                       Lengkapi detail penugasan untuk {editingTeacher?.nama}.
                   </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className="grid gap-4 py-4">
                  {renderFormFields()}
               </div>
               <DialogFooter>
