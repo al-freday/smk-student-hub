@@ -210,7 +210,12 @@ export default function ManajemenGuruPage() {
       if (checked) {
           setFormData({ ...formData, hariPiket: [...currentHari, hari].sort((a, b) => daftarHari.indexOf(a) - daftarHari.indexOf(b)) });
       } else {
-          setFormData({ ...formData, hariPiket: currentHari.filter(h => h !== hari) });
+          const newHariPiket = currentHari.filter(h => h !== hari);
+          setFormData({ ...formData, hariPiket: newHariPiket });
+          // Reset selected dates if number of days is less than selected dates
+          if (selectedDates.length > newHariPiket.length) {
+              setSelectedDates([]);
+          }
       }
   };
   
@@ -380,6 +385,31 @@ export default function ManajemenGuruPage() {
     return !selectedDays.includes(getDay(date));
   };
   
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    const maxDates = formData.hariPiket?.length || 0;
+    if (maxDates === 0) {
+        toast({
+            title: "Pilih Hari Rutin Dahulu",
+            description: "Silakan pilih hari piket rutin sebelum memilih tanggal khusus.",
+            variant: "destructive"
+        });
+        setSelectedDates([]);
+        return;
+    }
+
+    if (dates && dates.length > maxDates) {
+        toast({
+            title: "Batas Pemilihan Tercapai",
+            description: `Anda hanya dapat memilih ${maxDates} tanggal sesuai jumlah hari rutin.`,
+            variant: "destructive"
+        });
+        const limitedDates = dates.slice(-maxDates);
+        setSelectedDates(limitedDates);
+    } else {
+        setSelectedDates(dates || []);
+    }
+  };
+
   const siswaByKelas = useMemo(() => {
     return daftarSiswa.reduce((acc, siswa) => {
       const kelas = siswa.kelas;
@@ -507,7 +537,7 @@ export default function ManajemenGuruPage() {
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} disabled={isDateDisabled} />
+                        <Calendar mode="multiple" selected={selectedDates} onSelect={handleDateSelect} disabled={isDateDisabled} />
                     </PopoverContent>
                 </Popover>
             </div>
