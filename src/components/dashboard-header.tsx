@@ -14,11 +14,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Search } from "lucide-react";
+import { Menu, Search, Moon, Sun } from "lucide-react";
 import { DashboardNav } from "./dashboard-nav";
 import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 
 interface UserInfo {
     nama: string;
@@ -34,6 +35,7 @@ const getAvatarFallbackFromName = (name: string = "") => {
 
 export default function DashboardHeader() {
   const router = useRouter();
+  const { setTheme, theme } = useTheme();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [schoolName, setSchoolName] = useState("SMK Student Hub");
   
@@ -102,6 +104,18 @@ export default function DashboardHeader() {
             className="w-full rounded-lg bg-secondary pl-8 md:w-[200px] lg:w-[320px]"
           />
         </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          className="rounded-full"
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
