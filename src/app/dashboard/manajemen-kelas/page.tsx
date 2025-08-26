@@ -1,16 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Edit, Trash2, PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -19,199 +11,104 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+  ChartConfig,
+  ChartContainer,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
+interface Siswa {
+  id: number;
+  nis: string;
+  nama: string;
+  kelas: string;
+}
 
 interface Kelas {
-  id: number;
   nama: string;
   jumlahSiswa: number;
 }
 
-const initialKelas: Omit<Kelas, 'id'>[] = [
-  { nama: "X OT 1", jumlahSiswa: 40 },
-  { nama: "X OT 2", jumlahSiswa: 40 },
-  { nama: "X OT 3", jumlahSiswa: 40 },
-  { nama: "X TKR", jumlahSiswa: 40 },
-  { nama: "X AKL", jumlahSiswa: 40 },
-  { nama: "X TM", jumlahSiswa: 40 },
-  { nama: "XI TAB 1", jumlahSiswa: 40 },
-  { nama: "XI TAB 2", jumlahSiswa: 40 },
-  { nama: "XI TKR", jumlahSiswa: 40 },
-  { nama: "XI AKL", jumlahSiswa: 40 },
-  { nama: "XI TM", jumlahSiswa: 40 },
-  { nama: "XII TAB 1", jumlahSiswa: 40 },
-  { nama: "XII TAB 2", jumlahSiswa: 40 },
-  { nama: "XII TKR", jumlahSiswa: 40 },
-  { nama: "XII AKL", jumlahSiswa: 40 },
-  { nama: "XII TM", jumlahSiswa: 40 },
-];
+const chartConfig = {
+  jumlahSiswa: {
+    label: "Jumlah Siswa",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 export default function ManajemenKelasPage() {
   const [kelas, setKelas] = useState<Kelas[]>([]);
-  const [editingKelas, setEditingKelas] = useState<Kelas | null>(null);
-  
-  const [namaKelas, setNamaKelas] = useState("");
-  const [jumlahSiswa, setJumlahSiswa] = useState<number | string>("");
-  
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [kelasToDelete, setKelasToDelete] = useState<Kelas | null>(null);
 
   useEffect(() => {
-    const savedKelas = localStorage.getItem('kelasData');
-    if (savedKelas) {
-      setKelas(JSON.parse(savedKelas));
-    } else {
-      const formattedInitialKelas = initialKelas.map((k, index) => ({ ...k, id: index + 1 }));
-      setKelas(formattedInitialKelas);
-      localStorage.setItem('kelasData', JSON.stringify(formattedInitialKelas));
+    const savedSiswa = localStorage.getItem('siswaData');
+    if (savedSiswa) {
+      try {
+        const siswaData: Siswa[] = JSON.parse(savedSiswa);
+        const kelasMap = new Map<string, number>();
+
+        siswaData.forEach(siswa => {
+          if (siswa.kelas) {
+            kelasMap.set(siswa.kelas, (kelasMap.get(siswa.kelas) || 0) + 1);
+          }
+        });
+
+        const aggregatedKelas: Kelas[] = Array.from(kelasMap.entries()).map(([nama, jumlahSiswa]) => ({
+          nama,
+          jumlahSiswa,
+        }));
+
+        setKelas(aggregatedKelas);
+      } catch (error) {
+        console.error("Gagal memproses data siswa:", error);
+      }
     }
   }, []);
-
-  const saveDataToLocalStorage = (data: Kelas[]) => {
-    localStorage.setItem('kelasData', JSON.stringify(data));
-  };
-
-  const resetForm = () => {
-    setNamaKelas("");
-    setJumlahSiswa("");
-    setEditingKelas(null);
-  };
-
-  const handleOpenDialog = (kelasToEdit: Kelas | null = null) => {
-    if (kelasToEdit) {
-      setEditingKelas(kelasToEdit);
-      setNamaKelas(kelasToEdit.nama);
-      setJumlahSiswa(kelasToEdit.jumlahSiswa);
-    } else {
-      resetForm();
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveKelas = () => {
-    const siswaCount = typeof jumlahSiswa === 'string' ? parseInt(jumlahSiswa) : jumlahSiswa;
-    if (namaKelas && siswaCount >= 0) {
-        let updatedKelas;
-      if (editingKelas) {
-        updatedKelas = kelas.map((k) =>
-            k.id === editingKelas.id
-              ? { ...k, nama: namaKelas, jumlahSiswa: siswaCount }
-              : k
-          );
-      } else {
-        const newKelas: Kelas = {
-          id: kelas.length > 0 ? Math.max(...kelas.map((k) => k.id)) + 1 : 1,
-          nama: namaKelas,
-          jumlahSiswa: siswaCount,
-        };
-        updatedKelas = [...kelas, newKelas];
-      }
-      setKelas(updatedKelas);
-      saveDataToLocalStorage(updatedKelas);
-      resetForm();
-      setIsDialogOpen(false);
-    }
-  };
-
-  const handleDeleteKelas = () => {
-    if (!kelasToDelete) return;
-    const updatedKelas = kelas.filter((k) => k.id !== kelasToDelete.id);
-    setKelas(updatedKelas);
-    saveDataToLocalStorage(updatedKelas);
-    setKelasToDelete(null);
-  };
-
+  
+  const sortedChartData = useMemo(() => {
+    return [...kelas].sort((a, b) => a.jumlahSiswa - b.jumlahSiswa);
+  }, [kelas]);
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Manajemen Kelas</h2>
-          <p className="text-muted-foreground">
-            Kelola daftar kelas yang tersedia di sekolah.
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={(isOpen) => { setIsDialogOpen(isOpen); if (!isOpen) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Tambah Kelas
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{editingKelas ? "Edit Kelas" : "Tambah Kelas Baru"}</DialogTitle>
-              <DialogDescription>
-                 {editingKelas ? "Ubah detail kelas." : "Masukkan detail kelas yang akan ditambahkan."} Klik simpan jika
-                sudah selesai.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="nama-kelas" className="text-right">
-                  Nama Kelas
-                </Label>
-                <Input
-                  id="nama-kelas"
-                  value={namaKelas}
-                  onChange={(e) => setNamaKelas(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Contoh: X TKJ 1"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="jumlah-siswa" className="text-right">
-                  Jumlah Siswa
-                </Label>
-                <Input
-                  id="jumlah-siswa"
-                  type="number"
-                  value={jumlahSiswa}
-                  onChange={(e) => setJumlahSiswa(e.target.value)}
-                  className="col-span-3"
-                  placeholder="Contoh: 40"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Batal</Button>
-              </DialogClose>
-              <Button type="submit" onClick={handleSaveKelas}>
-                Simpan
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Manajemen Kelas</h2>
+        <p className="text-muted-foreground">
+          Rekapitulasi dan visualisasi jumlah siswa per kelas berdasarkan data dari Manajemen Siswa.
+        </p>
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagram Jumlah Siswa per Kelas</CardTitle>
+          <CardDescription>Visualisasi distribusi siswa di setiap kelas, diurutkan dari yang paling sedikit.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-80">
+            <BarChart accessibilityLayer data={sortedChartData} layout="vertical" margin={{ left: 20, right: 20 }}>
+              <CartesianGrid horizontal={false} />
+              <YAxis
+                dataKey="nama"
+                type="category"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                className="text-xs"
+                interval={0}
+              />
+              <XAxis dataKey="jumlahSiswa" type="number" hide />
+              <Tooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTooltipContent />} />
+              <Bar dataKey="jumlahSiswa" fill="var(--color-jumlahSiswa)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Daftar Kelas</CardTitle>
           <CardDescription>
-            Berikut adalah daftar kelas yang terdaftar di sistem.
+            Berikut adalah daftar kelas yang terdaftar di sistem beserta jumlah siswanya.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -220,41 +117,20 @@ export default function ManajemenKelasPage() {
               <TableRow>
                 <TableHead>Nama Kelas</TableHead>
                 <TableHead className="text-center">Jumlah Siswa</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {kelas.length > 0 ? (
-                kelas.map((k) => (
-                  <TableRow key={k.id}>
+                kelas.sort((a,b) => a.nama.localeCompare(b.nama)).map((k) => (
+                  <TableRow key={k.nama}>
                     <TableCell className="font-medium">{k.nama}</TableCell>
                     <TableCell className="text-center">{k.jumlahSiswa}</TableCell>
-                    <TableCell className="text-right">
-                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Buka menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDialog(k)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            <span>Edit</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => setKelasToDelete(k)} className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Hapus</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">
-                    Belum ada data kelas.
+                  <TableCell colSpan={2} className="text-center h-24">
+                    Belum ada data siswa untuk direkapitulasi.
                   </TableCell>
                 </TableRow>
               )}
@@ -262,21 +138,6 @@ export default function ManajemenKelasPage() {
           </Table>
         </CardContent>
       </Card>
-
-      <AlertDialog open={!!kelasToDelete} onOpenChange={() => setKelasToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini tidak bisa dibatalkan. Ini akan menghapus data kelas secara permanen.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteKelas}>Hapus</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
