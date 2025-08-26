@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getSourceData } from "@/lib/data-manager";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 
@@ -18,6 +17,19 @@ interface TeacherAttendanceRecord {
   keterangan: string;
   dicatatOleh: string;
 }
+
+const getSourceData = (key: string, defaultValue: any) => {
+    if (typeof window === 'undefined') {
+        return defaultValue;
+    }
+    try {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+        console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
+        return defaultValue;
+    }
+};
 
 export default function KehadiranGuruPage() {
   const [allRecords, setAllRecords] = useState<TeacherAttendanceRecord[]>([]);
@@ -101,5 +113,3 @@ export default function KehadiranGuruPage() {
     </div>
   );
 }
-
-    
