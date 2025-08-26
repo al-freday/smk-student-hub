@@ -85,7 +85,7 @@ export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
-  const [daftarKelas, setDaftarKelas] = useState<Kelas[] | null>(null);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [riwayatMutasi, setRiwayatMutasi] = useState<Mutasi[]>([]);
   
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -220,7 +220,7 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleSaveKelas = () => {
-    if (kelasFormData.nama && daftarKelas) {
+    if (kelasFormData.nama) {
         let updatedKelas;
         if (editingKelas) {
             updatedKelas = daftarKelas.map(k => k.id === editingKelas.id ? { ...k, ...kelasFormData } : k);
@@ -270,7 +270,7 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleDeleteKelas = () => {
-    if (!kelasToDelete || !daftarKelas) return;
+    if (!kelasToDelete) return;
     const updatedKelas = daftarKelas.filter(k => k.id !== kelasToDelete.id);
     setDaftarKelas(updatedKelas);
     setKelasToDelete(null);
@@ -403,7 +403,7 @@ export default function ManajemenSiswaPage() {
                     <Table>
                         <TableHeader><TableRow><TableHead>Nama Kelas</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {daftarKelas && daftarKelas.length > 0 ? daftarKelas.map(k => (
+                            {daftarKelas.length > 0 ? daftarKelas.map(k => (
                                 <TableRow key={k.id}>
                                     <TableCell className="font-medium">{k.nama}</TableCell>
                                     <TableCell className="text-right">
@@ -457,7 +457,7 @@ export default function ManajemenSiswaPage() {
                 </CardHeader>
                 <CardContent>
                 <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas?.[0]}>
-                    {displayedKelas && displayedKelas.map((k) => {
+                    {displayedKelas.map((k) => {
                     const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
                     return (
                         <AccordionItem value={k.nama} key={k.id}>
