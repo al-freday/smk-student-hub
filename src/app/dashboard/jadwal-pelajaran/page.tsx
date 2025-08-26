@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, User } from "lucide-react";
+import { PlusCircle, Edit, Trash2, User, Shield } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
@@ -82,12 +82,14 @@ export default function JadwalPelajaranPage() {
   
   const [formData, setFormData] = useState<Partial<Jadwal>>({});
   const [waliKelasMap, setWaliKelasMap] = useState<{ [key: string]: string }>({});
+  const [guruPiketMap, setGuruPiketMap] = useState<{ [key: string]: string[] }>({});
 
   useEffect(() => {
     const teachersData = getSourceData('teachersData', {});
+    
+    // Set Wali Kelas
     const waliKelasList = teachersData.wali_kelas || [];
     const newWaliKelasMap: { [key: string]: string } = {};
-
     if (Array.isArray(waliKelasList)) {
         waliKelasList.forEach((wali: any) => {
             if (Array.isArray(wali.kelas)) {
@@ -98,6 +100,24 @@ export default function JadwalPelajaranPage() {
         });
     }
     setWaliKelasMap(newWaliKelasMap);
+
+    // Set Guru Piket
+    const guruPiketList = teachersData.guru_piket || [];
+    const newGuruPiketMap: { [key: string]: string[] } = {};
+    if (Array.isArray(guruPiketList)) {
+        guruPiketList.forEach((guru: any) => {
+            if (Array.isArray(guru.hariPiket)) {
+                guru.hariPiket.forEach((hari: string) => {
+                    if (!newGuruPiketMap[hari]) {
+                        newGuruPiketMap[hari] = [];
+                    }
+                    newGuruPiketMap[hari].push(guru.nama);
+                });
+            }
+        });
+    }
+    setGuruPiketMap(newGuruPiketMap);
+
   }, []);
 
   const resetForm = () => {
@@ -147,6 +167,7 @@ export default function JadwalPelajaranPage() {
   const jadwalByHari = daftarHari.map(hari => ({
     hari,
     jadwal: jadwal.filter(j => j.hari === hari),
+    piket: guruPiketMap[hari] || [],
   }));
 
   return (
@@ -163,10 +184,14 @@ export default function JadwalPelajaranPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {jadwalByHari.map(({ hari, jadwal: jadwalHari }) => (
+        {jadwalByHari.map(({ hari, jadwal: jadwalHari, piket }) => (
           <Card key={hari}>
             <CardHeader>
               <CardTitle>{hari}</CardTitle>
+              <CardDescription className="flex items-center gap-1.5 pt-1">
+                 <Shield className="h-4 w-4" />
+                 Guru Piket: {piket.length > 0 ? piket.join(', ') : 'Belum Ditentukan'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
                 <Accordion type="multiple" className="w-full">
@@ -303,3 +328,5 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
+
+    
