@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // Data Types
@@ -81,7 +81,7 @@ export default function LaporanGuruPiketPage() {
     
     const updatedRiwayat = [...riwayatLaporan, newRecord];
     setRiwayatLaporan(updatedRiwayat);
-    localStorage.setItem(attendanceStorageKey, JSON.stringify(updatedRiwayat));
+    updateSourceData(attendanceStorageKey, updatedRiwayat);
     
     // Perbarui laporan hari ini juga
     const today = format(new Date(), "yyyy-MM-dd");
@@ -99,7 +99,7 @@ export default function LaporanGuruPiketPage() {
       if (!itemToDelete) return;
       const updatedRiwayat = riwayatLaporan.filter(rec => rec.id !== itemToDelete.id);
       setRiwayatLaporan(updatedRiwayat);
-      localStorage.setItem(attendanceStorageKey, JSON.stringify(updatedRiwayat));
+      updateSourceData(attendanceStorageKey, updatedRiwayat);
       
       const today = format(new Date(), "yyyy-MM-dd");
       setLaporanHariIni(updatedRiwayat.filter(rec => rec.tanggal === today));
@@ -250,5 +250,3 @@ export default function LaporanGuruPiketPage() {
     </div>
   );
 }
-
-    

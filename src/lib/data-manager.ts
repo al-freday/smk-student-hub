@@ -30,8 +30,6 @@ export const getSourceData = (key: string, defaultValue: any) => {
 
 /**
  * Memperbarui data "sumber" di localStorage.
- * Fungsi ini HANYA boleh dipanggil oleh pengguna dengan peran 'wakasek' atau admin
- * untuk memastikan integritas data.
  * 
  * @param key Kunci untuk data di localStorage.
  * @param data Data yang akan disimpan.
@@ -47,32 +45,3 @@ export const updateSourceData = (key: string, data: any) => {
         console.error(`Error saat menulis ke localStorage kunci "${key}":`, error);
     }
 };
-
-/**
- * Menambahkan item baru ke dalam kumpulan data yang ada tanpa menimpa.
- * Fungsi ini aman untuk digunakan oleh pengguna non-wakasek untuk menambahkan data
- * seperti laporan atau catatan baru.
- * 
- * @param key Kunci untuk data di localStorage.
- * @param newItem Item baru yang akan ditambahkan.
- */
-export const appendToDataSource = (key: string, newItem: any) => {
-    if (typeof window === 'undefined') {
-        return;
-    }
-    try {
-        const existingData = getSourceData(key, []);
-        if (Array.isArray(existingData)) {
-            // Pastikan item baru memiliki ID unik jika belum ada
-            if (!newItem.id) {
-                 newItem.id = Date.now();
-            }
-            const updatedData = [...existingData, newItem];
-            updateSourceData(key, updatedData);
-        }
-    } catch (error) {
-        console.error(`Gagal menambahkan data ke localStorage kunci "${key}":`, error);
-    }
-};
-
-    

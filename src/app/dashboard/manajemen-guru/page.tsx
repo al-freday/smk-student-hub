@@ -69,7 +69,7 @@ interface Guru {
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
 
-const initialTeachers: { [key in TeacherRole]: Guru[] } = {
+const initialTeachers: { [key in TeacherRole]: Guru[] } & { schoolInfo?: any } = {
     wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
 };
 
@@ -108,7 +108,8 @@ export default function ManajemenGuruPage() {
 
   const loadData = () => {
     try {
-        const teachersData = getSourceData('teachersData', initialTeachers);
+        const fullData = getSourceData('teachersData', initialTeachers);
+        const { schoolInfo, ...teachersData } = fullData;
         setTeachers(teachersData);
         toast({ title: "Data Dimuat", description: "Data penugasan guru terbaru telah dimuat." });
     } catch (error) {
@@ -138,6 +139,7 @@ export default function ManajemenGuruPage() {
     const handleStorageChange = (event: StorageEvent) => {
         if (event.key === 'siswaData') setDaftarSiswa(getSourceData('siswaData', []));
         if (event.key === 'kelasData') setAvailableKelas(getSourceData('kelasData', []));
+        if (event.key === 'teachersData') loadData();
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -145,7 +147,9 @@ export default function ManajemenGuruPage() {
   }, []);
   
   const handleSaveChanges = () => {
-    updateSourceData('teachersData', teachers);
+    const currentFullData = getSourceData('teachersData', {});
+    const updatedData = { ...currentFullData, ...teachers };
+    updateSourceData('teachersData', updatedData);
     toast({
         title: "Perubahan Disimpan",
         description: "Semua perubahan pada penugasan guru telah disimpan.",
@@ -558,5 +562,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-    

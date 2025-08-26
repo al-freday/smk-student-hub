@@ -440,5 +440,3 @@ export default function TataTertibPage() {
     </div>
   );
 }
-
-    
