@@ -269,7 +269,7 @@ export default function ManajemenGuruPage() {
               if (kelasBinaan.length === 0) return <span className="text-muted-foreground">-</span>;
               return (
                   <div className="flex flex-wrap gap-1">
-                      {kelasBinaan.map(k => <Badge key={k} variant="secondary">{k}</Badge>)}
+                      {kelasBinaan.map((k, index) => <Badge key={`${k}-${index}`} variant="secondary">{k}</Badge>)}
                   </div>
               );
           case 'guru_mapel': 
