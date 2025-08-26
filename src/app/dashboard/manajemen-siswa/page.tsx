@@ -43,12 +43,16 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Badge } from "@/components/ui/badge";
+
+type StudentStatus = 'Aktif' | 'Pindah Kelas' | 'Pindah Sekolah' | 'Mutasi Masuk' | 'Mutasi Keluar';
 
 interface Siswa {
   id: number;
   nis: string;
   nama: string;
   kelas: string;
+  status: StudentStatus;
 }
 
 interface Kelas {
@@ -60,6 +64,8 @@ interface WaliKelasInfo {
     nama: string;
     kelas: string[];
 }
+
+const studentStatusOptions: StudentStatus[] = ['Aktif', 'Pindah Kelas', 'Pindah Sekolah', 'Mutasi Masuk', 'Mutasi Keluar'];
 
 export default function ManajemenSiswaPage() {
   const { toast } = useToast();
@@ -128,7 +134,7 @@ export default function ManajemenSiswaPage() {
   };
 
   const resetSiswaForm = () => {
-    setSiswaFormData({});
+    setSiswaFormData({ status: 'Aktif' });
     setEditingSiswa(null);
   };
   
@@ -138,10 +144,11 @@ export default function ManajemenSiswaPage() {
   };
 
   const handleOpenSiswaDialog = (siswaToEdit: Siswa | null = null) => {
-    resetSiswaForm();
     if (siswaToEdit) {
       setEditingSiswa(siswaToEdit);
       setSiswaFormData(siswaToEdit);
+    } else {
+      resetSiswaForm();
     }
     setIsSiswaDialogOpen(true);
   };
@@ -156,10 +163,10 @@ export default function ManajemenSiswaPage() {
   };
 
   const handleSaveSiswa = () => {
-    if (siswaFormData.nis && siswaFormData.nama && siswaFormData.kelas) {
+    if (siswaFormData.nis && siswaFormData.nama && siswaFormData.kelas && siswaFormData.status) {
       let updatedSiswa;
       if (editingSiswa) {
-        updatedSiswa = siswa.map((s) => s.id === editingSiswa.id ? { ...s, ...siswaFormData } : s);
+        updatedSiswa = siswa.map((s) => s.id === editingSiswa.id ? { ...s, ...siswaFormData } as Siswa : s);
       } else {
         const newSiswa: Siswa = {
           id: siswa.length > 0 ? Math.max(...siswa.map((s) => s.id)) + 1 : 1,
@@ -214,22 +221,17 @@ export default function ManajemenSiswaPage() {
   };
   
   const handleDownload = () => {
-    // 1. Definisikan header kolom yang lebih deskriptif.
-    const headers = ['NIS', 'Nama Siswa', 'Kelas'];
-    
-    // 2. Buat konten CSV, dimulai dengan baris header.
+    const headers = ['NIS', 'Nama Siswa', 'Kelas', 'Status'];
     const csvContent = [
       headers.join(','),
-      // 3. Petakan data siswa ke dalam urutan kolom yang benar.
-      //    Memberi tanda kutip (") pada nama untuk mencegah masalah jika nama mengandung koma.
       ...siswa.map(s => [
         s.nis,
         `"${s.nama}"`,
-        s.kelas
+        s.kelas,
+        s.status || 'Aktif'
       ].join(','))
-    ].join('\n'); // Gabungkan semua baris dengan karakter baris baru.
+    ].join('\n');
 
-    // 4. Buat file dan picu unduhan di browser.
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -254,23 +256,21 @@ export default function ManajemenSiswaPage() {
         
         rows.forEach(row => {
             if (!row.trim()) return;
-            // Handle CSV columns that might contain commas
             const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(field => field.replace(/"/g, '')) || [];
             
-            const [nis, nama, kelas] = columns;
+            const [nis, nama, kelas, status] = columns;
             
             if (nis && nama && kelas) {
-                // Find max id to avoid collision
                 const maxId = newSiswaList.length > 0 ? Math.max(...newSiswaList.map(s => s.id)) : 0;
                 
                 const siswaObj: Siswa = {
-                    id: maxId + 1 + importedCount, // ensure unique id on import
+                    id: maxId + 1 + importedCount,
                     nis: nis.trim(),
                     nama: nama.trim(),
                     kelas: kelas.trim(),
+                    status: (status?.trim() as StudentStatus) || 'Aktif',
                 };
                 
-                // For simplicity, we add new students. A more complex logic could handle updates.
                 newSiswaList.push(siswaObj);
                 importedCount++;
             }
@@ -286,6 +286,21 @@ export default function ManajemenSiswaPage() {
   const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo
     ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
     : daftarKelas;
+    
+  const getStatusBadgeVariant = (status: StudentStatus) => {
+    switch (status) {
+      case 'Aktif':
+      case 'Mutasi Masuk':
+        return 'default';
+      case 'Pindah Kelas':
+        return 'secondary';
+      case 'Pindah Sekolah':
+      case 'Mutasi Keluar':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
 
 
   return (
@@ -365,12 +380,15 @@ export default function ManajemenSiswaPage() {
                         <AccordionContent>
                             {siswaDiKelas.length > 0 ? (
                                 <Table>
-                                <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {siswaDiKelas.map((s) => (
                                         <TableRow key={s.id}>
                                         <TableCell>{s.nis}</TableCell>
                                         <TableCell className="font-medium">{s.nama}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusBadgeVariant(s.status)}>{s.status || 'Aktif'}</Badge>
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                             <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Menu</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -403,6 +421,15 @@ export default function ManajemenSiswaPage() {
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nis" className="text-right">NIS</Label><Input id="nis" value={siswaFormData.nis || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nis: e.target.value})} className="col-span-3"/></div>
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={siswaFormData.nama || ""} onChange={(e) => setSiswaFormData({...siswaFormData, nama: e.target.value})} className="col-span-3"/></div>
               <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Select onValueChange={(v) => setSiswaFormData({...siswaFormData, kelas: v})} value={siswaFormData.kelas}><SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger><SelectContent>{daftarKelas.map(k => (<SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>))}</SelectContent></Select></div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">Status</Label>
+                <Select onValueChange={(v) => setSiswaFormData({...siswaFormData, status: v as StudentStatus})} value={siswaFormData.status}>
+                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Status" /></SelectTrigger>
+                  <SelectContent>
+                    {studentStatusOptions.map(opt => (<SelectItem key={opt} value={opt}>{opt}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter><DialogClose asChild><Button variant="outline">Batal</Button></DialogClose><Button onClick={handleSaveSiswa}>Simpan</Button></DialogFooter>
           </DialogContent>
@@ -435,3 +462,5 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
+
+    
