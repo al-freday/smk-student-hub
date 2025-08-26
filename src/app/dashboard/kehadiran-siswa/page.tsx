@@ -214,7 +214,8 @@ export default function KehadiranSiswaPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Rekap Kehadiran Siswa</h3>
             <Button onClick={handleOpenAbsenDialog} disabled={!filterKelas}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Catat Kehadiran Hari Ini
@@ -341,3 +342,5 @@ export default function KehadiranSiswaPage() {
     </div>
   );
 }
+
+    
