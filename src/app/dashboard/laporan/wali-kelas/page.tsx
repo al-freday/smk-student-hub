@@ -423,7 +423,7 @@ export default function LaporanWaliKelasPage() {
                     <SelectValue placeholder="Pilih kelas untuk ditampilkan" />
                 </SelectTrigger>
                 <SelectContent>
-                    {waliKelasInfo.kelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                    {Array.from(new Set(waliKelasInfo.kelas)).map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
                 </SelectContent>
             </Select>
         </div>
@@ -672,5 +672,3 @@ export default function LaporanWaliKelasPage() {
     </div>
   );
 }
-
-    
