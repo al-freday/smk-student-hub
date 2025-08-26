@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -35,6 +35,7 @@ import { format, getDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
 interface Kelas {
@@ -327,6 +328,17 @@ export default function ManajemenGuruPage() {
     }
     return !selectedDays.includes(getDay(date));
   };
+  
+  const siswaByKelas = useMemo(() => {
+    return daftarSiswa.reduce((acc, siswa) => {
+      const kelas = siswa.kelas;
+      if (!acc[kelas]) {
+        acc[kelas] = [];
+      }
+      acc[kelas].push(siswa);
+      return acc;
+    }, {} as { [key: string]: Siswa[] });
+  }, [daftarSiswa]);
 
 
   const renderFormFields = () => (
@@ -462,21 +474,32 @@ export default function ManajemenGuruPage() {
        {activeTab === 'guru_pendamping' && (
         <div className="grid grid-cols-4 items-start gap-4">
           <Label htmlFor="siswaBinaan" className="text-right pt-2">Siswa Binaan</Label>
-            <ScrollArea className="col-span-3 h-48 rounded-md border p-4">
-                <div className="space-y-2">
-                    {daftarSiswa.map((siswa) => (
-                         <div key={siswa.id} className="flex items-center space-x-2">
-                            <Checkbox
-                                id={`siswa-${siswa.id}`}
-                                checked={(Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : []).includes(siswa.nama)}
-                                onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
-                            />
-                            <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
-                                {siswa.nama} ({siswa.kelas})
-                            </label>
-                        </div>
+            <ScrollArea className="col-span-3 h-64 rounded-md border">
+                 <Accordion type="multiple" className="w-full">
+                    {Object.keys(siswaByKelas).sort().map(namaKelas => (
+                        <AccordionItem value={namaKelas} key={namaKelas}>
+                            <AccordionTrigger className="px-4 py-2 bg-muted/50">
+                                {namaKelas}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="p-4 space-y-2">
+                                    {siswaByKelas[namaKelas].map(siswa => (
+                                        <div key={siswa.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`siswa-${siswa.id}`}
+                                                checked={(Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : []).includes(siswa.nama)}
+                                                onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
+                                            />
+                                            <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
+                                                {siswa.nama}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
                     ))}
-                </div>
+                 </Accordion>
             </ScrollArea>
         </div>
       )}
@@ -589,5 +612,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-    
