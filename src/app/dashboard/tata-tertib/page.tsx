@@ -14,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import InfractionsByClassChart from "@/components/infractions-by-class-chart";
+import { Save, RefreshCw } from "lucide-react";
 
 
 const initialPelanggaran = [
@@ -79,6 +80,8 @@ interface CatatanSiswa {
     tipe: 'pelanggaran' | 'prestasi';
 }
 
+const RIWAYAT_STORAGE_KEY = 'riwayatCatatan';
+
 export default function TataTertibPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("pelanggaran");
@@ -87,6 +90,7 @@ export default function TataTertibPage() {
   const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
   const [daftarWaliKelas, setDaftarWaliKelas] = useState<WaliKelas[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [riwayat, setRiwayat] = useState<CatatanSiswa[]>([]);
 
   // State untuk form pelanggaran
   const [selectedKelas, setSelectedKelas] = useState("");
@@ -101,8 +105,12 @@ export default function TataTertibPage() {
   const [deskripsiPrestasi, setDeskripsiPrestasi] = useState("");
   const [poinPrestasi, setPoinPrestasi] = useState(0);
 
-  const [riwayat, setRiwayat] = useState<CatatanSiswa[]>([]);
 
+  const loadData = () => {
+      setRiwayat(getSourceData(RIWAYAT_STORAGE_KEY, []));
+      toast({ title: "Data Dimuat", description: "Riwayat catatan terbaru telah dimuat." });
+  };
+  
   useEffect(() => {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
@@ -117,13 +125,12 @@ export default function TataTertibPage() {
       const waliKelasList = savedTeachers.wali_kelas || [];
       setDaftarWaliKelas(waliKelasList.map((w: any) => ({ kelas: Array.isArray(w.kelas) ? w.kelas : [w.kelas], nama: w.nama })));
 
-      const savedRiwayat = getSourceData('riwayatCatatan', []);
-      setRiwayat(savedRiwayat);
+      loadData();
   }, []);
 
-  const saveDataToLocalStorage = (data: CatatanSiswa[]) => {
-      localStorage.setItem('riwayatCatatan', JSON.stringify(data));
-      window.dispatchEvent(new Event('storage')); // Trigger update for chart
+  const handleSaveChanges = () => {
+      updateSourceData(RIWAYAT_STORAGE_KEY, riwayat);
+      toast({ title: "Perubahan Disimpan", description: "Semua catatan pelanggaran dan prestasi telah disimpan." });
   };
   
   const siswaDiKelasTerpilih = useMemo(() => {
@@ -174,10 +181,8 @@ export default function TataTertibPage() {
         tanggal: format(new Date(), "yyyy-MM-dd"),
         tipe: 'pelanggaran',
     };
-    const updatedRiwayat = [catatanBaru, ...riwayat];
-    setRiwayat(updatedRiwayat);
-    saveDataToLocalStorage(updatedRiwayat);
-    toast({ title: "Pelanggaran Dicatat", description: `Pelanggaran untuk ${siswa.nama} telah disimpan.` });
+    setRiwayat(prev => [catatanBaru, ...prev]);
+    toast({ title: "Pelanggaran Dicatat", description: `Catatan untuk ${siswa.nama} ditambahkan. Jangan lupa simpan perubahan.` });
     setSelectedKelas("");
     setSelectedSiswaPelanggaran("");
     setSelectedPelanggaran("");
@@ -203,10 +208,8 @@ export default function TataTertibPage() {
         tanggal: format(new Date(), "yyyy-MM-dd"),
         tipe: 'prestasi',
     };
-    const updatedRiwayat = [catatanBaru, ...riwayat];
-    setRiwayat(updatedRiwayat);
-    saveDataToLocalStorage(updatedRiwayat);
-    toast({ title: "Prestasi Dicatat", description: `Prestasi untuk ${siswa.nama} telah disimpan.` });
+    setRiwayat(prev => [catatanBaru, ...prev]);
+    toast({ title: "Prestasi Dicatat", description: `Catatan untuk ${siswa.nama} ditambahkan. Jangan lupa simpan perubahan.` });
     setSelectedSiswaPrestasi("");
     setJenisPrestasi("");
     setTingkatPrestasi("");
@@ -228,9 +231,15 @@ export default function TataTertibPage() {
 
   return (
     <div className="flex-1 space-y-6">
-        <div>
-            <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
-            <p className="text-muted-foreground">{getPageDescription()}</p>
+        <div className="flex items-center justify-between">
+            <div>
+                <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
+                <p className="text-muted-foreground">{getPageDescription()}</p>
+            </div>
+            <div className="flex gap-2">
+                <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+                <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
+            </div>
         </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -431,3 +440,5 @@ export default function TataTertibPage() {
     </div>
   );
 }
+
+    

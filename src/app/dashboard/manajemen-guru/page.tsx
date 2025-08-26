@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2 } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -104,26 +104,21 @@ export default function ManajemenGuruPage() {
   
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   
-  // State for Guru Mapel assignment form
   const [currentAssignment, setCurrentAssignment] = useState<Partial<TeachingAssignment>>({});
 
-
-  const loadDataFromStorage = () => {
+  const loadData = () => {
     try {
         const teachersData = getSourceData('teachersData', initialTeachers);
         setTeachers(teachersData);
+        toast({ title: "Data Dimuat", description: "Data penugasan guru terbaru telah dimuat." });
     } catch (error) {
-        console.error("Failed to parse teachers data from localStorage", error);
-        toast({
-            title: "Gagal Memuat Data",
-            description: "Data guru tidak dapat dimuat.",
-            variant: "destructive"
-        })
+        console.error("Gagal memuat data guru:", error);
+        toast({ title: "Gagal Memuat", description: "Tidak dapat memuat data guru.", variant: "destructive" });
     }
   };
-  
+
   useEffect(() => {
-    loadDataFromStorage();
+    loadData();
     
     const kelasData: Kelas[] = getSourceData('kelasData', []);
     setAvailableKelas(kelasData);
@@ -141,14 +136,21 @@ export default function ManajemenGuruPage() {
     setDaftarSiswa(siswaData);
 
     const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'teachersData') loadDataFromStorage();
         if (event.key === 'siswaData') setDaftarSiswa(getSourceData('siswaData', []));
         if (event.key === 'kelasData') setAvailableKelas(getSourceData('kelasData', []));
     };
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [toast]);
+  }, []);
+  
+  const handleSaveChanges = () => {
+    updateSourceData('teachersData', teachers);
+    toast({
+        title: "Perubahan Disimpan",
+        description: "Semua perubahan pada penugasan guru telah disimpan.",
+    });
+  };
 
   const handleOpenDialog = (guru: Guru) => {
       setEditingTeacher(guru);
@@ -162,7 +164,7 @@ export default function ManajemenGuruPage() {
       setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSaveDialog = () => {
       if (!editingTeacher) return;
       
       const dataToSave = { ...formData };
@@ -170,17 +172,13 @@ export default function ManajemenGuruPage() {
           dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
       }
 
-      const teachersData = getSourceData('teachersData', initialTeachers);
-      const currentList: Guru[] = teachersData[activeTab] || [];
-      
-      const updatedList = currentList.map((t: Guru) => 
-          t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
+      const updatedTeachersByRole = teachers[activeTab].map(t =>
+        t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
       );
-
-      const updatedTeachers = { ...teachersData, [activeTab]: updatedList };
-      updateSourceData('teachersData', updatedTeachers);
-      loadDataFromStorage(); 
-      toast({ title: "Sukses", description: `Tugas untuk ${editingTeacher.nama} berhasil diperbarui.` });
+      
+      setTeachers(prev => ({...prev, [activeTab]: updatedTeachersByRole}));
+      
+      toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah diubah. Simpan perubahan untuk menjadikannya permanen.` });
       setIsDialogOpen(false);
   };
   
@@ -219,7 +217,7 @@ export default function ManajemenGuruPage() {
     const newAssignment = { ...currentAssignment, id: Date.now() } as TeachingAssignment;
     const existingAssignments = formData.teachingAssignments || [];
     setFormData({ ...formData, teachingAssignments: [...existingAssignments, newAssignment] });
-    setCurrentAssignment({}); // Reset form
+    setCurrentAssignment({}); 
   };
 
   const handleDeleteAssignment = (assignmentId: number) => {
@@ -299,7 +297,6 @@ export default function ManajemenGuruPage() {
   const handlePrint = () => {
       window.print();
   };
-
 
   const renderFormFields = () => (
     <>
@@ -465,6 +462,11 @@ export default function ManajemenGuruPage() {
             </p>
         </div>
         <div className="flex gap-2">
+            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 print:hidden">
             <Button variant="outline" onClick={handleExportData}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Excel
@@ -473,7 +475,6 @@ export default function ManajemenGuruPage() {
                 <Printer className="mr-2 h-4 w-4" />
                 Cetak
             </Button>
-        </div>
       </div>
         
       <Card>
@@ -550,7 +551,7 @@ export default function ManajemenGuruPage() {
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                  <Button onClick={handleSave}>Simpan Perubahan</Button>
+                  <Button onClick={handleSaveDialog}>Simpan Perubahan</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>

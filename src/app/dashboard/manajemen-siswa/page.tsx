@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon, Users, Download, Building } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, CalendarCheck, Calendar as CalendarIcon, Users, Download, Building, Save, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -104,15 +104,19 @@ export default function ManajemenSiswaPage() {
   const [statusKehadiran, setStatusKehadiran] = useState<Kehadiran['status']>('Hadir');
   const [tanggalKehadiran, setTanggalKehadiran] = useState<Date | undefined>(new Date());
 
+  const loadData = () => {
+    const savedSiswa = getSourceData('siswaData', []);
+    const savedKelas = getSourceData('kelasData', []);
+    setSiswa(savedSiswa);
+    setDaftarKelas(savedKelas);
+    toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
+  };
+
   useEffect(() => {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
 
-      const savedSiswa = getSourceData('siswaData', []);
-      const savedKelas = getSourceData('kelasData', []);
-      
-      setSiswa(savedSiswa);
-      setDaftarKelas(savedKelas);
+      loadData(); // Initial load
 
       if (role === 'wali_kelas') {
           const currentUser = getSourceData('currentUser', {});
@@ -123,6 +127,15 @@ export default function ManajemenSiswaPage() {
           }
       }
   }, []);
+
+  const handleSaveChanges = () => {
+    updateSourceData('siswaData', siswa);
+    updateSourceData('kelasData', daftarKelas);
+    toast({
+        title: "Perubahan Disimpan",
+        description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
+    });
+  };
 
   const resetSiswaForm = () => {
     setSiswaFormData({});
@@ -172,10 +185,9 @@ export default function ManajemenSiswaPage() {
         updatedSiswa = [...siswa, newSiswa];
       }
       setSiswa(updatedSiswa);
-      updateSourceData('siswaData', updatedSiswa);
       resetSiswaForm();
       setIsSiswaDialogOpen(false);
-      toast({title: "Sukses", description: "Data siswa berhasil disimpan."});
+      toast({title: "Siswa Ditambahkan", description: "Perubahan akan disimpan saat Anda menekan tombol 'Simpan Perubahan'."});
     } else {
         toast({title: "Gagal", description: "Harap lengkapi semua kolom.", variant: "destructive"});
     }
@@ -194,10 +206,9 @@ export default function ManajemenSiswaPage() {
             updatedKelas = [...daftarKelas, newKelas];
         }
         setDaftarKelas(updatedKelas);
-        updateSourceData('kelasData', updatedKelas);
         resetKelasForm();
         setIsKelasDialogOpen(false);
-        toast({title: "Sukses", description: "Daftar kelas berhasil diperbarui."});
+        toast({title: "Kelas Diperbarui", description: "Perubahan akan disimpan saat Anda menekan tombol 'Simpan Perubahan'."});
     } else {
          toast({title: "Gagal", description: "Nama kelas tidak boleh kosong.", variant: "destructive"});
     }
@@ -225,7 +236,7 @@ export default function ManajemenSiswaPage() {
     
     toast({
       title: "Kehadiran Disimpan",
-      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk tanggal ${tanggalFormatted}.`,
+      description: `${siswaKehadiran.nama} dicatat ${statusKehadiran} untuk tanggal ${tanggalFormatted}. Data kehadiran disimpan langsung.`,
     });
 
     setOpenKehadiran(false);
@@ -236,18 +247,16 @@ export default function ManajemenSiswaPage() {
     if (!siswaToDelete) return;
     const updatedSiswa = siswa.filter((s) => s.id !== siswaToDelete.id);
     setSiswa(updatedSiswa);
-    updateSourceData('siswaData', updatedSiswa);
     setSiswaToDelete(null);
-    toast({title: "Dihapus", description: `Siswa ${siswaToDelete.nama} telah dihapus.`});
+    toast({title: "Siswa Dihapus", description: `Data ${siswaToDelete.nama} dihapus dari sesi ini.`});
   };
   
   const handleDeleteKelas = () => {
     if (!kelasToDelete) return;
     const updatedKelas = daftarKelas.filter(k => k.id !== kelasToDelete.id);
     setDaftarKelas(updatedKelas);
-    updateSourceData('kelasData', updatedKelas);
     setKelasToDelete(null);
-    toast({title: "Dihapus", description: `Kelas ${kelasToDelete.nama} telah dihapus.`});
+    toast({title: "Kelas Dihapus", description: `Kelas ${kelasToDelete.nama} dihapus dari sesi ini.`});
   };
   
   const handleDownload = () => {
@@ -303,8 +312,7 @@ export default function ManajemenSiswaPage() {
         });
         
         setSiswa(newSiswaList);
-        updateSourceData('siswaData', newSiswaList);
-        toast({ title: "Impor Selesai", description: `${importedCount} data siswa berhasil diimpor/diperbarui.` });
+        toast({ title: "Impor Selesai", description: `${importedCount} data diimpor. Tekan 'Simpan Perubahan' untuk menyimpan.` });
     };
     reader.readAsText(file);
     if(fileInputRef.current) fileInputRef.current.value = "";
@@ -325,13 +333,17 @@ export default function ManajemenSiswaPage() {
           </p>
         </div>
         <div className="flex gap-2">
+            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
             <Link href="/dashboard/manajemen-siswa/kehadiran-siswa">
                 <Button variant="outline"><CalendarCheck className="mr-2 h-4 w-4" />Riwayat Kehadiran</Button>
             </Link>
              <input type="file" ref={fileInputRef} className="hidden" onChange={handleImport} accept=".csv" />
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" />Impor</Button>
             <Button variant="outline" onClick={handleDownload}><Download className="mr-2 h-4 w-4" />Unduh</Button>
-        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -467,7 +479,7 @@ export default function ManajemenSiswaPage() {
       {/* Alert Dialogs for Deletion */}
       <AlertDialog open={!!siswaToDelete} onOpenChange={() => setSiswaToDelete(null)}>
           <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data siswa {siswaToDelete?.nama} secara permanen.</AlertDialogDescription></AlertDialogHeader>
+              <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data siswa {siswaToDelete?.nama} secara permanen setelah Anda menyimpan perubahan.</AlertDialogDescription></AlertDialogHeader>
               <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSiswa}>Hapus</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>

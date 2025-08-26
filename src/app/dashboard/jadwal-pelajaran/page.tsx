@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, User, Shield, UserCog } from "lucide-react";
+import { PlusCircle, Edit, Trash2, User, Shield, UserCog, Save, RefreshCw } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
@@ -37,7 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface Jadwal {
   id: number;
@@ -76,13 +76,11 @@ const getGradeLevel = (className: string) => {
     return null;
 };
 
+const JADWAL_STORAGE_KEY = 'jadwalPelajaranData';
+
 export default function JadwalPelajaranPage() {
   const { toast } = useToast();
-  const [jadwal, setJadwal] = useState<Jadwal[]>([
-    { id: 1, hari: "Senin", sesi: "I", kelas: "X OT 1", mataPelajaran: "Mapel 1", guru: "Guru Mapel 1" },
-    { id: 2, hari: "Senin", sesi: "II", kelas: "X OT 1", mataPelajaran: "Mapel 2", guru: "Guru Mapel 2" },
-    { id: 3, hari: "Selasa", sesi: "III", kelas: "XI AKL", mataPelajaran: "Mapel 5", guru: "Guru Mapel 5" },
-  ]);
+  const [jadwal, setJadwal] = useState<Jadwal[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJadwal, setEditingJadwal] = useState<Jadwal | null>(null);
   const [jadwalToDelete, setJadwalToDelete] = useState<Jadwal | null>(null);
@@ -92,10 +90,11 @@ export default function JadwalPelajaranPage() {
   const [guruPiketMap, setGuruPiketMap] = useState<{ [key: string]: string[] }>({});
   const [guruBkMap, setGuruBkMap] = useState<{ [key: string]: string[] }>({});
 
-  useEffect(() => {
+  const loadData = () => {
+    setJadwal(getSourceData(JADWAL_STORAGE_KEY, []));
+    
     const teachersData = getSourceData('teachersData', {});
     
-    // Set Wali Kelas
     const waliKelasList = teachersData.wali_kelas || [];
     const newWaliKelasMap: { [key: string]: string } = {};
     if (Array.isArray(waliKelasList)) {
@@ -109,7 +108,6 @@ export default function JadwalPelajaranPage() {
     }
     setWaliKelasMap(newWaliKelasMap);
 
-    // Set Guru Piket
     const guruPiketList = teachersData.guru_piket || [];
     const newGuruPiketMap: { [key: string]: string[] } = {};
     if (Array.isArray(guruPiketList)) {
@@ -126,12 +124,11 @@ export default function JadwalPelajaranPage() {
     }
     setGuruPiketMap(newGuruPiketMap);
     
-    // Set Guru BK
     const guruBkList = teachersData.guru_bk || [];
     const newGuruBkMap: { [key: string]: string[] } = {};
     if (Array.isArray(guruBkList)) {
         guruBkList.forEach((guru: any) => {
-            if (guru.tugasKelas) { // e.g., "Kelas X"
+            if (guru.tugasKelas) {
                 if (!newGuruBkMap[guru.tugasKelas]) {
                     newGuruBkMap[guru.tugasKelas] = [];
                 }
@@ -140,8 +137,20 @@ export default function JadwalPelajaranPage() {
         });
     }
     setGuruBkMap(newGuruBkMap);
-
+    toast({ title: "Data Dimuat", description: "Data jadwal terbaru telah dimuat." });
+  };
+  
+  useEffect(() => {
+    loadData();
   }, []);
+  
+  const handleSaveChanges = () => {
+    updateSourceData(JADWAL_STORAGE_KEY, jadwal);
+    toast({
+        title: "Perubahan Disimpan",
+        description: "Semua perubahan pada jadwal pelajaran telah disimpan.",
+    });
+  };
 
   const resetForm = () => {
     setFormData({});
@@ -159,18 +168,18 @@ export default function JadwalPelajaranPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSaveDialog = () => {
     if (formData.hari && formData.sesi && formData.kelas && formData.mataPelajaran && formData.guru) {
       if (editingJadwal) {
         setJadwal(jadwal.map(j => j.id === editingJadwal.id ? { ...editingJadwal, ...formData } as Jadwal : j));
-        toast({ title: "Sukses", description: "Jadwal berhasil diperbarui." });
+        toast({ title: "Jadwal Diperbarui", description: "Jangan lupa simpan perubahan." });
       } else {
         const newJadwal: Jadwal = {
           id: jadwal.length > 0 ? Math.max(...jadwal.map(j => j.id)) + 1 : 1,
           ...formData,
         } as Jadwal;
         setJadwal([...jadwal, newJadwal]);
-        toast({ title: "Sukses", description: "Jadwal baru berhasil ditambahkan." });
+        toast({ title: "Jadwal Ditambahkan", description: "Jangan lupa simpan perubahan." });
       }
       resetForm();
       setIsDialogOpen(false);
@@ -182,7 +191,7 @@ export default function JadwalPelajaranPage() {
   const handleDelete = () => {
     if (jadwalToDelete) {
       setJadwal(jadwal.filter(j => j.id !== jadwalToDelete.id));
-      toast({ title: "Dihapus", description: `Jadwal telah dihapus.` });
+      toast({ title: "Jadwal Dihapus", description: `Jadwal telah dihapus dari sesi ini.` });
       setJadwalToDelete(null);
     }
   };
@@ -200,11 +209,17 @@ export default function JadwalPelajaranPage() {
           <h2 className="text-3xl font-bold tracking-tight">Jadwal Pelajaran</h2>
           <p className="text-muted-foreground">Kelola jadwal pelajaran untuk setiap kelas.</p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Buat Jadwal Baru
-        </Button>
+        <div className="flex gap-2">
+            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
+            <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
+        </div>
       </div>
+       <div className="flex justify-end">
+            <Button onClick={() => handleOpenDialog()}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Buat Jadwal Baru
+            </Button>
+       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {jadwalByHari.map(({ hari, jadwal: jadwalHari, piket }) => (
@@ -333,7 +348,7 @@ export default function JadwalPelajaranPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-            <Button onClick={handleSave}>Simpan</Button>
+            <Button onClick={handleSaveDialog}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -342,7 +357,7 @@ export default function JadwalPelajaranPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>Tindakan ini tidak dapat dibatalkan. Jadwal ini akan dihapus secara permanen.</AlertDialogDescription>
+            <AlertDialogDescription>Tindakan ini akan menghapus jadwal secara permanen setelah Anda menyimpan perubahan.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
@@ -353,3 +368,5 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
+
+    
