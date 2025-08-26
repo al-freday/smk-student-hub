@@ -198,9 +198,6 @@ export default function KehadiranSiswaPage() {
                         {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
                     </SelectContent>
                 </Select>
-                 <Button onClick={() => handleOpenDialog()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Catat Kehadiran
-                </Button>
             </div>
           </div>
         </CardHeader>
@@ -293,5 +290,7 @@ export default function KehadiranSiswaPage() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
