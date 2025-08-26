@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSourceData } from "@/lib/data-manager";
+import InfractionsByClassChart from "@/components/infractions-by-class-chart";
 
 
 const initialPelanggaran = [
@@ -122,6 +123,7 @@ export default function TataTertibPage() {
 
   const saveDataToLocalStorage = (data: CatatanSiswa[]) => {
       localStorage.setItem('riwayatCatatan', JSON.stringify(data));
+      window.dispatchEvent(new Event('storage')); // Trigger update for chart
   };
   
   const siswaDiKelasTerpilih = useMemo(() => {
@@ -412,6 +414,15 @@ export default function TataTertibPage() {
                         </AccordionItem>
                         ))}
                     </Accordion>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Analitik Pelanggaran & Prestasi per Kelas</CardTitle>
+                    <CardDescription>Perbandingan jumlah catatan pelanggaran dan prestasi yang tercatat untuk setiap kelas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <InfractionsByClassChart />
                 </CardContent>
             </Card>
         </div>
