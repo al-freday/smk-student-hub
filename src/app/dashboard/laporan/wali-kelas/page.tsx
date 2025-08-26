@@ -27,7 +27,7 @@ import { getSourceData } from "@/lib/data-manager";
 
 
 // Data Types
-interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; }
+interface Siswa { id: number; nis: string; nama: string; jk: 'L' | 'P'; alamat: string; kelas: string; }
 interface Sarana { id: number; nama: string; jumlah: number; kondisi: string; }
 interface Nilai { id: number; mapel: string; rataRata: number; }
 interface Jadwal { id: number; hari: string; jam: string; mapel: string; guru: string; }
@@ -46,11 +46,12 @@ export default function LaporanWaliKelasPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [waliKelasInfo, setWaliKelasInfo] = useState<WaliKelasInfo | null>(null);
+  const [selectedKelas, setSelectedKelas] = useState<string>("");
 
   // States for all data sections
   const [identitasSiswa, setIdentitasSiswa] = useState<Siswa[]>([
-    { id: 1, nis: "12345", nama: "Ahmad Budi", jk: "L", alamat: "Jl. Merdeka No. 1" },
-    { id: 2, nis: "12346", nama: "Citra Dewi", jk: "P", alamat: "Jl. Pahlawan No. 2" },
+    { id: 1, nis: "12345", nama: "Ahmad Budi", jk: "L", alamat: "Jl. Merdeka No. 1", kelas: "X OT 1" },
+    { id: 2, nis: "12346", nama: "Citra Dewi", jk: "P", alamat: "Jl. Pahlawan No. 2", kelas: "X OT 1" },
   ]);
   const [saranaKelas, setSaranaKelas] = useState<Sarana[]>([
       { id: 1, nama: "Meja Siswa", jumlah: 40, kondisi: "Baik" },
@@ -99,10 +100,15 @@ export default function LaporanWaliKelasPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - i).toString());
 
+  const filteredSiswa = useMemo(() => {
+    if (!selectedKelas) return [];
+    return identitasSiswa.filter(s => s.kelas === selectedKelas);
+  }, [selectedKelas, identitasSiswa]);
+
   const paymentRecap = useMemo(() => {
     const recap: { [nis: string]: { nama: string, payments: (boolean | null)[] } } = {};
     
-    identitasSiswa.forEach(siswa => {
+    filteredSiswa.forEach(siswa => {
       recap[siswa.nis] = { nama: siswa.nama, payments: Array(12).fill(null) };
     });
 
@@ -116,7 +122,7 @@ export default function LaporanWaliKelasPage() {
       });
       
     return Object.entries(recap).map(([nis, data]) => ({ nis, ...data }));
-  }, [pembayaranKomite, identitasSiswa, selectedYear]);
+  }, [pembayaranKomite, filteredSiswa, selectedYear]);
 
 
   useEffect(() => {
@@ -126,7 +132,11 @@ export default function LaporanWaliKelasPage() {
         const teachersData = getSourceData('teachersData', {});
         const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
         if (waliKelasData) {
-            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: Array.isArray(waliKelasData.kelas) ? waliKelasData.kelas : [waliKelasData.kelas] });
+            const assignedClasses = Array.isArray(waliKelasData.kelas) ? waliKelasData.kelas : [waliKelasData.kelas];
+            setWaliKelasInfo({ nama: waliKelasData.nama, kelas: assignedClasses });
+            if (assignedClasses.length > 0) {
+                setSelectedKelas(assignedClasses[0]);
+            }
         }
     }
 
@@ -137,16 +147,17 @@ export default function LaporanWaliKelasPage() {
     
     if (data) {
         const riwayat: KehadiranSiswa[] = JSON.parse(data);
-        const kehadiranHariIni = riwayat.filter(k => k.tanggal === today);
+        const kehadiranHariIni = riwayat.filter(k => k.tanggal === today && k.kelas === selectedKelas);
         setDetailKehadiranHariIni(kehadiranHariIni);
 
+        rekap.totalSiswa = filteredSiswa.length;
         rekap.hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
         rekap.sakit = kehadiranHariIni.filter(k => k.status === 'Sakit').length;
         rekap.izin = kehadiranHariIni.filter(k => k.status === 'Izin').length;
         rekap.alpa = kehadiranHariIni.filter(k => k.status === 'Alpa').length;
     }
     setKehadiranSiswa(rekap);
-  }, []);
+  }, [selectedKelas, filteredSiswa.length]);
   
   const handlePrint = () => window.print();
 
@@ -171,7 +182,7 @@ export default function LaporanWaliKelasPage() {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`Laporan Wali Kelas - ${waliKelasInfo?.kelas.join(', ') || 'Kelas'} - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      pdf.save(`Laporan Wali Kelas - ${selectedKelas} - ${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
       toast({
         title: "Laporan Diunduh",
@@ -193,17 +204,21 @@ export default function LaporanWaliKelasPage() {
   const handleSendReport = () => {
     toast({
       title: "Laporan Terkirim",
-      description: `Laporan bulanan kelas ${waliKelasInfo?.kelas.join(', ') || ''} telah berhasil dikirim ke Wakasek Kesiswaan.`,
+      description: `Laporan bulanan kelas ${selectedKelas} telah berhasil dikirim ke Wakasek Kesiswaan.`,
     });
   };
 
   const handleOpenDialog = (section: string, item: any | null = null) => {
     setCurrentSection(section);
     setEditingItem(item);
+    let formDataInit = item || {};
+    if (section === 'identitasSiswa' && !item) {
+        formDataInit.kelas = selectedKelas;
+    }
     if (item && (section === 'mutasiSiswa' || section === 'terimaRapor' || section === 'pembayaranKomite')) {
-        setFormData({...item, tanggal: item.tanggal ? new Date(item.tanggal) : undefined });
+        setFormData({...formDataInit, tanggal: item.tanggal ? new Date(item.tanggal) : undefined });
     } else {
-        setFormData(item || {});
+        setFormData(formDataInit);
     }
     setDialogOpen(true);
   };
@@ -287,6 +302,7 @@ export default function LaporanWaliKelasPage() {
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="nama" className="text-right">Nama</Label><Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} className="col-span-3" /></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="jk" className="text-right">L/P</Label><Select value={formData.jk || ""} onValueChange={value => setFormData({...formData, jk: value})}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="L">Laki-laki</SelectItem><SelectItem value="P">Perempuan</SelectItem></SelectContent></Select></div>
                 <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="alamat" className="text-right">Alamat</Label><Input id="alamat" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} className="col-span-3" /></div>
+                <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="kelas" className="text-right">Kelas</Label><Input id="kelas" value={formData.kelas || ""} disabled className="col-span-3" /></div>
             </>
         );
         case 'catatanSiswa': return (
@@ -384,7 +400,7 @@ export default function LaporanWaliKelasPage() {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {waliKelasInfo?.kelas.join(', ') || 'Kelas Anda'}</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Wali Kelas - {selectedKelas}</h2>
           <p className="text-muted-foreground">
             Rekapitulasi lengkap data kelas binaan.
           </p>
@@ -398,6 +414,20 @@ export default function LaporanWaliKelasPage() {
             <Button onClick={handleSendReport}><Send className="mr-2 h-4 w-4" /> Kirim</Button>
         </div>
       </div>
+       
+      {waliKelasInfo && waliKelasInfo.kelas.length > 1 && (
+        <div className="flex items-center gap-4 print:hidden">
+            <Label>Pilih Kelas:</Label>
+             <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Pilih kelas untuk ditampilkan" />
+                </SelectTrigger>
+                <SelectContent>
+                    {waliKelasInfo.kelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
+      )}
       
       <div ref={reportRef} className="report-container space-y-6">
         <Tabs defaultValue="dataSiswa">
@@ -418,7 +448,7 @@ export default function LaporanWaliKelasPage() {
                     <CardContent>
                         <Table>
                             <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama</TableHead><TableHead>L/P</TableHead><TableHead>Alamat</TableHead><TableHead className="text-right print:hidden">Aksi</TableHead></TableRow></TableHeader>
-                            <TableBody>{identitasSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
+                            <TableBody>{filteredSiswa.map(s => (<TableRow key={s.id}><TableCell>{s.nis}</TableCell><TableCell>{s.nama}</TableCell><TableCell>{s.jk}</TableCell><TableCell>{s.alamat}</TableCell><TableCell className="text-right print:hidden"><Button variant="ghost" size="icon" onClick={() => handleOpenDialog('identitasSiswa', s)}><Edit className="h-4 w-4"/></Button><AlertDialog><AlertDialogTrigger asChild><Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive"/></Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle><AlertDialogDescription>Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => setItemToDelete({section: 'identitasSiswa', id: s.id})}>Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></TableCell></TableRow>))}</TableBody>
                         </Table>
                     </CardContent>
                 </Card>
@@ -642,3 +672,5 @@ export default function LaporanWaliKelasPage() {
     </div>
   );
 }
+
+    
