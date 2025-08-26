@@ -598,7 +598,7 @@ export default function ManajemenGuruPage() {
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className={activeTab === 'guru_mapel' ? "sm:max-w-2xl" : "sm:max-w-md"}>
+          <DialogContent className={activeTab === 'guru_mapel' || activeTab === 'guru_pendamping' ? "sm:max-w-2xl" : "sm:max-w-md"}>
               <DialogHeader>
                   <DialogTitle>Atur Penugasan Guru</DialogTitle>
                   <DialogDescription>
