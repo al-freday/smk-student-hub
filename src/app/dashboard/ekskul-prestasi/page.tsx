@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { initialEkskulData } from "@/lib/ekskul-data";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -102,7 +103,14 @@ export default function EkskulPrestasiPage() {
   const [prestasiFormData, setPrestasiFormData] = useState<Partial<Prestasi>>({});
 
   const loadData = useCallback(() => {
-    setDaftarEkskul(getSourceData('ekskulData', []));
+    const ekskulData = getSourceData('ekskulData', null);
+    if (!ekskulData) {
+        setDaftarEkskul(initialEkskulData);
+        updateSourceData('ekskulData', initialEkskulData);
+    } else {
+        setDaftarEkskul(ekskulData);
+    }
+    
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
     
@@ -223,7 +231,7 @@ export default function EkskulPrestasiPage() {
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Manajemen Ekskul & Prestasi</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Manajemen Ekskul &amp; Prestasi</h2>
         <p className="text-muted-foreground">Kelola kegiatan ekstrakurikuler dan catat prestasi siswa.</p>
       </div>
 
