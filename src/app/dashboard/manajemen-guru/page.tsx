@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw, Users, BookUser, Shield, Clock } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw, Users, BookUser, Shield, Clock, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -92,6 +92,7 @@ const sesiPelajaran = [ "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", 
 
 export default function ManajemenGuruPage() {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [teachers, setTeachers] = useState<{ [key in TeacherRole]: Guru[] }>(initialTeachersState);
   const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
   
@@ -296,38 +297,41 @@ export default function ManajemenGuruPage() {
       switch(role) {
           case 'wali_kelas': 
               const kelasBinaan = Array.isArray(guru.kelas) ? guru.kelas : [];
-              return `Kelas Binaan: ${kelasBinaan.join(', ') || '-'}`;
+              return kelasBinaan.join(';');
           case 'guru_mapel': 
-              const assignmentCount = guru.teachingAssignments?.length || 0;
-              return assignmentCount > 0 ? `Mengajar di ${assignmentCount} kelas/sesi` : 'Belum ada tugas mengajar';
+              const assignments = guru.teachingAssignments || [];
+              return assignments.map(a => `${a.subject}|${a.className}|${a.day}|${a.session}`).join(';');
           case 'guru_piket': 
-              return formatPiketDetails(guru);
+              const piketDates = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
+              return piketDates.join(';');
           case 'guru_bk': 
-              return `Tugas Pembinaan: ${guru.tugasKelas || '-'}`;
+              return guru.tugasKelas || '';
           case 'guru_pendamping': 
               const siswaBinaan = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
-              return `Mendampingi: ${siswaBinaan.join(', ') || '-'}`;
-          default: return '-';
+              return siswaBinaan.join(';');
+          default: return '';
       }
   };
   
   const handleExportData = () => {
-    let allUsers: { Nama: string, Peran: string, "Detail Tugas": string }[] = [];
+    let allUsers: any[] = [];
+    const currentTeachersData = getSourceData('teachersData', {});
+    const { schoolInfo, ...roles } = currentTeachersData;
 
-    for (const roleKey in teachers) {
-        const typedRoleKey = roleKey as TeacherRole;
-        if (Array.isArray(teachers[typedRoleKey])) {
-            teachers[typedRoleKey].forEach((guru: Guru) => {
+    for (const roleKey in roles) {
+        if (Array.isArray(roles[roleKey])) {
+            roles[roleKey].forEach((guru: Guru) => {
                 allUsers.push({
-                    "Nama": guru.nama,
-                    "Peran": getRoleName(typedRoleKey),
-                    "Detail Tugas": getTugasDetailForExport(guru, typedRoleKey),
+                    id: guru.id,
+                    nama: guru.nama,
+                    peran: getRoleName(roleKey),
+                    detail_tugas: getTugasDetailForExport(guru, roleKey as TeacherRole),
                 });
             });
         }
     }
 
-    const headers = ['Nama', 'Peran', 'Detail Tugas'];
+    const headers = ['id', 'nama', 'peran', 'detail_tugas'];
     const csvContent = [
         headers.join(','),
         ...allUsers.map(user => 
@@ -343,8 +347,79 @@ export default function ManajemenGuruPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
+    URL.revokeObjectURL(url);
     toast({ title: "Ekspor Berhasil", description: "Data penugasan guru telah diunduh." });
+  };
+
+   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target?.result as string;
+            const rows = text.split('\n').slice(1);
+            if (rows.length === 0) {
+                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
+                return;
+            }
+
+            const currentFullData = getSourceData('teachersData', {});
+            const { schoolInfo, ...roles } = currentFullData;
+            
+            let updatedCount = 0;
+
+            rows.forEach(row => {
+                if (!row.trim()) return;
+                const [id, nama, peran, detail_tugas] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+                
+                const roleKey = roleOptions.find(r => r.label === peran)?.value;
+                if (!roleKey || !id) return;
+                
+                const roleList: Guru[] = roles[roleKey] || [];
+                const userIndex = roleList.findIndex(u => u.id.toString() === id);
+
+                if (userIndex > -1) {
+                    updatedCount++;
+                    const userToUpdate = roleList[userIndex];
+                    switch(roleKey) {
+                        case 'wali_kelas':
+                            userToUpdate.kelas = detail_tugas ? detail_tugas.split(';') : [];
+                            break;
+                        case 'guru_mapel':
+                             userToUpdate.teachingAssignments = detail_tugas ? detail_tugas.split(';').map((d, index) => {
+                                const [subject, className, day, session] = d.split('|');
+                                return { id: Date.now() + index, subject, className, day, session };
+                            }) : [];
+                            break;
+                        case 'guru_piket':
+                            userToUpdate.tanggalPiket = detail_tugas ? detail_tugas.split(';') : [];
+                            break;
+                        case 'guru_bk':
+                            userToUpdate.tugasKelas = detail_tugas;
+                            break;
+                        case 'guru_pendamping':
+                            userToUpdate.siswaBinaan = detail_tugas ? detail_tugas.split(';') : [];
+                            break;
+                    }
+                    roleList[userIndex] = userToUpdate;
+                }
+                 roles[roleKey] = roleList;
+            });
+
+            updateSourceData('teachersData', { ...currentFullData, ...roles });
+            loadData();
+            toast({ title: "Impor Selesai", description: `${updatedCount} data penugasan guru telah diperbarui.` });
+
+        } catch (error) {
+            console.error("Error importing data:", error);
+            toast({ title: "Error", description: "Gagal memproses file. Pastikan format CSV sudah benar.", variant: "destructive" });
+        } finally {
+            if(fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+    reader.readAsText(file);
   };
 
   const handlePrint = () => {
@@ -462,7 +537,7 @@ export default function ManajemenGuruPage() {
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="multiple" selected={selectedDates} onSelect={setSelectedDates} />
+                    <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
                 </PopoverContent>
             </Popover>
         </div>
@@ -526,9 +601,14 @@ export default function ManajemenGuruPage() {
         </div>
       </div>
       <div className="flex justify-end gap-2 print:hidden">
+            <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" />
+                Impor Tugas
+            </Button>
             <Button variant="outline" onClick={handleExportData}>
                 <Download className="mr-2 h-4 w-4" />
-                Download Excel
+                Ekspor Tugas
             </Button>
             <Button variant="outline" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -617,3 +697,5 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
+    
