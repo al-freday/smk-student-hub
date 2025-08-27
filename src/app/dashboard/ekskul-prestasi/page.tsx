@@ -103,13 +103,14 @@ export default function EkskulPrestasiPage() {
   const [prestasiFormData, setPrestasiFormData] = useState<Partial<Prestasi>>({});
 
   const loadData = useCallback(() => {
-    const ekskulData = getSourceData('ekskulData', null);
-    if (!ekskulData) {
-        setDaftarEkskul(initialEkskulData);
-        updateSourceData('ekskulData', initialEkskulData);
-    } else {
-        setDaftarEkskul(ekskulData);
+    let ekskulData = getSourceData('ekskulData', null);
+    
+    // Data validation and sanitization
+    if (!ekskulData || !Array.isArray(ekskulData) || ekskulData.some(e => typeof e.id === 'undefined')) {
+        ekskulData = initialEkskulData;
+        updateSourceData('ekskulData', ekskulData);
     }
+    setDaftarEkskul(ekskulData);
     
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
@@ -155,7 +156,7 @@ export default function EkskulPrestasiPage() {
     if (editingEkskul) {
       updatedData = currentData.map((e: Ekstrakurikuler) => e.id === editingEkskul.id ? { ...e, ...ekskulFormData } : e);
     } else {
-      const newId = currentData.length > 0 ? Math.max(...currentData.map((e: Ekstrakurikuler) => e.id)) + 1 : 1;
+      const newId = currentData.length > 0 ? Math.max(...currentData.map((e: Ekstrakurikuler) => e.id)) + 1 : Date.now();
       updatedData = [...currentData, { ...ekskulFormData, id: newId }];
     }
     updateSourceData('ekskulData', updatedData);
@@ -453,3 +454,5 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
+
+    
