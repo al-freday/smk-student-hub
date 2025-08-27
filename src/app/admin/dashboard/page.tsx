@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,13 +41,8 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/admin");
-      return;
-    }
-
+  
+  const loadUsers = useCallback(() => {
     try {
       const savedData = localStorage.getItem('teachersData');
       const teachersData = savedData ? JSON.parse(savedData) : {};
@@ -89,7 +84,25 @@ export default function AdminDashboardPage() {
         variant: "destructive",
       });
     }
-  }, [router, toast]);
+  }, [toast]);
+
+
+  useEffect(() => {
+    if (sessionStorage.getItem("admin_logged_in") !== "true") {
+      router.push("/admin");
+      return;
+    }
+    
+    loadUsers();
+
+    // Add event listener to reload users when the window gets focus
+    window.addEventListener('focus', loadUsers);
+
+    // Cleanup listener on component unmount
+    return () => {
+        window.removeEventListener('focus', loadUsers);
+    };
+  }, [router, loadUsers]);
   
   const handleImpersonate = () => {
     if (!selectedUser) {
@@ -138,7 +151,7 @@ export default function AdminDashboardPage() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="user-select">Pilih Pengguna untuk Login</Label>
-             <Select onValueChange={setSelectedUser}>
+             <Select onValueChange={setSelectedUser} value={selectedUser ?? undefined}>
               <SelectTrigger id="user-select">
                 <SelectValue placeholder="Pilih nama pengguna..." />
               </SelectTrigger>
