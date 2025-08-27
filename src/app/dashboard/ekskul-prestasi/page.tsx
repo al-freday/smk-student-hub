@@ -47,6 +47,7 @@ interface Siswa {
 
 interface Guru {
   id: number | string;
+  uniqueId?: string; // Add uniqueId for keys
   nama: string;
 }
 
@@ -109,9 +110,14 @@ export default function EkskulPrestasiPage() {
     const allGurus: Guru[] = [];
     if(teachersData){
         const { schoolInfo, ...roles } = teachersData;
-        Object.values(roles).forEach((roleArray: any) => {
-            if(Array.isArray(roleArray)) {
-                allGurus.push(...roleArray);
+        Object.keys(roles).forEach(roleKey => {
+            if(Array.isArray(roles[roleKey])) {
+                roles[roleKey].forEach((guru: any) => {
+                    allGurus.push({
+                        ...guru,
+                        uniqueId: `${roleKey}-${guru.id}`
+                    });
+                });
             }
         });
     }
@@ -339,7 +345,7 @@ export default function EkskulPrestasiPage() {
                                     <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarGuru.map(guru => (
-                                            <CommandItem key={guru.id} value={guru.nama} onSelect={() => handleSelectPembina(guru.nama)}>
+                                            <CommandItem key={guru.uniqueId} value={guru.nama} onSelect={() => handleSelectPembina(guru.nama)}>
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
                                                 {guru.nama}
                                             </CommandItem>
