@@ -208,14 +208,26 @@ export default function AdminManajemenPenggunaPage() {
     }
     
     const headers = ['id', 'nama', 'email', 'role', 'password'];
+    
+    // Helper to format a single cell for CSV
+    const formatCsvCell = (value: any) => {
+        const stringValue = String(value || '');
+        // If the value contains a comma, a quote, or a newline, wrap it in double quotes.
+        if (/[",\n]/.test(stringValue)) {
+            // Also, double up any existing double quotes.
+            return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+    };
+
     const csvContent = [
         headers.join(','),
         ...usersToExport.map(user => [
-            user.id,
-            `"${user.nama.replace(/"/g, '""')}"`,
-            user.email,
-            user.role,
-            user.password
+            formatCsvCell(user.id),
+            formatCsvCell(user.nama),
+            formatCsvCell(user.email),
+            formatCsvCell(user.role),
+            formatCsvCell(user.password),
         ].join(','))
     ].join('\n');
 
@@ -255,11 +267,11 @@ export default function AdminManajemenPenggunaPage() {
 
             rows.forEach(row => {
                 if (!row.trim()) return;
-                // Format: id,nama,email,role,password
-                const columns = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+                // Regex to split CSV row correctly, handling quoted commas.
+                const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
                 if (columns.length < 5) return;
                 
-                const [id, nama, email, roleName, password] = columns;
+                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, ''));
                 
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
@@ -436,5 +448,7 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
