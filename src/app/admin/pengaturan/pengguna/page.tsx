@@ -208,32 +208,34 @@ export default function AdminManajemenPenggunaPage() {
     }
     
     const headers = ['id', 'nama', 'email', 'role', 'password'];
-    
+    const delimiter = ';'; // Menggunakan titik koma sebagai pemisah
+
+    // Fungsi untuk memastikan nilai yang mengandung pemisah dibungkus dengan kutip
     const formatCsvCell = (value: any) => {
         const stringValue = String(value || '');
-        // Jika nilai mengandung koma, kutip ganda, atau baris baru, bungkus dengan kutip ganda.
-        if (/[",\n]/.test(stringValue)) {
+        if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
             return `"${stringValue.replace(/"/g, '""')}"`;
         }
         return stringValue;
     };
 
     const csvRows = usersToExport.map(user => [
-        formatCsvCell(user.id),
-        formatCsvCell(user.nama),
-        formatCsvCell(user.email),
-        formatCsvCell(user.role),
-        formatCsvCell(user.password),
-    ].join(','));
+        user.id,
+        user.nama,
+        user.email,
+        user.role,
+        user.password,
+    ].map(formatCsvCell).join(delimiter));
 
-    // Baris pertama adalah instruksi untuk Excel, diikuti oleh header.
+    // Tidak perlu 'sep=,' karena kita sudah menggunakan titik koma
     const csvContent = [
-        'sep=,',
-        headers.join(','),
+        headers.join(delimiter),
         ...csvRows
     ].join('\n');
     
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Menambahkan BOM (Byte Order Mark) untuk kompatibilitas Excel yang lebih baik
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -254,10 +256,8 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
-            // Abaikan baris 'sep=,' jika ada
-            if (text.startsWith('sep=')) {
-                text = text.substring(text.indexOf('\n') + 1);
-            }
+            // Deteksi pemisah, prioritaskan titik koma
+            const delimiter = text.includes(';') ? ';' : ',';
 
             const rows = text.split('\n').slice(1); // Lewati header
             if (rows.length === 0) {
@@ -274,11 +274,10 @@ export default function AdminManajemenPenggunaPage() {
 
             rows.forEach(row => {
                 if (!row.trim()) return;
-                // Regex ini lebih baik untuk menangani kolom yang dikutip
-                const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
                 if (columns.length < 5) return;
                 
-                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                const [id, nama, email, roleName, password] = columns;
                 
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
@@ -455,6 +454,8 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
 
