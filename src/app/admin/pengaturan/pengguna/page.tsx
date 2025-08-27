@@ -251,69 +251,65 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
+            // Bersihkan BOM dan baris 'sep=;' jika ada
             text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
 
             const delimiter = ';';
             const rows = text.split('\n').filter(row => row.trim() !== '');
-            const headerRow = rows.shift(); // Remove header
-            
-            if (!headerRow || rows.length === 0) {
-                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki header.", variant: "destructive" });
+            rows.shift(); // Hapus baris header
+
+            if (rows.length === 0) {
+                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki data.", variant: "destructive" });
                 return;
             }
 
             const savedData = localStorage.getItem('teachersData');
             const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
-            const { schoolInfo, ...roles } = teachersData;
+            const { schoolInfo, ...currentRoles } = teachersData;
             
-            // Create a deep copy to work with
-            const updatedRoles = JSON.parse(JSON.stringify(roles));
+            // Buat salinan mendalam untuk dimodifikasi
+            const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
 
             let importedCount = 0;
             let updatedCount = 0;
             
-            // This map will hold all users from the CSV, grouped by their role.
-            const dataToImport = new Map<TeacherRole, Guru[]>();
-
-            // 1. Read and group all users from the CSV file first.
             rows.forEach(row => {
+                // Hapus spasi dan tanda kutip dari setiap kolom
                 const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
-                if (columns.length < 5) return; // Skip malformed rows
+                if (columns.length < 5) return; // Lewati baris yang formatnya salah
                 
                 const [id, nama, email, roleName, password] = columns;
                 const roleKey = getRoleKey(roleName);
 
-                if (!roleKey || !id || !nama || !password) return;
+                if (!roleKey || !id || !nama || !password) return; // Lewati jika data penting tidak ada
                 
-                if (!dataToImport.has(roleKey)) {
-                    dataToImport.set(roleKey, []);
+                // Pastikan roleKey ada di objek updatedRoles
+                if (!updatedRoles[roleKey]) {
+                    updatedRoles[roleKey] = [];
                 }
-                dataToImport.get(roleKey)!.push({ id: parseInt(id), nama, password });
+
+                const roleList: Guru[] = updatedRoles[roleKey];
+                const userId = parseInt(id);
+                const newUser: Guru = { id: userId, nama, password };
+
+                const existingUserIndex = roleList.findIndex(u => u.id === userId);
+
+                if (existingUserIndex > -1) {
+                    // Perbarui pengguna yang sudah ada
+                    roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
+                    updatedCount++;
+                } else {
+                    // Tambahkan pengguna baru
+                    roleList.push(newUser);
+                    importedCount++;
+                }
             });
 
-            // 2. Iterate through the grouped data and update the main roles object.
-            dataToImport.forEach((newUsers, roleKey) => {
-                const roleList: Guru[] = updatedRoles[roleKey] || [];
-                newUsers.forEach(newUser => {
-                    const existingUserIndex = roleList.findIndex(u => u.id === newUser.id);
-                    if (existingUserIndex > -1) {
-                        // Update existing user
-                        roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
-                        updatedCount++;
-                    } else {
-                        // Add new user
-                        roleList.push(newUser);
-                        importedCount++;
-                    }
-                });
-                updatedRoles[roleKey] = roleList;
-            });
-
-            // 3. Save the fully updated roles object back to storage.
+            // Simpan kembali data yang sudah diperbarui sepenuhnya
             const finalDataToSave = { ...teachersData, ...updatedRoles };
             localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
             
-            loadDataFromStorage(); // Reload data to reflect changes in the UI
+            loadDataFromStorage(); // Muat ulang data untuk memperbarui UI
             toast({ 
                 title: "Impor Selesai", 
                 description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
