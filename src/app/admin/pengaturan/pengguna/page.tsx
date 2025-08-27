@@ -70,7 +70,7 @@ const getRoleName = (roleKey: TeacherRole | string) => {
     return role ? role.label : 'Pengguna';
 };
 
-const getRoleKey = (roleName: string) => {
+const getRoleKey = (roleName: string): TeacherRole | null => {
     const role = roleOptions.find(r => r.label === roleName);
     return role ? role.value : null;
 }
@@ -256,10 +256,10 @@ export default function AdminManajemenPenggunaPage() {
             rows.forEach(row => {
                 if (!row.trim()) return;
                 // Format: id,nama,email,role,password
-                const columns = row.split(',');
+                const columns = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
                 if (columns.length < 5) return;
                 
-                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, ''));
+                const [id, nama, email, roleName, password] = columns;
                 
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
@@ -436,4 +436,5 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
-}
+
+    
