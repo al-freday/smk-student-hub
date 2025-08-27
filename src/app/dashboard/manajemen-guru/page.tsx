@@ -309,53 +309,12 @@ export default function ManajemenGuruPage() {
               const roleList: Guru[] = rolesData[role] || [];
               let updatedCount = 0;
 
-              rows.forEach(row => {
-                  if (!row.trim()) return;
-                  const [id, nama, ...data] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
-                  const userIndex = roleList.findIndex(u => u.id.toString() === id);
-
-                  if (userIndex > -1) {
-                      updatedCount++;
-                      switch (role) {
-                          case 'wali_kelas':
-                              roleList[userIndex].kelas = data[0] ? data[0].split(';') : [];
-                              break;
-                          case 'guru_bk':
-                              roleList[userIndex].tugasKelas = data[0] || '';
-                              break;
-                          case 'guru_piket':
-                              roleList[userIndex].tanggalPiket = data[0] ? data[0].split(';') : [];
-                              break;
-                          case 'guru_pendamping':
-                              roleList[userIndex].siswaBinaan = data[0] ? data[0].split(';') : [];
-                              break;
-                          case 'guru_mapel':
-                              // Logic for guru_mapel is complex due to multiple rows per user.
-                              // This simplified version assumes re-importing all assignments.
-                              // For a full implementation, need to aggregate assignments per user.
-                              const assignments = rows
-                                  .map(r => r.split(',').map(field => field.trim().replace(/^"|"$/g, '')))
-                                  .filter(cols => cols[0] === id && cols[2])
-                                  .map((cols, i) => ({
-                                      id: Date.now() + i,
-                                      subject: cols[2],
-                                      className: cols[3],
-                                      day: cols[4],
-                                      session: cols[5]
-                                  }));
-                              roleList[userIndex].teachingAssignments = assignments;
-                              break;
-                      }
-                  }
-              });
-              
-              if(role === 'guru_mapel'){
-                  // To avoid multiple updates for the same user, we process all at once.
+              if (role === 'guru_mapel') {
                    const assignmentsByUser = rows
                       .map(r => r.split(',').map(field => field.trim().replace(/^"|"$/g, '')))
                       .reduce((acc, cols) => {
                         const [id, _, subject, className, day, session] = cols;
-                        if(id && subject) {
+                        if(id && subject && className && day && session) {
                            if (!acc[id]) acc[id] = [];
                            acc[id].push({ id: Date.now() + acc[id].length, subject, className, day, session });
                         }
@@ -363,14 +322,39 @@ export default function ManajemenGuruPage() {
                       }, {} as Record<string, TeachingAssignment[]>);
                       
                    roleList.forEach(user => {
-                       if(assignmentsByUser[user.id]){
-                           user.teachingAssignments = assignmentsByUser[user.id];
+                       if(assignmentsByUser[user.id.toString()]){
+                           user.teachingAssignments = assignmentsByUser[user.id.toString()];
                            updatedCount++;
                        }
                    });
+              } else {
+                  rows.forEach(row => {
+                      if (!row.trim()) return;
+                      const [id, nama, data] = row.split(/,(.*)/s).map(field => field.trim().replace(/^"|"$/g, ''));
+                      
+                      const userIndex = roleList.findIndex(u => u.id.toString() === id);
+
+                      if (userIndex > -1) {
+                          updatedCount++;
+                          const cleanData = data ? data.replace(/^"|"$/g, '') : '';
+                          switch (role) {
+                              case 'wali_kelas':
+                                  roleList[userIndex].kelas = cleanData ? cleanData.split(';') : [];
+                                  break;
+                              case 'guru_bk':
+                                  roleList[userIndex].tugasKelas = cleanData || '';
+                                  break;
+                              case 'guru_piket':
+                                  roleList[userIndex].tanggalPiket = cleanData ? cleanData.split(';') : [];
+                                  break;
+                              case 'guru_pendamping':
+                                  roleList[userIndex].siswaBinaan = cleanData ? cleanData.split(';') : [];
+                                  break;
+                          }
+                      }
+                  });
               }
-
-
+              
               rolesData[role] = roleList;
               updateSourceData('teachersData', { ...currentFullData, ...rolesData });
               loadData();
