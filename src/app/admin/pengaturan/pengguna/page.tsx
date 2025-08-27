@@ -98,6 +98,7 @@ export default function AdminManajemenPenggunaPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<User>>({});
 
   const loadDataFromStorage = () => {
@@ -199,6 +200,26 @@ export default function AdminManajemenPenggunaPage() {
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
+
+  const handleDeleteAll = () => {
+    const savedData = localStorage.getItem('teachersData');
+    const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
+    
+    // Hapus semua pengguna untuk peran yang aktif
+    const { schoolInfo, ...roles } = teachersData;
+    const updatedTeachers = { ...roles, [activeTab]: [] };
+    const finalDataToSave = { ...teachersData, ...updatedTeachers };
+
+    localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+    
+    loadDataFromStorage();
+    toast({
+      title: `Semua Pengguna Dihapus`,
+      description: `Semua pengguna dari peran ${getRoleName(activeTab)} telah dihapus.`,
+      variant: "destructive"
+    });
+    setIsDeleteAllDialogOpen(false);
+  };
   
   const handleExportData = () => {
     const usersToExport = users[activeTab];
@@ -251,12 +272,11 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
-            // Bersihkan BOM dan baris 'sep=;' jika ada
             text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
 
             const delimiter = ';';
             const rows = text.split('\n').filter(row => row.trim() !== '');
-            rows.shift(); // Hapus baris header
+            const header = rows.shift(); // Hapus baris header
 
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki data.", variant: "destructive" });
@@ -267,23 +287,20 @@ export default function AdminManajemenPenggunaPage() {
             const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
             const { schoolInfo, ...currentRoles } = teachersData;
             
-            // Buat salinan mendalam untuk dimodifikasi
             const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
 
             let importedCount = 0;
             let updatedCount = 0;
             
             rows.forEach(row => {
-                // Hapus spasi dan tanda kutip dari setiap kolom
                 const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
-                if (columns.length < 5) return; // Lewati baris yang formatnya salah
+                if (columns.length < 5) return;
                 
                 const [id, nama, email, roleName, password] = columns;
                 const roleKey = getRoleKey(roleName);
 
-                if (!roleKey || !id || !nama || !password) return; // Lewati jika data penting tidak ada
+                if (!roleKey || !id || !nama || !password) return;
                 
-                // Pastikan roleKey ada di objek updatedRoles
                 if (!updatedRoles[roleKey]) {
                     updatedRoles[roleKey] = [];
                 }
@@ -295,21 +312,18 @@ export default function AdminManajemenPenggunaPage() {
                 const existingUserIndex = roleList.findIndex(u => u.id === userId);
 
                 if (existingUserIndex > -1) {
-                    // Perbarui pengguna yang sudah ada
                     roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
                     updatedCount++;
                 } else {
-                    // Tambahkan pengguna baru
                     roleList.push(newUser);
                     importedCount++;
                 }
             });
 
-            // Simpan kembali data yang sudah diperbarui sepenuhnya
             const finalDataToSave = { ...teachersData, ...updatedRoles };
             localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
             
-            loadDataFromStorage(); // Muat ulang data untuk memperbarui UI
+            loadDataFromStorage();
             toast({ 
                 title: "Impor Selesai", 
                 description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
@@ -362,7 +376,7 @@ export default function AdminManajemenPenggunaPage() {
                 <p className="text-sm text-muted-foreground self-center">
                     Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeTab)}</span>
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-end">
                     <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
                     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
@@ -375,6 +389,10 @@ export default function AdminManajemenPenggunaPage() {
                     <Button onClick={() => handleOpenDialog()}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Tambah Pengguna
+                    </Button>
+                    <Button variant="destructive" onClick={() => setIsDeleteAllDialogOpen(true)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Hapus Semua
                     </Button>
                 </div>
             </div>
@@ -460,6 +478,21 @@ export default function AdminManajemenPenggunaPage() {
               <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Semua Pengguna?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                     Anda akan menghapus semua pengguna dari peran <span className="font-semibold">{getRoleName(activeTab)}</span>. Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive hover:bg-destructive/90">Ya, Hapus Semua</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
