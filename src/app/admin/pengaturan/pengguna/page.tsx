@@ -200,7 +200,7 @@ export default function AdminManajemenPenggunaPage() {
       setUserToDelete(null);
   };
   
- const handleExportData = () => {
+  const handleExportData = () => {
     const usersToExport = users[activeTab];
     if (!usersToExport || usersToExport.length === 0) {
         toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(activeTab)}.`, variant: "destructive" });
@@ -221,8 +221,7 @@ export default function AdminManajemenPenggunaPage() {
     const csvRows = usersToExport.map(user => 
       headers.map(header => formatCsvCell(user[header as keyof User])).join(delimiter)
     );
-
-    // Instruksi untuk Excel agar menggunakan titik koma sebagai pemisah
+    
     const csvContent = [
         `sep=${delimiter}`,
         headers.join(delimiter),
@@ -252,11 +251,12 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
-            // Hapus BOM dan baris instruksi 'sep=;' jika ada
             text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
 
             const delimiter = ';';
-            const rows = text.split('\n').slice(1); // Lewati header
+            const rows = text.split('\n').filter(row => row.trim() !== '');
+            const header = rows.shift();
+            
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
                 return;
@@ -266,33 +266,40 @@ export default function AdminManajemenPenggunaPage() {
             const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
             const { schoolInfo, ...roles } = teachersData;
             
-            // Buat salinan dari roles untuk dimodifikasi
             const updatedRoles = JSON.parse(JSON.stringify(roles));
 
             let importedCount = 0;
             let updatedCount = 0;
+            
+            const dataToImport = new Map<TeacherRole, Guru[]>();
 
             rows.forEach(row => {
-                if (!row.trim()) return;
                 const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
                 if (columns.length < 5) return;
                 
                 const [id, nama, email, roleName, password] = columns;
-                
                 const roleKey = getRoleKey(roleName);
+
                 if (!roleKey || !id || !nama || !password) return;
-
-                const roleList: Guru[] = updatedRoles[roleKey] || [];
-                const existingUserIndex = roleList.findIndex(u => u.id === parseInt(id));
-                const userData = { id: parseInt(id), nama, password };
-
-                if (existingUserIndex > -1) {
-                    roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...userData };
-                    updatedCount++;
-                } else {
-                    roleList.push(userData);
-                    importedCount++;
+                
+                if (!dataToImport.has(roleKey)) {
+                    dataToImport.set(roleKey, []);
                 }
+                dataToImport.get(roleKey)!.push({ id: parseInt(id), nama, password });
+            });
+
+            dataToImport.forEach((newUsers, roleKey) => {
+                const roleList: Guru[] = updatedRoles[roleKey] || [];
+                newUsers.forEach(newUser => {
+                    const existingUserIndex = roleList.findIndex(u => u.id === newUser.id);
+                    if (existingUserIndex > -1) {
+                        roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
+                        updatedCount++;
+                    } else {
+                        roleList.push(newUser);
+                        importedCount++;
+                    }
+                });
                 updatedRoles[roleKey] = roleList;
             });
 
