@@ -73,13 +73,14 @@ export default function EkskulPrestasiPage() {
   const [daftarEkskul, setDaftarEkskul] = useState<EkskulKategori[]>([]);
   const [daftarPrestasi, setDaftarPrestasi] = useState<Prestasi[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [daftarGuru, setDaftarGuru] = useState<string[]>([]);
+
 
   // Dialog & Form States
   const [isEkskulDialogOpen, setIsEkskulDialogOpen] = useState(false);
   const [editingEkskul, setEditingEkskul] = useState<{ item: EkskulItem, kategori: string } | null>(null);
   const [ekskulToDelete, setEkskulToDelete] = useState<{ item: EkskulItem, kategori: string } | null>(null);
   const [ekskulFormData, setEkskulFormData] = useState<{ nama?: string, pembina?: string[], kategori?: string }>({});
-  const [currentPembina, setCurrentPembina] = useState("");
 
   const [isPrestasiDialogOpen, setIsPrestasiDialogOpen] = useState(false);
   const [editingPrestasi, setEditingPrestasi] = useState<Prestasi | null>(null);
@@ -97,6 +98,21 @@ export default function EkskulPrestasiPage() {
     }
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
+    
+    // Load teacher data
+    const teachersData = getSourceData('teachersData', {});
+    const { schoolInfo, ...roles } = teachersData;
+    const allTeacherNames = new Set<string>();
+    Object.values(roles).forEach((roleArray: any) => {
+      if (Array.isArray(roleArray)) {
+        roleArray.forEach((teacher: { nama: string }) => {
+          if (teacher.nama) {
+            allTeacherNames.add(teacher.nama);
+          }
+        });
+      }
+    });
+    setDaftarGuru(Array.from(allTeacherNames).sort());
   };
 
   useEffect(() => {
@@ -125,15 +141,13 @@ export default function EkskulPrestasiPage() {
         setEditingEkskul(null);
         setEkskulFormData({ nama: '', pembina: [], kategori: '' });
     }
-    setCurrentPembina("");
     setIsEkskulDialogOpen(true);
   };
   
-  const handleAddPembina = () => {
-    if (currentPembina && !ekskulFormData.pembina?.includes(currentPembina)) {
-      const newPembina = [...(ekskulFormData.pembina || []), currentPembina];
+  const handleSelectPembina = (pembinaName: string) => {
+    if (!ekskulFormData.pembina?.includes(pembinaName)) {
+      const newPembina = [...(ekskulFormData.pembina || []), pembinaName];
       setEkskulFormData({...ekskulFormData, pembina: newPembina });
-      setCurrentPembina("");
     }
   };
 
@@ -360,10 +374,30 @@ export default function EkskulPrestasiPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="pembina">Nama Pembina</Label>
-                    <div className="flex gap-2">
-                        <Input id="pembina" value={currentPembina} onChange={e => setCurrentPembina(e.target.value)} placeholder="Masukkan nama pembina"/>
-                        <Button onClick={handleAddPembina}><UserPlus className="h-4 w-4" /></Button>
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" className="w-full justify-between">
+                              Pilih pembina...
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                          </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[450px] p-0">
+                          <Command>
+                              <CommandInput placeholder="Cari nama guru..."/>
+                              <CommandList>
+                                  <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
+                                  <CommandGroup>
+                                      {daftarGuru.map(guru => (
+                                          <CommandItem key={guru} value={guru} onSelect={() => handleSelectPembina(guru)}>
+                                              <UserPlus className="mr-2 h-4 w-4"/>
+                                              {guru}
+                                          </CommandItem>
+                                      ))}
+                                  </CommandGroup>
+                              </CommandList>
+                          </Command>
+                      </PopoverContent>
+                    </Popover>
                     <div className="mt-2 space-y-2">
                         {ekskulFormData.pembina?.map(p => (
                             <div key={p} className="flex items-center justify-between rounded-md bg-secondary p-2">
