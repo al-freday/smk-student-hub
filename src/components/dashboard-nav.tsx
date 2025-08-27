@@ -48,7 +48,6 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
     { href: "/dashboard/mata-pelajaran", icon: BookMarked, label: "Mata Pelajaran" },
-    { href: "/dashboard/struktur-kurikulum", icon: BookCopy, label: "Struktur Kurikulum" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
     { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Ekskul & Prestasi" },
     { type: 'divider', label: 'Aktivitas Harian' },

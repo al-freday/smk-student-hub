@@ -1,210 +1,184 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { BookCopy, CheckSquare, Briefcase } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Edit, Trash2, BookMark, Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Printer } from "lucide-react";
 
-interface MataPelajaran {
-  id: number;
-  kode: string;
+const kurikulumData = {
+  kelas_x: {
+    nama: "Kelas X SMK/MAK",
+    deskripsi: "Total JP per tahun: 1.728 (alokasi intrakurikuler dan projek)",
+    kelompok: [
+      {
+        nama: "A. Kelompok Mata Pelajaran Umum",
+        subjects: [
+          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu: Islam, Kristen, Katolik, Buddha, Hindu, atau Khonghucu" },
+          { nama: "Pendidikan Pancasila" },
+          { nama: "Bahasa Indonesia" },
+          { nama: "Pendidikan Jasmani, Olahraga, dan Kesehatan" },
+          { nama: "Sejarah" },
+          { nama: "Seni Budaya", catatan: "Minimal 1 jenis seni: Musik, Rupa, Teater, atau Tari" },
+          { nama: "Muatan Lokal Bahasa Jawa" },
+        ],
+      },
+      {
+        nama: "B. Kelompok Mata Pelajaran Kejuruan",
+        subjects: [
+          { nama: "Matematika" },
+          { nama: "Bahasa Inggris" },
+          { nama: "Informatika" },
+          { nama: "Projek Ilmu Pengetahuan Alam dan Sosial" },
+          { nama: "Dasar-dasar Program Keahlian" },
+        ],
+      },
+    ],
+  },
+  kelas_xi: {
+    nama: "Kelas XI SMK/MAK",
+    deskripsi: "Total JP per tahun: 1.728 (penekanan lebih pada kejuruan)",
+    kelompok: [
+      {
+        nama: "A. Kelompok Mata Pelajaran Umum",
+        subjects: [
+          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu sesuai agamanya" },
+          { nama: "Pendidikan Pancasila" },
+          { nama: "Bahasa Indonesia" },
+          { nama: "Pendidikan Jasmani, Olahraga, dan Kesehatan" },
+          { nama: "Sejarah" },
+          { nama: "Muatan Lokal Bahasa Jawa" },
+        ],
+      },
+      {
+        nama: "B. Kelompok Mata Pelajaran Kejuruan",
+        subjects: [
+          { nama: "Matematika" },
+          { nama: "Bahasa Inggris" },
+          { nama: "Mata Pelajaran Konsentrasi Keahlian", catatan: "Disesuaikan dengan program keahlian spesifik" },
+          { nama: "Projek Kreatif dan Kewirausahaan" },
+          { nama: "Mata Pelajaran Pilihan", catatan: "Siswa memilih mata pelajaran tambahan sesuai minat" },
+        ],
+      },
+    ],
+  },
+  kelas_xii: {
+    nama: "Kelas XII SMK/MAK",
+    deskripsi: "Fokus utama pada praktik kerja lapangan dan konsentrasi keahlian",
+    kelompok: [
+      {
+        nama: "A. Kelompok Mata Pelajaran Umum",
+        subjects: [
+          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu, waktu disesuaikan" },
+          { nama: "Pendidikan Pancasila" },
+          { nama: "Bahasa Indonesia" },
+          { nama: "Muatan Lokal Bahasa Jawa" },
+        ],
+      },
+      {
+        nama: "B. Kelompok Mata Pelajaran Kejuruan",
+        subjects: [
+          { nama: "Matematika" },
+          { nama: "Bahasa Inggris" },
+          { nama: "Mata Pelajaran Konsentrasi Keahlian", catatan: "Disesuaikan dengan program keahlian" },
+          { nama: "Projek Kreatif dan Kewirausahaan" },
+          { nama: "Praktik Kerja Lapangan (PKL)", catatan: "Komponen utama dengan alokasi waktu tinggi" },
+          { nama: "Mata Pelajaran Pilihan", catatan: "Siswa memilih mata pelajaran tambahan" },
+        ],
+      },
+    ],
+  },
+};
+
+
+type Subject = {
   nama: string;
-}
+  catatan?: string;
+};
+
+type Kelompok = {
+  nama: string;
+  subjects: Subject[];
+};
+
+type Tingkatan = {
+  nama: string;
+  deskripsi: string;
+  kelompok: Kelompok[];
+};
+
+const renderSubjectList = (subjects: Subject[]) => (
+  <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
+    {subjects.map((subject, index) => (
+      <li key={index}>
+        <span>{subject.nama}</span>
+        {subject.catatan && (
+          <p className="text-xs italic text-primary/80 pl-2">- {subject.catatan}</p>
+        )}
+      </li>
+    ))}
+  </ul>
+);
 
 export default function MataPelajaranPage() {
-  const { toast } = useToast();
-  const [daftarMapel, setDaftarMapel] = useState<MataPelajaran[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Dialog & Form States
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingMapel, setEditingMapel] = useState<MataPelajaran | null>(null);
-  const [mapelToDelete, setMapelToDelete] = useState<MataPelajaran | null>(null);
-  const [formData, setFormData] = useState<Partial<MataPelajaran>>({});
-
-  const loadData = () => {
-    setIsLoading(true);
-    try {
-      setDaftarMapel(getSourceData('mataPelajaranData', []));
-    } catch (error) {
-      toast({ title: "Gagal Memuat", description: "Tidak dapat memuat data mata pelajaran.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
     
-    const handleDataChange = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        if(customEvent.detail.key === 'mataPelajaranData'){
-            loadData();
-        }
-    };
-    window.addEventListener('dataUpdated', handleDataChange);
-    return () => window.removeEventListener('dataUpdated', handleDataChange);
-  }, []);
-
-  const handleOpenDialog = (mapel: MataPelajaran | null = null) => {
-    setEditingMapel(mapel);
-    setFormData(mapel || { kode: '', nama: '' });
-    setIsDialogOpen(true);
+  const handlePrint = () => {
+    window.print();
   };
-
-  const handleSave = () => {
-    if (!formData.nama || !formData.kode) {
-      toast({ title: "Gagal", description: "Kode dan Nama Mata Pelajaran harus diisi.", variant: "destructive" });
-      return;
-    }
     
-    const currentData = getSourceData('mataPelajaranData', []);
-    let updatedData;
-
-    if (editingMapel) {
-      updatedData = currentData.map((m: MataPelajaran) => m.id === editingMapel.id ? { ...m, ...formData } : m);
-    } else {
-      const newMapel: MataPelajaran = {
-        id: currentData.length > 0 ? Math.max(...currentData.map((m: MataPelajaran) => m.id)) + 1 : 1,
-        ...formData,
-      } as MataPelajaran;
-      updatedData = [...currentData, newMapel];
-    }
-    
-    updateSourceData('mataPelajaranData', updatedData);
-    toast({ title: "Sukses", description: "Data mata pelajaran berhasil disimpan." });
-    setIsDialogOpen(false);
-  };
-
-  const handleDelete = () => {
-    if (!mapelToDelete) return;
-    const currentData = getSourceData('mataPelajaranData', []);
-    const updatedData = currentData.filter((m: MataPelajaran) => m.id !== mapelToDelete.id);
-    updateSourceData('mataPelajaranData', updatedData);
-    toast({ title: "Mata Pelajaran Dihapus", description: `"${mapelToDelete.nama}" telah dihapus.` });
-    setMapelToDelete(null);
-  };
-
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Manajemen Mata Pelajaran</h2>
-        <p className="text-muted-foreground">Kelola daftar mata pelajaran yang diajarkan di sekolah.</p>
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Struktur Kurikulum & Mata Pelajaran</h2>
+          <p className="text-muted-foreground">
+            Rincian alokasi mata pelajaran berdasarkan tingkatan kelas sesuai kurikulum yang berlaku.
+          </p>
+        </div>
+        <Button onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak Halaman
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Daftar Mata Pelajaran</CardTitle>
-            <CardDescription>Tambah, edit, atau hapus mata pelajaran dari daftar.</CardDescription>
-          </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Mata Pelajaran
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[150px]">Kode</TableHead>
-                  <TableHead>Nama Mata Pelajaran</TableHead>
-                  <TableHead className="text-right w-[120px]">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {daftarMapel.length > 0 ? (
-                  daftarMapel.map((mapel) => (
-                    <TableRow key={mapel.id}>
-                      <TableCell className="font-medium">{mapel.kode}</TableCell>
-                      <TableCell>{mapel.nama}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(mapel)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setMapelToDelete(mapel)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">
-                      Belum ada data mata pelajaran. Silakan tambahkan.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Dialog Form */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingMapel ? 'Edit' : 'Tambah'} Mata Pelajaran</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="kode">Kode Mata Pelajaran</Label>
-              <Input id="kode" value={formData.kode || ''} onChange={(e) => setFormData({ ...formData, kode: e.target.value.toUpperCase() })} placeholder="Contoh: MTK-01" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nama">Nama Mata Pelajaran</Label>
-              <Input id="nama" value={formData.nama || ''} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} placeholder="Contoh: Matematika Wajib" />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-            <Button onClick={handleSave}>Simpan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Alert Dialog Hapus */}
-      <AlertDialog open={!!mapelToDelete} onOpenChange={() => setMapelToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>Tindakan ini akan menghapus mata pelajaran secara permanen. Data ini tidak dapat dipulihkan.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="kelas_x">
+        {(Object.keys(kurikulumData) as Array<keyof typeof kurikulumData>).map((key) => {
+          const tingkatan: Tingkatan = kurikulumData[key];
+          return (
+            <AccordionItem value={key} key={key} className="border rounded-lg bg-card overflow-hidden">
+              <AccordionTrigger className="p-4 hover:no-underline bg-muted/50">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                        <BookCopy className="h-6 w-6"/>
+                    </div>
+                    <div className="text-left">
+                        <h3 className="font-semibold text-xl">{tingkatan.nama}</h3>
+                        <p className="text-sm text-muted-foreground font-normal">{tingkatan.deskripsi}</p>
+                    </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="p-0">
+                <div className="border-t p-6 grid md:grid-cols-2 gap-6">
+                  {tingkatan.kelompok.map((kelompok, index) => (
+                    <div key={index}>
+                      <div className="flex items-center gap-2 mb-4">
+                        {kelompok.nama.includes("Umum") ? 
+                            <CheckSquare className="h-5 w-5 text-accent"/> : 
+                            <Briefcase className="h-5 w-5 text-accent"/>
+                        }
+                        <h4 className="font-semibold text-lg">{kelompok.nama}</h4>
+                      </div>
+                      {renderSubjectList(kelompok.subjects)}
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
     </div>
   );
 }
