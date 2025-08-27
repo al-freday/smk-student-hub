@@ -211,25 +211,29 @@ export default function AdminManajemenPenggunaPage() {
     
     const formatCsvCell = (value: any) => {
         const stringValue = String(value || '');
+        // Jika nilai mengandung koma, kutip ganda, atau baris baru, bungkus dengan kutip ganda.
         if (/[",\n]/.test(stringValue)) {
             return `"${stringValue.replace(/"/g, '""')}"`;
         }
         return stringValue;
     };
 
-    const csvContent = [
-        headers.join(','),
-        ...usersToExport.map(user => [
-            formatCsvCell(user.id),
-            formatCsvCell(user.nama),
-            formatCsvCell(user.email),
-            formatCsvCell(user.role),
-            formatCsvCell(user.password),
-        ].join(','))
-    ].join('\n');
+    const csvRows = usersToExport.map(user => [
+        formatCsvCell(user.id),
+        formatCsvCell(user.nama),
+        formatCsvCell(user.email),
+        formatCsvCell(user.role),
+        formatCsvCell(user.password),
+    ].join(','));
 
-    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Baris pertama adalah instruksi untuk Excel, diikuti oleh header.
+    const csvContent = [
+        'sep=,',
+        headers.join(','),
+        ...csvRows
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -249,8 +253,13 @@ export default function AdminManajemenPenggunaPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const text = e.target?.result as string;
-            const rows = text.split('\n').slice(1);
+            let text = e.target?.result as string;
+            // Abaikan baris 'sep=,' jika ada
+            if (text.startsWith('sep=')) {
+                text = text.substring(text.indexOf('\n') + 1);
+            }
+
+            const rows = text.split('\n').slice(1); // Lewati header
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
                 return;
@@ -265,10 +274,11 @@ export default function AdminManajemenPenggunaPage() {
 
             rows.forEach(row => {
                 if (!row.trim()) return;
+                // Regex ini lebih baik untuk menangani kolom yang dikutip
                 const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
                 if (columns.length < 5) return;
                 
-                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, ''));
+                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
                 
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
@@ -445,6 +455,8 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
 
