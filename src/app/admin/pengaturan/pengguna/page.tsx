@@ -255,10 +255,10 @@ export default function AdminManajemenPenggunaPage() {
 
             const delimiter = ';';
             const rows = text.split('\n').filter(row => row.trim() !== '');
-            const header = rows.shift();
+            const headerRow = rows.shift(); // Remove header
             
-            if (rows.length === 0) {
-                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
+            if (!headerRow || rows.length === 0) {
+                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki header.", variant: "destructive" });
                 return;
             }
 
@@ -266,16 +266,19 @@ export default function AdminManajemenPenggunaPage() {
             const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
             const { schoolInfo, ...roles } = teachersData;
             
+            // Create a deep copy to work with
             const updatedRoles = JSON.parse(JSON.stringify(roles));
 
             let importedCount = 0;
             let updatedCount = 0;
             
+            // This map will hold all users from the CSV, grouped by their role.
             const dataToImport = new Map<TeacherRole, Guru[]>();
 
+            // 1. Read and group all users from the CSV file first.
             rows.forEach(row => {
                 const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
-                if (columns.length < 5) return;
+                if (columns.length < 5) return; // Skip malformed rows
                 
                 const [id, nama, email, roleName, password] = columns;
                 const roleKey = getRoleKey(roleName);
@@ -288,14 +291,17 @@ export default function AdminManajemenPenggunaPage() {
                 dataToImport.get(roleKey)!.push({ id: parseInt(id), nama, password });
             });
 
+            // 2. Iterate through the grouped data and update the main roles object.
             dataToImport.forEach((newUsers, roleKey) => {
                 const roleList: Guru[] = updatedRoles[roleKey] || [];
                 newUsers.forEach(newUser => {
                     const existingUserIndex = roleList.findIndex(u => u.id === newUser.id);
                     if (existingUserIndex > -1) {
+                        // Update existing user
                         roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
                         updatedCount++;
                     } else {
+                        // Add new user
                         roleList.push(newUser);
                         importedCount++;
                     }
@@ -303,9 +309,11 @@ export default function AdminManajemenPenggunaPage() {
                 updatedRoles[roleKey] = roleList;
             });
 
+            // 3. Save the fully updated roles object back to storage.
             const finalDataToSave = { ...teachersData, ...updatedRoles };
             localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
-            loadDataFromStorage();
+            
+            loadDataFromStorage(); // Reload data to reflect changes in the UI
             toast({ 
                 title: "Impor Selesai", 
                 description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
