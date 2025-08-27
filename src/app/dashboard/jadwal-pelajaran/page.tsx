@@ -12,12 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Shield, UserCog, Loader2, Download } from "lucide-react";
+import { User, Shield, UserCog, Loader2, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData } from "@/lib/data-manager";
 import { Button } from "@/components/ui/button";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface Jadwal {
   id: number;
@@ -55,7 +53,6 @@ export default function JadwalPelajaranPage() {
   const { toast } = useToast();
   const [jadwal, setJadwal] = useState<Jadwal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const printRef = useRef<HTMLDivElement>(null);
   
   const [daftarKelas, setDaftarKelas] = useState<{nama: string}[]>([]);
   const [waliKelasMap, setWaliKelasMap] = useState<{ [key: string]: string }>({});
@@ -157,48 +154,8 @@ export default function JadwalPelajaranPage() {
     }
   }, []);
 
-  const handleDownloadPdf = async () => {
-    const element = printRef.current;
-    if (!element) return;
-
-    toast({ title: "Membuat PDF...", description: "Harap tunggu sebentar, proses ini mungkin memakan waktu beberapa saat." });
-    
-    const canvas = await html2canvas(element, {
-        scale: 2, // Meningkatkan resolusi
-    });
-    const data = canvas.toDataURL('image/png');
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    const ratio = imgWidth / imgHeight;
-    const newImgWidth = pdfWidth;
-    const newImgHeight = newImgWidth / ratio;
-    
-    let heightLeft = imgHeight;
-    let position = 0;
-    const pageMargin = 10;
-    
-    // Konversi width dan height ke mm
-    const imgWidthMM = (newImgWidth * 0.264583);
-    const imgHeightMM = (newImgHeight * 0.264583);
-    const pageHeightMM = pdf.internal.pageSize.getHeight();
-    
-    pdf.addImage(data, 'PNG', pageMargin, position + pageMargin, imgWidthMM - (pageMargin*2), imgHeightMM);
-    heightLeft -= pageHeightMM * (imgHeight / imgHeightMM); // menyesuaikan sisa tinggi
-
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight; // perbarui posisi
-      pdf.addPage();
-      pdf.addImage(data, 'PNG', pageMargin, position + pageMargin, imgWidthMM - (pageMargin*2), imgHeightMM);
-      heightLeft -= pageHeightMM * (imgHeight / imgHeightMM);
-    }
-
-    pdf.save('jadwal-pelajaran.pdf');
-
-    toast({ title: "Sukses", description: "Jadwal pelajaran telah berhasil diunduh sebagai PDF." });
+  const handlePrint = () => {
+    window.print();
   };
 
   const jadwalByHari = daftarHari.map(hari => ({
@@ -222,13 +179,13 @@ export default function JadwalPelajaranPage() {
           <h2 className="text-3xl font-bold tracking-tight">Jadwal Pelajaran Otomatis</h2>
           <p className="text-muted-foreground">Jadwal ini dihasilkan secara otomatis dari menu Manajemen Guru.</p>
         </div>
-        <Button onClick={handleDownloadPdf}>
-            <Download className="mr-2 h-4 w-4" />
-            Unduh PDF
+        <Button onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak
         </Button>
       </div>
 
-      <div ref={printRef} className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {jadwalByHari.map(({ hari, jadwal: jadwalHari, piket }) => (
           <Card key={hari}>
             <CardHeader>
@@ -290,5 +247,3 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
-
-    

@@ -640,9 +640,9 @@ export default function ManajemenGuruPage() {
             Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
             </p>
         </div>
-         <Button variant="outline" onClick={handlePrint} className="print:hidden">
+         <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
-            Cetak Halaman
+            Cetak
         </Button>
       </div>
         
@@ -738,4 +738,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
