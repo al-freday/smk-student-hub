@@ -232,33 +232,42 @@ export default function ManajemenGuruPage() {
         toast({ title: "Tidak Ada Data", description: `Tidak ada data guru untuk peran ${getRoleName(role)}.`, variant: "destructive" });
         return;
     }
-
+    
+    const delimiter = ';';
     let headers: string[] = [];
-    let csvContent: string[] = [];
+    let csvRows: string[] = [];
+
+    const formatCell = (value: any) => {
+        const stringValue = String(value || '');
+        if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+    };
 
     switch (role) {
         case 'wali_kelas':
             headers = ['id', 'nama', 'kelas_binaan'];
-            csvContent = usersInRole.map(user =>
-                [user.id, `"${user.nama}"`, `"${(user.kelas || []).join(';')}"`].join(',')
+            csvRows = usersInRole.map(user =>
+                [user.id, user.nama, (user.kelas || []).join(';')].map(formatCell).join(delimiter)
             );
             break;
         case 'guru_bk':
             headers = ['id', 'nama', 'binaan_tingkat_kelas'];
-            csvContent = usersInRole.map(user =>
-                [user.id, `"${user.nama}"`, `"${user.tugasKelas || ''}"`].join(',')
+            csvRows = usersInRole.map(user =>
+                [user.id, user.nama, user.tugasKelas || ''].map(formatCell).join(delimiter)
             );
             break;
         case 'guru_piket':
             headers = ['id', 'nama', 'tanggal_piket'];
-            csvContent = usersInRole.map(user =>
-                [user.id, `"${user.nama}"`, `"${(user.tanggalPiket || []).join(';')}"`].join(',')
+            csvRows = usersInRole.map(user =>
+                [user.id, user.nama, (user.tanggalPiket || []).join(';')].map(formatCell).join(delimiter)
             );
             break;
         case 'guru_pendamping':
             headers = ['id', 'nama', 'siswa_binaan'];
-            csvContent = usersInRole.map(user =>
-                [user.id, `"${user.nama}"`, `"${(user.siswaBinaan || []).join(';')}"`].join(',')
+            csvRows = usersInRole.map(user =>
+                [user.id, user.nama, (user.siswaBinaan || []).join(';')].map(formatCell).join(delimiter)
             );
             break;
         case 'guru_mapel':
@@ -267,18 +276,19 @@ export default function ManajemenGuruPage() {
             usersInRole.forEach(user => {
                 if (user.teachingAssignments && user.teachingAssignments.length > 0) {
                     user.teachingAssignments.forEach(t => {
-                        rows.push([user.id.toString(), `"${user.nama}"`, `"${t.subject}"`, `"${t.className}"`, t.day, t.session]);
+                        rows.push([user.id.toString(), user.nama, t.subject, t.className, t.day, t.session]);
                     });
                 } else {
-                    rows.push([user.id.toString(), `"${user.nama}"`, '', '', '', '']);
+                    rows.push([user.id.toString(), user.nama, '', '', '', '']);
                 }
             });
-            csvContent = rows.map(row => row.join(','));
+            csvRows = rows.map(row => row.map(formatCell).join(delimiter));
             break;
     }
 
-    const fullCsv = [headers.join(','), ...csvContent].join('\n');
-    const blob = new Blob([fullCsv], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [headers.join(delimiter), ...csvRows].join('\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -298,6 +308,7 @@ export default function ManajemenGuruPage() {
       reader.onload = (e) => {
           try {
               const text = e.target?.result as string;
+              const delimiter = text.includes(';') ? ';' : ',';
               const rows = text.split('\n').slice(1);
               if (rows.length === 0) {
                   toast({ title: "File Kosong", variant: "destructive" });
@@ -309,14 +320,17 @@ export default function ManajemenGuruPage() {
               const roleList: Guru[] = rolesData[role] || [];
               let updatedCount = 0;
 
+              const cleanField = (field: string) => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+
               if (role === 'guru_mapel') {
                    const assignmentsByUser = rows
-                      .map(r => r.split(',').map(field => field.trim().replace(/^"|"$/g, '')))
+                      .map(r => r.split(delimiter).map(cleanField))
                       .reduce((acc, cols) => {
                         const [id, _, subject, className, day, session] = cols;
                         if(id && subject && className && day && session) {
                            if (!acc[id]) acc[id] = [];
-                           acc[id].push({ id: Date.now() + acc[id].length, subject, className, day, session });
+                           const newId = Date.now() + Math.random();
+                           acc[id].push({ id: newId, subject, className, day, session });
                         }
                         return acc;
                       }, {} as Record<string, TeachingAssignment[]>);
@@ -330,25 +344,26 @@ export default function ManajemenGuruPage() {
               } else {
                   rows.forEach(row => {
                       if (!row.trim()) return;
-                      const [id, nama, data] = row.split(/,(.*)/s).map(field => field.trim().replace(/^"|"$/g, ''));
+                      const columns = row.split(delimiter).map(cleanField);
+                      const id = columns[0];
+                      const data = columns[2] || '';
                       
                       const userIndex = roleList.findIndex(u => u.id.toString() === id);
 
                       if (userIndex > -1) {
                           updatedCount++;
-                          const cleanData = data ? data.replace(/^"|"$/g, '') : '';
                           switch (role) {
                               case 'wali_kelas':
-                                  roleList[userIndex].kelas = cleanData ? cleanData.split(';') : [];
+                                  roleList[userIndex].kelas = data ? data.split(';') : [];
                                   break;
                               case 'guru_bk':
-                                  roleList[userIndex].tugasKelas = cleanData || '';
+                                  roleList[userIndex].tugasKelas = data || '';
                                   break;
                               case 'guru_piket':
-                                  roleList[userIndex].tanggalPiket = cleanData ? cleanData.split(';') : [];
+                                  roleList[userIndex].tanggalPiket = data ? data.split(';') : [];
                                   break;
                               case 'guru_pendamping':
-                                  roleList[userIndex].siswaBinaan = cleanData ? cleanData.split(';') : [];
+                                  roleList[userIndex].siswaBinaan = data ? data.split(';') : [];
                                   break;
                           }
                       }

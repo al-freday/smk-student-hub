@@ -210,7 +210,6 @@ export default function AdminManajemenPenggunaPage() {
     const headers = ['id', 'nama', 'email', 'role', 'password'];
     const delimiter = ';'; // Menggunakan titik koma sebagai pemisah
 
-    // Fungsi untuk memastikan nilai yang mengandung pemisah dibungkus dengan kutip
     const formatCsvCell = (value: any) => {
         const stringValue = String(value || '');
         if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
@@ -219,21 +218,15 @@ export default function AdminManajemenPenggunaPage() {
         return stringValue;
     };
 
-    const csvRows = usersToExport.map(user => [
-        user.id,
-        user.nama,
-        user.email,
-        user.role,
-        user.password,
-    ].map(formatCsvCell).join(delimiter));
+    const csvRows = usersToExport.map(user => 
+      headers.map(header => formatCsvCell(user[header as keyof User])).join(delimiter)
+    );
 
-    // Tidak perlu 'sep=,' karena kita sudah menggunakan titik koma
     const csvContent = [
         headers.join(delimiter),
         ...csvRows
     ].join('\n');
     
-    // Menambahkan BOM (Byte Order Mark) untuk kompatibilitas Excel yang lebih baik
     const bom = '\uFEFF';
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -454,13 +447,3 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
-
-    
-
-    
-
-    
-
-    
-
-    

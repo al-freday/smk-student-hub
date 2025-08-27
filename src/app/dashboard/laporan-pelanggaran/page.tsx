@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { useState, useEffect, useMemo } from "react";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -57,7 +57,6 @@ export default function LaporanPelanggaranPage() {
 
   useEffect(() => {
     const siswaData = getSourceData('siswaData', []);
-    // Menggabungkan riwayatPelanggaran dan riwayatCatatan untuk kompatibilitas
     const pelanggaranData = getSourceData('riwayatPelanggaran', []);
     const prestasiData = getSourceData('prestasiData', []).map((p: any) => ({
         id: `prestasi-${p.id}`,
@@ -115,19 +114,38 @@ export default function LaporanPelanggaranPage() {
 
   const handleExport = () => {
       const headers = ['NIS', 'Nama', 'Kelas', 'Total Poin', 'Jumlah Pelanggaran', 'Jumlah Prestasi'];
-      const csvContent = [
-          headers.join(','),
-          ...siswaDenganPoin.map(s => [s.nis, `"${s.nama}"`, s.kelas, s.totalPoin, s.totalPelanggaran, s.totalPrestasi].join(','))
-      ].join('\n');
+      const delimiter = ';';
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const formatCell = (value: any) => {
+          const stringValue = String(value || '');
+          if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+      };
+      
+      const csvRows = siswaDenganPoin.map(s => 
+          [s.nis, s.nama, s.kelas, s.totalPoin, s.totalPelanggaran, s.totalPrestasi]
+          .map(formatCell)
+          .join(delimiter)
+      );
+
+      const csvContent = [
+          headers.join(delimiter),
+          ...csvRows
+      ].join('\n');
+      
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.href = url;
-      link.setAttribute('download', `laporan_pelanggaran_${selectedKelas}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.setAttribute('download', `laporan_rekapitulasi_${selectedKelas}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       toast({ title: "Ekspor Berhasil", description: "Laporan telah diunduh sebagai file CSV." });
   };
 

@@ -105,7 +105,6 @@ export default function ManajemenSiswaPage() {
                 }
             }
         }
-        toast({ title: "Data Dimuat", description: "Data siswa dan kelas terbaru telah dimuat." });
     } catch (error) {
         console.error("Gagal memuat data:", error);
         toast({ title: "Gagal Memuat Data", description: "Terjadi kesalahan saat memuat data.", variant: "destructive" });
@@ -115,24 +114,20 @@ export default function ManajemenSiswaPage() {
   };
   
   useEffect(() => {
-    loadData(); // Initial load
+    loadData();
     
-    const handleDataChange = () => loadData();
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if(customEvent.detail.key === 'siswaData' || customEvent.detail.key === 'kelasData'){
+        loadData();
+      }
+    };
     window.addEventListener('dataUpdated', handleDataChange);
     
     return () => {
         window.removeEventListener('dataUpdated', handleDataChange);
     };
   }, []);
-
-  const handleSaveChanges = () => {
-    updateSourceData('siswaData', siswa);
-    updateSourceData('kelasData', daftarKelas);
-    toast({
-        title: "Perubahan Disimpan",
-        description: "Semua perubahan pada data siswa dan kelas telah disimpan.",
-    });
-  };
 
   const resetSiswaForm = () => {
     setSiswaFormData({});
@@ -157,27 +152,28 @@ export default function ManajemenSiswaPage() {
     resetKelasForm();
     if(kelasToEdit) {
         setEditingKelas(kelasToEdit);
-        setKelasFormData(kelasToEdit);
+        setEditingKelas(kelasToEdit);
     }
     setIsKelasDialogOpen(true);
   };
 
   const handleSaveSiswa = () => {
     if (siswaFormData.nis && siswaFormData.nama && siswaFormData.kelas) {
+      const currentSiswa = getSourceData('siswaData', []);
       let updatedSiswa;
       if (editingSiswa) {
-        updatedSiswa = siswa.map((s) => s.id === editingSiswa.id ? { ...s, ...siswaFormData } : s);
+        updatedSiswa = currentSiswa.map((s: Siswa) => s.id === editingSiswa.id ? { ...s, ...siswaFormData } : s);
       } else {
         const newSiswa: Siswa = {
-          id: siswa.length > 0 ? Math.max(...siswa.map((s) => s.id)) + 1 : 1,
+          id: currentSiswa.length > 0 ? Math.max(...currentSiswa.map((s: Siswa) => s.id)) + 1 : 1,
           ...siswaFormData,
         } as Siswa;
-        updatedSiswa = [...siswa, newSiswa];
+        updatedSiswa = [...currentSiswa, newSiswa];
       }
-      setSiswa(updatedSiswa);
+      updateSourceData('siswaData', updatedSiswa);
       resetSiswaForm();
       setIsSiswaDialogOpen(false);
-      toast({title: "Siswa Ditambahkan", description: "Perubahan akan disimpan saat Anda menekan tombol 'Simpan Perubahan'."});
+      toast({title: "Siswa Disimpan", description: "Data siswa telah berhasil disimpan."});
     } else {
         toast({title: "Gagal", description: "Harap lengkapi semua kolom.", variant: "destructive"});
     }
@@ -185,20 +181,21 @@ export default function ManajemenSiswaPage() {
   
   const handleSaveKelas = () => {
     if (kelasFormData.nama) {
+        const currentKelas = getSourceData('kelasData', []);
         let updatedKelas;
         if (editingKelas) {
-            updatedKelas = daftarKelas.map(k => k.id === editingKelas.id ? { ...k, ...kelasFormData } : k);
+            updatedKelas = currentKelas.map((k: Kelas) => k.id === editingKelas.id ? { ...k, ...kelasFormData } : k);
         } else {
             const newKelas: Kelas = {
-                id: daftarKelas.length > 0 ? Math.max(...daftarKelas.map(k => k.id)) + 1 : 1,
+                id: currentKelas.length > 0 ? Math.max(...currentKelas.map((k: Kelas) => k.id)) + 1 : 1,
                 ...kelasFormData,
             } as Kelas;
-            updatedKelas = [...daftarKelas, newKelas];
+            updatedKelas = [...currentKelas, newKelas];
         }
-        setDaftarKelas(updatedKelas);
+        updateSourceData('kelasData', updatedKelas);
         resetKelasForm();
         setIsKelasDialogOpen(false);
-        toast({title: "Kelas Diperbarui", description: "Perubahan akan disimpan saat Anda menekan tombol 'Simpan Perubahan'."});
+        toast({title: "Kelas Disimpan", description: "Data kelas telah berhasil disimpan."});
     } else {
          toast({title: "Gagal", description: "Nama kelas tidak boleh kosong.", variant: "destructive"});
     }
@@ -206,28 +203,41 @@ export default function ManajemenSiswaPage() {
   
   const handleDeleteSiswa = () => {
     if (!siswaToDelete) return;
-    const updatedSiswa = siswa.filter((s) => s.id !== siswaToDelete.id);
-    setSiswa(updatedSiswa);
+    const currentSiswa = getSourceData('siswaData', []);
+    const updatedSiswa = currentSiswa.filter((s: Siswa) => s.id !== siswaToDelete.id);
+    updateSourceData('siswaData', updatedSiswa);
     setSiswaToDelete(null);
-    toast({title: "Siswa Dihapus", description: `Data ${siswaToDelete.nama} dihapus dari sesi ini.`});
+    toast({title: "Siswa Dihapus", description: `Data ${siswaToDelete.nama} telah dihapus.`});
   };
   
   const handleDeleteKelas = () => {
     if (!kelasToDelete) return;
-    const updatedKelas = daftarKelas.filter(k => k.id !== kelasToDelete.id);
-    setDaftarKelas(updatedKelas);
+    const currentKelas = getSourceData('kelasData', []);
+    const updatedKelas = currentKelas.filter((k: Kelas) => k.id !== kelasToDelete.id);
+    updateSourceData('kelasData', updatedKelas);
     setKelasToDelete(null);
-    toast({title: "Kelas Dihapus", description: `Kelas ${kelasToDelete.nama} dihapus dari sesi ini.`});
+    toast({title: "Kelas Dihapus", description: `Kelas ${kelasToDelete.nama} telah dihapus.`});
   };
   
   const handleDownload = () => {
+    const dataToExport = getSourceData('siswaData', []);
     const headers = ['id', 'nis', 'nama', 'kelas'];
-    const csvContent = [
-        headers.join(','),
-        ...siswa.map(s => [s.id, s.nis, `"${s.nama}"`, s.kelas].join(','))
-    ].join('\n');
+    const delimiter = ';';
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const formatCell = (value: any) => {
+        const stringValue = String(value || '');
+        if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+    };
+    
+    const csvRows = dataToExport.map((s: Siswa) => [s.id, s.nis, s.nama, s.kelas].map(formatCell).join(delimiter));
+
+    const csvContent = [headers.join(delimiter), ...csvRows].join('\n');
+    
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -235,6 +245,7 @@ export default function ManajemenSiswaPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     toast({ title: "Unduh Berhasil", description: "Data siswa telah diunduh sebagai CSV." });
   };
   
@@ -245,21 +256,23 @@ export default function ManajemenSiswaPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
         const text = e.target?.result as string;
+        const delimiter = text.includes(';') ? ';' : ',';
         const rows = text.split('\n').slice(1); // Skip header
-        const newSiswaList = [...siswa];
+        const currentSiswa = getSourceData('siswaData', []);
+        const newSiswaList = [...currentSiswa];
         let importedCount = 0;
         
         rows.forEach(row => {
             if (!row.trim()) return;
-            const columns = row.split(',');
-            const [id, nis, nama, kelas] = columns;
+            const columns = row.split(delimiter);
+            const [id, nis, nama, kelas] = columns.map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
             
             if (id && nis && nama && kelas) {
                 const siswaObj: Siswa = {
                     id: parseInt(id),
-                    nis: nis.trim(),
-                    nama: nama.trim().replace(/"/g, ''),
-                    kelas: kelas.trim(),
+                    nis: nis,
+                    nama: nama,
+                    kelas: kelas,
                 };
                 
                 const existingIndex = newSiswaList.findIndex(s => s.id === siswaObj.id);
@@ -272,8 +285,8 @@ export default function ManajemenSiswaPage() {
             }
         });
         
-        setSiswa(newSiswaList);
-        toast({ title: "Impor Selesai", description: `${importedCount} data diimpor. Tekan 'Simpan Perubahan' untuk menyimpan.` });
+        updateSourceData('siswaData', newSiswaList);
+        toast({ title: "Impor Selesai", description: `${importedCount} data siswa berhasil diimpor dan disimpan.` });
     };
     reader.readAsText(file);
     if(fileInputRef.current) fileInputRef.current.value = "";
@@ -299,10 +312,6 @@ export default function ManajemenSiswaPage() {
           <p className="text-muted-foreground">
              Kelola data siswa dan daftar kelas di sekolah.
           </p>
-        </div>
-        <div className="flex gap-2">
-            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
-            <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
         </div>
       </div>
       <div className="flex justify-end gap-2">
@@ -425,7 +434,7 @@ export default function ManajemenSiswaPage() {
       {/* Alert Dialogs for Deletion */}
       <AlertDialog open={!!siswaToDelete} onOpenChange={() => setSiswaToDelete(null)}>
           <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data siswa {siswaToDelete?.nama} secara permanen setelah Anda menyimpan perubahan.</AlertDialogDescription></AlertDialogHeader>
+              <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data siswa {siswaToDelete?.nama} secara permanen dari sistem.</AlertDialogDescription></AlertDialogHeader>
               <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSiswa}>Hapus</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
