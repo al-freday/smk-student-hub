@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
@@ -572,19 +573,32 @@ export default function ManajemenGuruPage() {
         </div>
       )}
       {activeTab === 'guru_piket' && (
-        <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Pilih Tanggal Piket</Label>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("col-span-3 font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Pilih tanggal"}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
-                </PopoverContent>
-            </Popover>
+        <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">Pilih Tanggal</Label>
+            <div className="col-span-3 space-y-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Buka kalender"}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
+                    </PopoverContent>
+                </Popover>
+                {selectedDates.length > 0 && (
+                    <ScrollArea className="h-32 w-full rounded-md border p-2">
+                        <div className="flex flex-col gap-1">
+                            {selectedDates.sort((a,b) => a.getTime() - b.getTime()).map((date, index) => (
+                                <div key={index} className="text-sm p-1 rounded-sm bg-muted">
+                                    {format(date, "EEEE, dd MMMM yyyy", { locale: id })}
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                )}
+            </div>
         </div>
       )}
        {activeTab === 'guru_bk' && (
