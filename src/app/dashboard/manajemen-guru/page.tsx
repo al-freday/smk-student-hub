@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Save, RefreshCw, Users, BookUser, Shield, Clock, Upload } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Users, BookUser, Shield, Clock, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -118,20 +118,13 @@ export default function ManajemenGuruPage() {
         for (const roleKey of roleOptions.map(r => r.value)) {
             const usersInRole = roles[roleKey] || [];
             
-            const existingAssignments = teachers[roleKey] || [];
-            const assignmentsMap = new Map(existingAssignments.map(t => [t.id, t]));
-
-            newState[roleKey] = usersInRole.map((user: any) => {
-                const existingData = assignmentsMap.get(user.id);
-                return {
-                    ...user,
-                    ...(existingData || {}),
-                };
-            });
+            newState[roleKey] = usersInRole.map((user: any) => ({
+                ...user,
+                ...(roles[roleKey].find((t: Guru) => t.id === user.id) || {}),
+            }));
         }
         
         setTeachers(newState);
-        toast({ title: "Data Dimuat", description: "Data guru terbaru telah dimuat dari sumber utama." });
     } catch (error) {
         console.error("Gagal memuat data guru:", error);
         toast({ title: "Gagal Memuat", description: "Tidak dapat memuat data guru.", variant: "destructive" });
@@ -160,16 +153,6 @@ export default function ManajemenGuruPage() {
        window.removeEventListener('dataUpdated', loadData);
      };
   }, []);
-  
-  const handleSaveChanges = () => {
-    const currentFullData = getSourceData('teachersData', {});
-    const updatedData = { ...currentFullData, ...teachers };
-    updateSourceData('teachersData', updatedData);
-    toast({
-        title: "Perubahan Disimpan",
-        description: "Semua perubahan pada penugasan guru telah disimpan.",
-    });
-  };
 
   const handleOpenDialog = (guru: Guru) => {
       setEditingTeacher(guru);
@@ -191,13 +174,25 @@ export default function ManajemenGuruPage() {
           dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
       }
 
-      const updatedTeachersByRole = teachers[activeTab].map(t =>
+      // 1. Get current full data
+      const currentFullData = getSourceData('teachersData', {});
+      const { schoolInfo, ...roles } = currentFullData;
+
+      // 2. Find and update the specific teacher in the correct role list
+      const updatedRoleList = (roles[activeTab] || []).map((t: Guru) =>
         t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
       );
       
-      setTeachers(prev => ({...prev, [activeTab]: updatedTeachersByRole}));
+      // 3. Construct the final data object to save
+      const updatedData = {
+          ...currentFullData,
+          [activeTab]: updatedRoleList
+      };
+
+      // 4. Save to localStorage and trigger updates
+      updateSourceData('teachersData', updatedData);
       
-      toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah diubah. Simpan perubahan untuk menjadikannya permanen.` });
+      toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah berhasil disimpan.` });
       setIsDialogOpen(false);
   };
   
@@ -365,7 +360,6 @@ export default function ManajemenGuruPage() {
             rows.forEach(row => {
                 if (!row.trim()) return;
                 
-                // Basic CSV parsing, handles quoted fields
                 const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(field => field.trim().replace(/^"|"$/g, '')) || [];
                 const importedData = headers.reduce((obj, header, index) => {
                     obj[header] = values[index];
@@ -593,10 +587,6 @@ export default function ManajemenGuruPage() {
             <p className="text-muted-foreground">
             Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
             </p>
-        </div>
-        <div className="flex gap-2 mt-4 sm:mt-0">
-            <Button onClick={handleSaveChanges}><Save className="mr-2 h-4 w-4"/>Simpan Perubahan</Button>
-            <Button variant="outline" onClick={loadData}><RefreshCw className="mr-2 h-4 w-4"/>Muat Ulang Data</Button>
         </div>
       </div>
       <div className="flex justify-end gap-2 print:hidden">
