@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion } from "lucide-react";
+import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion, UserMinus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
-type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
+type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa' | 'Bolos';
 
 interface Kehadiran {
   id: string; // Composite key: nis-tanggal
@@ -44,6 +44,7 @@ const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
     { value: 'Sakit', icon: Thermometer },
     { value: 'Izin', icon: MailQuestion },
     { value: 'Alpa', icon: UserX },
+    { value: 'Bolos', icon: UserMinus },
 ];
 
 export default function KehadiranSiswaPage() {
@@ -138,6 +139,7 @@ export default function KehadiranSiswaPage() {
         case 'Sakit': return 'secondary';
         case 'Izin': return 'secondary';
         case 'Alpa': return 'destructive';
+        case 'Bolos': return 'destructive';
         default: return 'outline';
     }
   };
