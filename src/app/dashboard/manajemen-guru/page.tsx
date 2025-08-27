@@ -103,6 +103,7 @@ export default function ManajemenGuruPage() {
   const [availableKelas, setAvailableKelas] = useState<Kelas[]>([]);
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   
@@ -147,6 +148,24 @@ export default function ManajemenGuruPage() {
         });
         setAvailableGrades(Array.from(grades).sort());
     }
+    
+    // Load subjects from kurikulumData
+    const kurikulumData = getSourceData('kurikulumData', {});
+    const subjects: string[] = [];
+    if (kurikulumData) {
+        Object.values(kurikulumData).forEach((tingkatan: any) => {
+            if (tingkatan.kelompok && Array.isArray(tingkatan.kelompok)) {
+                tingkatan.kelompok.forEach((kelompok: any) => {
+                    if (kelompok.subjects && Array.isArray(kelompok.subjects)) {
+                        kelompok.subjects.forEach((subject: any) => {
+                            subjects.push(subject.nama);
+                        });
+                    }
+                });
+            }
+        });
+    }
+    setAvailableSubjects([...new Set(subjects)].sort()); // Get unique subjects and sort them
 
      window.addEventListener('dataUpdated', loadData);
      return () => {
@@ -504,7 +523,12 @@ export default function ManajemenGuruPage() {
                 <div className="space-y-4 rounded-md border p-4">
                     <div className="space-y-2">
                         <Label htmlFor="subject">Mata Pelajaran</Label>
-                        <Input id="subject" value={currentAssignment.subject || ''} onChange={e => setCurrentAssignment({...currentAssignment, subject: e.target.value})} placeholder="Contoh: Matematika" />
+                        <Select value={currentAssignment.subject} onValueChange={value => setCurrentAssignment({...currentAssignment, subject: value})}>
+                           <SelectTrigger id="subject"><SelectValue placeholder="Pilih Mata Pelajaran" /></SelectTrigger>
+                           <SelectContent>
+                               {availableSubjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                           </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-2">
