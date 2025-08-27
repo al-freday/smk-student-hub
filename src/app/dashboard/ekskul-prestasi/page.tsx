@@ -241,7 +241,7 @@ export default function EkskulPrestasiPage() {
                                 <p className="font-medium">{e.nama}</p>
                                 <p className="text-xs text-muted-foreground">{e.kategori}</p>
                             </TableCell>
-                            <TableCell>{e.pembina.join(', ')}</TableCell>
+                            <TableCell>{Array.isArray(e.pembina) ? e.pembina.join(', ') : ''}</TableCell>
                             <TableCell className="text-right">
                                 <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
