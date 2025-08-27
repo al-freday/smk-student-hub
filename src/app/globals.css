@@ -89,15 +89,28 @@
     display: none;
   }
   body {
-    background-color: white !important;
+    background: white !important;
     color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  .report-container {
-    padding: 1rem;
-    border: none;
-    box-shadow: none;
+  header, [data-sidebar="sidebar"], .peer {
+    display: none !important;
   }
-  .dark .report-container {
+  main {
+    padding: 1rem !important;
+    margin: 0 !important;
+  }
+  .card, .accordion-item {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  .card-header, .card-content, .accordion-content {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  .dark {
     --background: 0 0% 100%;
     --foreground: 220 15% 15%;
     --card: 0 0% 100%;
@@ -111,5 +124,3 @@
     --border: 220 15% 85%;
   }
 }
-
-    
