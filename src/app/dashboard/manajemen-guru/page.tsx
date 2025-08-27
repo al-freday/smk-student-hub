@@ -236,14 +236,6 @@ export default function ManajemenGuruPage() {
   };
 
 
-  const formatPiketDetails = (guru: Guru) => {
-      const tanggalPiketArray = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
-      const tanggal = tanggalPiketArray.length > 0 ? `Tanggal: ${tanggalPiketArray.map(d => format(new Date(d), 'dd/MM/yy')).join(', ')}` : '';
-      
-      if (tanggal) return tanggal;
-      return '-';
-  };
-  
   const getTugasDetailComponent = (guru: Guru, role: TeacherRole) => {
       switch(role) {
           case 'wali_kelas': 
@@ -291,52 +283,50 @@ export default function ManajemenGuruPage() {
           default: return <span className="text-muted-foreground">-</span>;
       }
   };
-
-
-  const getTugasDetailForExport = (guru: Guru, role: TeacherRole): string => {
-      switch(role) {
-          case 'wali_kelas': 
-              const kelasBinaan = Array.isArray(guru.kelas) ? guru.kelas : [];
-              return kelasBinaan.join(';');
-          case 'guru_mapel': 
-              const assignments = guru.teachingAssignments || [];
-              return assignments.map(a => `${a.subject}|${a.className}|${a.day}|${a.session}`).join(';');
-          case 'guru_piket': 
-              const piketDates = Array.isArray(guru.tanggalPiket) ? guru.tanggalPiket : [];
-              return piketDates.join(';');
-          case 'guru_bk': 
-              return guru.tugasKelas || '';
-          case 'guru_pendamping': 
-              const siswaBinaan = Array.isArray(guru.siswaBinaan) ? guru.siswaBinaan : [];
-              return siswaBinaan.join(';');
-          default: return '';
-      }
-  };
   
   const handleExportData = () => {
-    let allUsers: any[] = [];
-    const currentTeachersData = getSourceData('teachersData', {});
-    const { schoolInfo, ...roles } = currentTeachersData;
-
-    for (const roleKey in roles) {
-        if (Array.isArray(roles[roleKey])) {
-            roles[roleKey].forEach((guru: Guru) => {
-                allUsers.push({
+    const allUsers: any[] = [];
+    roleOptions.forEach(role => {
+        const usersInRole = teachers[role.value];
+        if (Array.isArray(usersInRole)) {
+            usersInRole.forEach(guru => {
+                const userData: any = {
                     id: guru.id,
                     nama: guru.nama,
-                    peran: getRoleName(roleKey),
-                    detail_tugas: getTugasDetailForExport(guru, roleKey as TeacherRole),
-                });
+                    peran: role.label,
+                    wali_kelas_binaan: '',
+                    guru_mapel_tugas: '',
+                    guru_piket_tanggal: '',
+                    guru_bk_binaan: '',
+                    guru_pendamping_siswa: ''
+                };
+
+                switch (role.value) {
+                    case 'wali_kelas':
+                        userData.wali_kelas_binaan = (guru.kelas || []).join(';');
+                        break;
+                    case 'guru_mapel':
+                        userData.guru_mapel_tugas = (guru.teachingAssignments || []).map(a => `${a.subject}|${a.className}|${a.day}|${a.session}`).join(';');
+                        break;
+                    case 'guru_piket':
+                        userData.guru_piket_tanggal = (guru.tanggalPiket || []).join(';');
+                        break;
+                    case 'guru_bk':
+                        userData.guru_bk_binaan = guru.tugasKelas || '';
+                        break;
+                    case 'guru_pendamping':
+                        userData.guru_pendamping_siswa = (guru.siswaBinaan || []).join(';');
+                        break;
+                }
+                allUsers.push(userData);
             });
         }
-    }
+    });
 
-    const headers = ['id', 'nama', 'peran', 'detail_tugas'];
+    const headers = ['id', 'nama', 'peran', 'wali_kelas_binaan', 'guru_mapel_tugas', 'guru_piket_tanggal', 'guru_bk_binaan', 'guru_pendamping_siswa'];
     const csvContent = [
         headers.join(','),
-        ...allUsers.map(user => 
-            headers.map(header => `"${user[header as keyof typeof user]}"`).join(',')
-        )
+        ...allUsers.map(user => headers.map(header => `"${user[header] || ''}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -351,7 +341,7 @@ export default function ManajemenGuruPage() {
     toast({ title: "Ekspor Berhasil", description: "Data penugasan guru telah diunduh." });
   };
 
-   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -359,7 +349,7 @@ export default function ManajemenGuruPage() {
     reader.onload = (e) => {
         try {
             const text = e.target?.result as string;
-            const rows = text.split('\n').slice(1);
+            const rows = text.split('\n').slice(1); // Skip header
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
                 return;
@@ -370,37 +360,45 @@ export default function ManajemenGuruPage() {
             
             let updatedCount = 0;
 
+            const headers = ['id', 'nama', 'peran', 'wali_kelas_binaan', 'guru_mapel_tugas', 'guru_piket_tanggal', 'guru_bk_binaan', 'guru_pendamping_siswa'];
+
             rows.forEach(row => {
                 if (!row.trim()) return;
-                const [id, nama, peran, detail_tugas] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
                 
-                const roleKey = roleOptions.find(r => r.label === peran)?.value;
-                if (!roleKey || !id) return;
+                // Basic CSV parsing, handles quoted fields
+                const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(field => field.trim().replace(/^"|"$/g, '')) || [];
+                const importedData = headers.reduce((obj, header, index) => {
+                    obj[header] = values[index];
+                    return obj;
+                }, {} as any);
+
+                const roleKey = roleOptions.find(r => r.label === importedData.peran)?.value;
+                if (!roleKey || !importedData.id) return;
                 
                 const roleList: Guru[] = roles[roleKey] || [];
-                const userIndex = roleList.findIndex(u => u.id.toString() === id);
+                const userIndex = roleList.findIndex(u => u.id.toString() === importedData.id);
 
                 if (userIndex > -1) {
                     updatedCount++;
                     const userToUpdate = roleList[userIndex];
                     switch(roleKey) {
                         case 'wali_kelas':
-                            userToUpdate.kelas = detail_tugas ? detail_tugas.split(';') : [];
+                            userToUpdate.kelas = importedData.wali_kelas_binaan ? importedData.wali_kelas_binaan.split(';') : [];
                             break;
                         case 'guru_mapel':
-                             userToUpdate.teachingAssignments = detail_tugas ? detail_tugas.split(';').map((d, index) => {
+                             userToUpdate.teachingAssignments = importedData.guru_mapel_tugas ? importedData.guru_mapel_tugas.split(';').map((d: string, index: number) => {
                                 const [subject, className, day, session] = d.split('|');
                                 return { id: Date.now() + index, subject, className, day, session };
                             }) : [];
                             break;
                         case 'guru_piket':
-                            userToUpdate.tanggalPiket = detail_tugas ? detail_tugas.split(';') : [];
+                            userToUpdate.tanggalPiket = importedData.guru_piket_tanggal ? importedData.guru_piket_tanggal.split(';') : [];
                             break;
                         case 'guru_bk':
-                            userToUpdate.tugasKelas = detail_tugas;
+                            userToUpdate.tugasKelas = importedData.guru_bk_binaan;
                             break;
                         case 'guru_pendamping':
-                            userToUpdate.siswaBinaan = detail_tugas ? detail_tugas.split(';') : [];
+                            userToUpdate.siswaBinaan = importedData.guru_pendamping_siswa ? importedData.guru_pendamping_siswa.split(';') : [];
                             break;
                     }
                     roleList[userIndex] = userToUpdate;
@@ -421,6 +419,7 @@ export default function ManajemenGuruPage() {
     };
     reader.readAsText(file);
   };
+
 
   const handlePrint = () => {
       window.print();
@@ -697,5 +696,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-    
