@@ -200,7 +200,7 @@ export default function AdminManajemenPenggunaPage() {
       setUserToDelete(null);
   };
   
-  const handleExportData = () => {
+ const handleExportData = () => {
     const usersToExport = users[activeTab];
     if (!usersToExport || usersToExport.length === 0) {
         toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(activeTab)}.`, variant: "destructive" });
@@ -208,7 +208,7 @@ export default function AdminManajemenPenggunaPage() {
     }
     
     const headers = ['id', 'nama', 'email', 'role', 'password'];
-    const delimiter = ';'; // Menggunakan titik koma sebagai pemisah
+    const delimiter = ';'; 
 
     const formatCsvCell = (value: any) => {
         const stringValue = String(value || '');
@@ -222,7 +222,9 @@ export default function AdminManajemenPenggunaPage() {
       headers.map(header => formatCsvCell(user[header as keyof User])).join(delimiter)
     );
 
+    // Instruksi untuk Excel agar menggunakan titik koma sebagai pemisah
     const csvContent = [
+        `sep=${delimiter}`,
         headers.join(delimiter),
         ...csvRows
     ].join('\n');
@@ -241,6 +243,7 @@ export default function AdminManajemenPenggunaPage() {
     toast({ title: "Ekspor Berhasil", description: `Data untuk ${getRoleName(activeTab)} telah diunduh.` });
   };
 
+
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -249,9 +252,10 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
-            // Deteksi pemisah, prioritaskan titik koma
-            const delimiter = text.includes(';') ? ';' : ',';
+            // Hapus BOM dan baris instruksi 'sep=;' jika ada
+            text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
 
+            const delimiter = ';';
             const rows = text.split('\n').slice(1); // Lewati header
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
@@ -261,6 +265,9 @@ export default function AdminManajemenPenggunaPage() {
             const savedData = localStorage.getItem('teachersData');
             const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
             const { schoolInfo, ...roles } = teachersData;
+            
+            // Buat salinan dari roles untuk dimodifikasi
+            const updatedRoles = JSON.parse(JSON.stringify(roles));
 
             let importedCount = 0;
             let updatedCount = 0;
@@ -275,7 +282,7 @@ export default function AdminManajemenPenggunaPage() {
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
 
-                const roleList: Guru[] = roles[roleKey] || [];
+                const roleList: Guru[] = updatedRoles[roleKey] || [];
                 const existingUserIndex = roleList.findIndex(u => u.id === parseInt(id));
                 const userData = { id: parseInt(id), nama, password };
 
@@ -286,10 +293,10 @@ export default function AdminManajemenPenggunaPage() {
                     roleList.push(userData);
                     importedCount++;
                 }
-                roles[roleKey] = roleList;
+                updatedRoles[roleKey] = roleList;
             });
 
-            const finalDataToSave = { ...teachersData, ...roles };
+            const finalDataToSave = { ...teachersData, ...updatedRoles };
             localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
             loadDataFromStorage();
             toast({ 
@@ -447,3 +454,5 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
+
+    
