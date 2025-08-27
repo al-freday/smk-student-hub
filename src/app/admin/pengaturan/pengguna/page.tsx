@@ -209,12 +209,9 @@ export default function AdminManajemenPenggunaPage() {
     
     const headers = ['id', 'nama', 'email', 'role', 'password'];
     
-    // Helper to format a single cell for CSV
     const formatCsvCell = (value: any) => {
         const stringValue = String(value || '');
-        // If the value contains a comma, a quote, or a newline, wrap it in double quotes.
         if (/[",\n]/.test(stringValue)) {
-            // Also, double up any existing double quotes.
             return `"${stringValue.replace(/"/g, '""')}"`;
         }
         return stringValue;
@@ -231,7 +228,8 @@ export default function AdminManajemenPenggunaPage() {
         ].join(','))
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
@@ -252,7 +250,7 @@ export default function AdminManajemenPenggunaPage() {
     reader.onload = (e) => {
         try {
             const text = e.target?.result as string;
-            const rows = text.split('\n').slice(1); // Skip header row
+            const rows = text.split('\n').slice(1);
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
                 return;
@@ -267,7 +265,6 @@ export default function AdminManajemenPenggunaPage() {
 
             rows.forEach(row => {
                 if (!row.trim()) return;
-                // Regex to split CSV row correctly, handling quoted commas.
                 const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
                 if (columns.length < 5) return;
                 
@@ -448,6 +445,8 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
 
