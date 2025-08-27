@@ -201,35 +201,18 @@ export default function AdminManajemenPenggunaPage() {
   };
   
   const handleExportData = () => {
-    const savedData = localStorage.getItem('teachersData');
-    if (!savedData) {
-        toast({ title: "Gagal", description: "Tidak ada data untuk diekspor.", variant: "destructive" });
+    const usersToExport = users[activeTab];
+    if (!usersToExport || usersToExport.length === 0) {
+        toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(activeTab)}.`, variant: "destructive" });
         return;
     }
-    const teachersData = JSON.parse(savedData);
-    let allUsers: User[] = [];
-
-    const { schoolInfo, ...roles } = teachersData;
-
-    for (const roleKey in roles) {
-        if (roles.hasOwnProperty(roleKey)) {
-            (roles[roleKey as TeacherRole] || []).forEach((guru: Guru) => {
-                allUsers.push({
-                    ...guru,
-                    role: getRoleName(roleKey),
-                    email: createEmailFromName(guru.nama, guru.id),
-                    password: guru.password || `password${guru.id}`,
-                });
-            });
-        }
-    }
-
+    
     const headers = ['id', 'nama', 'email', 'role', 'password'];
     const csvContent = [
         headers.join(','),
-        ...allUsers.map(user => [
+        ...usersToExport.map(user => [
             user.id,
-            `"${user.nama.replace(/"/g, '""')}"`, // Handle quotes in names
+            `"${user.nama.replace(/"/g, '""')}"`,
             user.email,
             user.role,
             user.password
@@ -240,13 +223,13 @@ export default function AdminManajemenPenggunaPage() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', 'data_pengguna.csv');
+    link.setAttribute('download', `data_${activeTab}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({ title: "Ekspor Berhasil", description: "Data pengguna telah diunduh sebagai data_pengguna.csv." });
+    toast({ title: "Ekspor Berhasil", description: `Data untuk ${getRoleName(activeTab)} telah diunduh.` });
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,7 +255,11 @@ export default function AdminManajemenPenggunaPage() {
 
             rows.forEach(row => {
                 if (!row.trim()) return;
-                const [id, nama, email, roleName, password] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+                // Format: id,nama,email,role,password
+                const columns = row.split(',');
+                if (columns.length < 5) return;
+                
+                const [id, nama, email, roleName, password] = columns.map(field => field.trim().replace(/^"|"$/g, ''));
                 
                 const roleKey = getRoleKey(roleName);
                 if (!roleKey || !id || !nama || !password) return;
@@ -342,20 +329,25 @@ export default function AdminManajemenPenggunaPage() {
                 <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
-            <div className="flex flex-col sm:flex-row justify-end my-4 gap-2">
-                <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Impor Data
-                </Button>
-                <Button variant="outline" onClick={handleExportData}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Ekspor Data
-                </Button>
-                <Button onClick={() => handleOpenDialog()}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tambah Pengguna
-                </Button>
+            <div className="flex flex-col sm:flex-row justify-between my-4 gap-2">
+                <p className="text-sm text-muted-foreground self-center">
+                    Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeTab)}</span>
+                </p>
+                <div className="flex gap-2">
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Impor Data
+                    </Button>
+                    <Button variant="outline" onClick={handleExportData}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Ekspor Data
+                    </Button>
+                    <Button onClick={() => handleOpenDialog()}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah Pengguna
+                    </Button>
+                </div>
             </div>
             
             {Object.keys(users).map((key) => (
@@ -412,7 +404,7 @@ export default function AdminManajemenPenggunaPage() {
               <DialogHeader>
                   <DialogTitle>{editingUser ? 'Edit' : 'Tambah'} Pengguna</DialogTitle>
                   <DialogDescription>
-                      Lengkapi form di bawah untuk {editingUser ? 'mengubah' : 'menambahkan'} data pengguna.
+                      Lengkapi form di bawah untuk {editingUser ? 'mengubah' : 'menambahkan'} data pengguna ke peran <span className="font-semibold">{getRoleName(activeTab)}</span>.
                   </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -445,9 +437,3 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
