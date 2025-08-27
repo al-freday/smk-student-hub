@@ -145,15 +145,20 @@ export default function EkskulPrestasiPage() {
   };
   
   const handleSelectPembina = (pembinaName: string) => {
-    if (!ekskulFormData.pembina?.includes(pembinaName)) {
-      const newPembina = [...(ekskulFormData.pembina || []), pembinaName];
-      setEkskulFormData({...ekskulFormData, pembina: newPembina });
-    }
+    setEkskulFormData(prev => {
+        const currentPembina = prev.pembina || [];
+        if (!currentPembina.includes(pembinaName)) {
+            return { ...prev, pembina: [...currentPembina, pembinaName] };
+        }
+        return prev;
+    });
   };
 
   const handleRemovePembina = (pembinaToRemove: string) => {
-    const newPembina = ekskulFormData.pembina?.filter(p => p !== pembinaToRemove);
-    setEkskulFormData({...ekskulFormData, pembina: newPembina });
+    setEkskulFormData(prev => ({
+        ...prev,
+        pembina: prev.pembina?.filter(p => p !== pembinaToRemove),
+    }));
   };
 
   const handleSaveEkskul = () => {
@@ -471,3 +476,5 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
+
+    
