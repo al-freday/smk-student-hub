@@ -14,7 +14,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -42,7 +41,6 @@ export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -122,15 +120,6 @@ export function LoginForm() {
     }, 1000);
   }
 
-  function onGoogleSignIn() {
-    setIsGoogleLoading(true);
-    setTimeout(() => {
-      setIsGoogleLoading(false);
-      const roleKey = 'wakasek_kesiswaan';
-      handleLoginSuccess(roleKey, { nama: getRoleDisplayName(roleKey), email: 'wakasek.google@example.com' });
-    }, 1500);
-  }
-
   return (
     <div className="grid gap-6">
       <Form {...form}>
@@ -142,7 +131,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@schoolemail.com" {...field} disabled={isLoading || isGoogleLoading}/>
+                  <Input placeholder="email@schoolemail.com" {...field} disabled={isLoading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -155,36 +144,18 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} disabled={isLoading || isGoogleLoading}/>
+                  <Input type="password" placeholder="••••••••" {...field} disabled={isLoading}/>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Login
           </Button>
         </form>
       </Form>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            Or continue with
-          </span>
-        </div>
-      </div>
-      <Button variant="outline" className="w-full" onClick={onGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-         {isGoogleLoading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-         ) : (
-          <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 109.8 512 0 402.2 0 261.8 0 120.5 109.8 8.4 244 8.4c69.1 0 128.8 28.1 173.4 74.9L345 156.4c-27.2-26.1-64.4-42.3-101-42.3-84.3 0-152.1 67.9-152.1 151.7s67.8 151.7 152.1 151.7c90.8 0 137.2-62.4 141.8-94.8H244v-75.2h244.5c2.7 13.9 4.5 29.3 4.5 45.5z"></path></svg>
-         )}
-        Google
-      </Button>
     </div>
   );
 }
