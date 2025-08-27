@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -110,3 +111,5 @@
     --border: 220 15% 85%;
   }
 }
+
+    
