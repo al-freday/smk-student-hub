@@ -253,7 +253,7 @@ export default function EkskulPrestasiPage() {
                             </TableCell>
                         </TableRow>
                     )) : (
-                        <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data ekskul.</TableCell></TableRow>
+                        <TableRow key="no-data-ekskul"><TableCell colSpan={3} className="text-center h-24">Belum ada data ekskul.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
@@ -297,7 +297,7 @@ export default function EkskulPrestasiPage() {
                             </TableCell>
                         </TableRow>
                     )) : (
-                        <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data prestasi.</TableCell></TableRow>
+                        <TableRow key="no-data-prestasi"><TableCell colSpan={3} className="text-center h-24">Belum ada data prestasi.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
