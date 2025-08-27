@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlusCircle, Edit, Trash2, Save, RefreshCw, Trophy, BookOpen, X, UserPlus, Users } from "lucide-react";
 import {
   Dialog,
@@ -37,6 +36,8 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { initialEkskulData } from "@/lib/ekskul-data";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -46,10 +47,15 @@ interface Siswa {
   kelas: string;
 }
 
-interface Ekskul {
+interface EkskulItem {
   id: number;
   nama: string;
   pembina: string[];
+}
+
+interface EkskulKategori {
+  nama: string;
+  items: EkskulItem[];
 }
 
 interface Prestasi {
@@ -64,15 +70,15 @@ export default function EkskulPrestasiPage() {
   const { toast } = useToast();
   
   // Data States
-  const [daftarEkskul, setDaftarEkskul] = useState<Ekskul[]>([]);
+  const [daftarEkskul, setDaftarEkskul] = useState<EkskulKategori[]>([]);
   const [daftarPrestasi, setDaftarPrestasi] = useState<Prestasi[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
 
   // Dialog & Form States
   const [isEkskulDialogOpen, setIsEkskulDialogOpen] = useState(false);
-  const [editingEkskul, setEditingEkskul] = useState<Ekskul | null>(null);
-  const [ekskulToDelete, setEkskulToDelete] = useState<Ekskul | null>(null);
-  const [ekskulFormData, setEkskulFormData] = useState<Partial<Ekskul>>({pembina: []});
+  const [editingEkskul, setEditingEkskul] = useState<{ item: EkskulItem, kategori: string } | null>(null);
+  const [ekskulToDelete, setEkskulToDelete] = useState<{ item: EkskulItem, kategori: string } | null>(null);
+  const [ekskulFormData, setEkskulFormData] = useState<{ nama?: string, pembina?: string[], kategori?: string }>({});
   const [currentPembina, setCurrentPembina] = useState("");
 
   const [isPrestasiDialogOpen, setIsPrestasiDialogOpen] = useState(false);
@@ -82,10 +88,15 @@ export default function EkskulPrestasiPage() {
   const [selectedSiswa, setSelectedSiswa] = useState<Siswa[]>([]);
 
   const loadData = () => {
-    setDaftarEkskul(getSourceData('ekskulData', []));
+    const savedEkskul = getSourceData('ekskulData', null);
+    if (savedEkskul) {
+        setDaftarEkskul(savedEkskul);
+    } else {
+        setDaftarEkskul(initialEkskulData);
+        updateSourceData('ekskulData', initialEkskulData);
+    }
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
-    toast({ title: "Data Dimuat", description: "Data ekskul dan prestasi telah dimuat." });
   };
 
   useEffect(() => {
@@ -106,9 +117,14 @@ export default function EkskulPrestasiPage() {
   };
   
   // --- EKSKUL HANDLERS ---
-  const handleOpenEkskulDialog = (ekskul: Ekskul | null = null) => {
-    setEditingEkskul(ekskul);
-    setEkskulFormData(ekskul ? {...ekskul} : { nama: '', pembina: [] });
+  const handleOpenEkskulDialog = (ekskul: EkskulItem | null = null, kategori: string | null = null) => {
+    if (ekskul && kategori) {
+        setEditingEkskul({ item: ekskul, kategori: kategori });
+        setEkskulFormData({ ...ekskul, kategori: kategori });
+    } else {
+        setEditingEkskul(null);
+        setEkskulFormData({ nama: '', pembina: [], kategori: '' });
+    }
     setCurrentPembina("");
     setIsEkskulDialogOpen(true);
   };
@@ -127,17 +143,33 @@ export default function EkskulPrestasiPage() {
   };
 
   const handleSaveEkskul = () => {
-    if (!ekskulFormData.nama || !ekskulFormData.pembina || ekskulFormData.pembina.length === 0) {
-        toast({ title: "Gagal", description: "Nama ekskul dan minimal satu pembina harus diisi.", variant: "destructive" });
+    const { nama, pembina, kategori } = ekskulFormData;
+    if (!nama || !pembina || pembina.length === 0 || !kategori) {
+        toast({ title: "Gagal", description: "Nama, kategori, dan minimal satu pembina harus diisi.", variant: "destructive" });
         return;
     }
-    let updatedEkskul;
+
+    const updatedEkskul = daftarEkskul.map(kat => ({...kat, items: [...kat.items]}));
+
     if (editingEkskul) {
-        updatedEkskul = daftarEkskul.map(e => e.id === editingEkskul.id ? { ...e, ...ekskulFormData } as Ekskul : e);
+        // Find old category and remove item
+        const oldKat = updatedEkskul.find(k => k.nama === editingEkskul.kategori);
+        if (oldKat) {
+            oldKat.items = oldKat.items.filter(item => item.id !== editingEkskul.item.id);
+        }
+        // Find new category and add/update item
+        const newKat = updatedEkskul.find(k => k.nama === kategori);
+        if (newKat) {
+            newKat.items.push({ ...editingEkskul.item, nama, pembina });
+        }
     } else {
-        const newEkskul = { id: Date.now(), ...ekskulFormData } as Ekskul;
-        updatedEkskul = [...daftarEkskul, newEkskul];
+        // Add new item
+        const targetKat = updatedEkskul.find(k => k.nama === kategori);
+        if (targetKat) {
+            targetKat.items.push({ id: Date.now(), nama, pembina });
+        }
     }
+
     setDaftarEkskul(updatedEkskul);
     toast({ title: "Sukses", description: "Data ekskul diperbarui. Simpan perubahan untuk konfirmasi." });
     setIsEkskulDialogOpen(false);
@@ -145,8 +177,17 @@ export default function EkskulPrestasiPage() {
   
   const handleDeleteEkskul = () => {
       if (!ekskulToDelete) return;
-      setDaftarEkskul(daftarEkskul.filter(e => e.id !== ekskulToDelete.id));
-      toast({ title: "Ekskul Dihapus", description: `${ekskulToDelete.nama} dihapus dari sesi ini.` });
+      const { item, kategori } = ekskulToDelete;
+
+      const updatedEkskul = daftarEkskul.map(kat => {
+          if (kat.nama === kategori) {
+              return { ...kat, items: kat.items.filter(i => i.id !== item.id) };
+          }
+          return kat;
+      });
+      
+      setDaftarEkskul(updatedEkskul);
+      toast({ title: "Ekskul Dihapus", description: `${item.nama} dihapus dari sesi ini.` });
       setEkskulToDelete(null);
   };
 
@@ -225,26 +266,38 @@ export default function EkskulPrestasiPage() {
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle className="flex items-center gap-2"><BookOpen/> Ekstrakurikuler</CardTitle>
-                    <CardDescription>Daftar ekskul yang tersedia.</CardDescription>
+                    <CardDescription>Daftar ekskul yang tersedia berdasarkan kategori.</CardDescription>
                 </div>
                 <Button size="sm" onClick={() => handleOpenEkskulDialog()}><PlusCircle className="mr-2 h-4 w-4" />Tambah</Button>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Nama Ekskul</TableHead><TableHead>Pembina</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {daftarEkskul.length > 0 ? daftarEkskul.map(e => (
-                            <TableRow key={e.id}>
-                                <TableCell className="font-medium">{e.nama}</TableCell>
-                                <TableCell>{e.pembina.join(', ')}</TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEkskulDialog(e)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setEkskulToDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : <TableRow><TableCell colSpan={3} className="text-center h-24">Belum ada data ekskul.</TableCell></TableRow>}
-                    </TableBody>
-                </Table>
+                <Accordion type="multiple" className="w-full">
+                    {daftarEkskul.map(kategori => (
+                        <AccordionItem value={kategori.nama} key={kategori.nama}>
+                            <AccordionTrigger>{kategori.nama}</AccordionTrigger>
+                            <AccordionContent>
+                                {kategori.items.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {kategori.items.map(item => (
+                                            <li key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 group">
+                                                <div>
+                                                    <p className="font-medium">{item.nama}</p>
+                                                    <p className="text-xs text-muted-foreground">Pembina: {item.pembina.join(', ')}</p>
+                                                </div>
+                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEkskulDialog(item, kategori.nama)}><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => setEkskulToDelete({item, kategori: kategori.nama})}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-center text-muted-foreground py-4">Belum ada ekskul di kategori ini.</p>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
             </CardContent>
         </Card>
 
@@ -258,22 +311,31 @@ export default function EkskulPrestasiPage() {
                 <Button size="sm" onClick={() => handleOpenPrestasiDialog()}><PlusCircle className="mr-2 h-4 w-4" />Tambah</Button>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Prestasi</TableHead><TableHead>Tingkat</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {daftarPrestasi.length > 0 ? daftarPrestasi.map(p => (
-                            <TableRow key={p.id}>
-                                <TableCell className="font-medium">{p.siswa.map(s => s.nama).join(', ')}</TableCell>
-                                <TableCell>{p.deskripsi}</TableCell>
-                                <TableCell>{p.tingkat}</TableCell>
-                                <TableCell className="text-right">
-                                     <Button variant="ghost" size="icon" onClick={() => handleOpenPrestasiDialog(p)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setPrestasiToDelete(p)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </TableCell>
-                            </TableRow>
-                        )) : <TableRow><TableCell colSpan={4} className="text-center h-24">Belum ada catatan prestasi.</TableCell></TableRow>}
-                    </TableBody>
-                </Table>
+                 <ScrollArea className="h-[400px]">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b">
+                                <th className="text-left p-2 font-medium text-muted-foreground">Siswa</th>
+                                <th className="text-left p-2 font-medium text-muted-foreground">Prestasi</th>
+                                <th className="text-left p-2 font-medium text-muted-foreground">Tingkat</th>
+                                <th className="text-right p-2 font-medium text-muted-foreground">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {daftarPrestasi.length > 0 ? daftarPrestasi.map(p => (
+                                <tr key={p.id} className="border-b">
+                                    <td className="p-2 font-medium align-top">{p.siswa.map(s => s.nama).join(', ')}</td>
+                                    <td className="p-2 text-muted-foreground align-top">{p.deskripsi}</td>
+                                    <td className="p-2 align-top"><Badge variant="secondary">{p.tingkat}</Badge></td>
+                                    <td className="text-right p-2 align-top">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenPrestasiDialog(p)}><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => setPrestasiToDelete(p)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </td>
+                                </tr>
+                            )) : <tr><td colSpan={4} className="text-center h-24 text-muted-foreground">Belum ada catatan prestasi.</td></tr>}
+                        </tbody>
+                    </table>
+                 </ScrollArea>
             </CardContent>
         </Card>
       </div>
@@ -283,7 +345,19 @@ export default function EkskulPrestasiPage() {
         <DialogContent className="sm:max-w-lg">
             <DialogHeader><DialogTitle>{editingEkskul ? 'Edit' : 'Tambah'} Ekskul</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
-                <div className="space-y-2"><Label htmlFor="nama-ekskul">Nama Ekskul</Label><Input id="nama-ekskul" value={ekskulFormData.nama || ''} onChange={e => setEkskulFormData({...ekskulFormData, nama: e.target.value})}/></div>
+                <div className="space-y-2">
+                    <Label htmlFor="nama-ekskul">Nama Ekskul</Label>
+                    <Input id="nama-ekskul" value={ekskulFormData.nama || ''} onChange={e => setEkskulFormData({...ekskulFormData, nama: e.target.value})}/>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="kategori-ekskul">Kategori</Label>
+                    <Select value={ekskulFormData.kategori} onValueChange={(value) => setEkskulFormData({...ekskulFormData, kategori: value})}>
+                        <SelectTrigger id="kategori-ekskul"><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
+                        <SelectContent>
+                            {daftarEkskul.map(kat => <SelectItem key={kat.nama} value={kat.nama}>{kat.nama}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <div className="space-y-2">
                     <Label htmlFor="pembina">Nama Pembina</Label>
                     <div className="flex gap-2">
@@ -349,7 +423,7 @@ export default function EkskulPrestasiPage() {
       
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul {ekskulToDelete?.nama}.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul {ekskulToDelete?.item.nama}.</AlertDialogDescription></AlertDialogHeader>
             <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
