@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -109,7 +109,7 @@ export default function ManajemenGuruPage() {
   
   const [currentAssignment, setCurrentAssignment] = useState<Partial<TeachingAssignment>>({});
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     try {
         const teachersDataFromAdmin = getSourceData('teachersData', {});
         const { schoolInfo, ...roles } = teachersDataFromAdmin;
@@ -130,11 +130,9 @@ export default function ManajemenGuruPage() {
         console.error("Gagal memuat data guru:", error);
         toast({ title: "Gagal Memuat", description: "Tidak dapat memuat data guru.", variant: "destructive" });
     }
-  };
-  
+  }, [toast]);
 
-  useEffect(() => {
-    loadData();
+  const loadDependencies = useCallback(() => {
     setAvailableKelas(getSourceData('kelasData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
 
@@ -149,29 +147,41 @@ export default function ManajemenGuruPage() {
         setAvailableGrades(Array.from(grades).sort());
     }
     
-    // Load subjects from kurikulumData
     const kurikulumData = getSourceData('kurikulumData', {});
     const subjects: string[] = [];
-    if (kurikulumData) {
+    if (kurikulumData && typeof kurikulumData === 'object') {
         Object.values(kurikulumData).forEach((tingkatan: any) => {
             if (tingkatan.kelompok && Array.isArray(tingkatan.kelompok)) {
                 tingkatan.kelompok.forEach((kelompok: any) => {
                     if (kelompok.subjects && Array.isArray(kelompok.subjects)) {
                         kelompok.subjects.forEach((subject: any) => {
-                            subjects.push(subject.nama);
+                            if (subject && subject.nama) {
+                                subjects.push(subject.nama);
+                            }
                         });
                     }
                 });
             }
         });
     }
-    setAvailableSubjects([...new Set(subjects)].sort()); // Get unique subjects and sort them
-
-     window.addEventListener('dataUpdated', loadData);
-     return () => {
-       window.removeEventListener('dataUpdated', loadData);
-     };
+    setAvailableSubjects([...new Set(subjects)].sort());
   }, []);
+
+  useEffect(() => {
+    loadData();
+    loadDependencies();
+
+    const handleDataUpdated = () => {
+      loadData();
+      loadDependencies();
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdated);
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdated);
+    };
+  }, [loadData, loadDependencies]);
+
 
   const handleOpenDialog = (guru: Guru) => {
       setEditingTeacher(guru);
@@ -728,3 +738,4 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
