@@ -174,22 +174,18 @@ export default function ManajemenGuruPage() {
           dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
       }
 
-      // 1. Get current full data
       const currentFullData = getSourceData('teachersData', {});
       const { schoolInfo, ...roles } = currentFullData;
 
-      // 2. Find and update the specific teacher in the correct role list
       const updatedRoleList = (roles[activeTab] || []).map((t: Guru) =>
         t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
       );
       
-      // 3. Construct the final data object to save
       const updatedData = {
           ...currentFullData,
           [activeTab]: updatedRoleList
       };
 
-      // 4. Save to localStorage and trigger updates
       updateSourceData('teachersData', updatedData);
       
       toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah berhasil disimpan.` });
@@ -229,7 +225,166 @@ export default function ManajemenGuruPage() {
     const updatedAssignments = formData.teachingAssignments?.filter(a => a.id !== assignmentId);
     setFormData({ ...formData, teachingAssignments: updatedAssignments });
   };
+  
+  const handleExportData = (role: TeacherRole) => {
+    const usersInRole = teachers[role] || [];
+    if (usersInRole.length === 0) {
+        toast({ title: "Tidak Ada Data", description: `Tidak ada data guru untuk peran ${getRoleName(role)}.`, variant: "destructive" });
+        return;
+    }
 
+    let headers: string[] = [];
+    let csvContent: string[] = [];
+
+    switch (role) {
+        case 'wali_kelas':
+            headers = ['id', 'nama', 'kelas_binaan'];
+            csvContent = usersInRole.map(user =>
+                [user.id, `"${user.nama}"`, `"${(user.kelas || []).join(';')}"`].join(',')
+            );
+            break;
+        case 'guru_bk':
+            headers = ['id', 'nama', 'binaan_tingkat_kelas'];
+            csvContent = usersInRole.map(user =>
+                [user.id, `"${user.nama}"`, `"${user.tugasKelas || ''}"`].join(',')
+            );
+            break;
+        case 'guru_piket':
+            headers = ['id', 'nama', 'tanggal_piket'];
+            csvContent = usersInRole.map(user =>
+                [user.id, `"${user.nama}"`, `"${(user.tanggalPiket || []).join(';')}"`].join(',')
+            );
+            break;
+        case 'guru_pendamping':
+            headers = ['id', 'nama', 'siswa_binaan'];
+            csvContent = usersInRole.map(user =>
+                [user.id, `"${user.nama}"`, `"${(user.siswaBinaan || []).join(';')}"`].join(',')
+            );
+            break;
+        case 'guru_mapel':
+            headers = ['id', 'nama', 'mapel', 'kelas', 'hari', 'sesi'];
+            const rows: string[][] = [];
+            usersInRole.forEach(user => {
+                if (user.teachingAssignments && user.teachingAssignments.length > 0) {
+                    user.teachingAssignments.forEach(t => {
+                        rows.push([user.id.toString(), `"${user.nama}"`, `"${t.subject}"`, `"${t.className}"`, t.day, t.session]);
+                    });
+                } else {
+                    rows.push([user.id.toString(), `"${user.nama}"`, '', '', '', '']);
+                }
+            });
+            csvContent = rows.map(row => row.join(','));
+            break;
+    }
+
+    const fullCsv = [headers.join(','), ...csvContent].join('\n');
+    const blob = new Blob([fullCsv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `penugasan_${role}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Ekspor Berhasil", description: `Data penugasan ${getRoleName(role)} telah diunduh.` });
+  };
+  
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>, role: TeacherRole) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const text = e.target?.result as string;
+              const rows = text.split('\n').slice(1);
+              if (rows.length === 0) {
+                  toast({ title: "File Kosong", variant: "destructive" });
+                  return;
+              }
+
+              const currentFullData = getSourceData('teachersData', {});
+              const { schoolInfo, ...rolesData } = currentFullData;
+              const roleList: Guru[] = rolesData[role] || [];
+              let updatedCount = 0;
+
+              rows.forEach(row => {
+                  if (!row.trim()) return;
+                  const [id, nama, ...data] = row.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+                  const userIndex = roleList.findIndex(u => u.id.toString() === id);
+
+                  if (userIndex > -1) {
+                      updatedCount++;
+                      switch (role) {
+                          case 'wali_kelas':
+                              roleList[userIndex].kelas = data[0] ? data[0].split(';') : [];
+                              break;
+                          case 'guru_bk':
+                              roleList[userIndex].tugasKelas = data[0] || '';
+                              break;
+                          case 'guru_piket':
+                              roleList[userIndex].tanggalPiket = data[0] ? data[0].split(';') : [];
+                              break;
+                          case 'guru_pendamping':
+                              roleList[userIndex].siswaBinaan = data[0] ? data[0].split(';') : [];
+                              break;
+                          case 'guru_mapel':
+                              // Logic for guru_mapel is complex due to multiple rows per user.
+                              // This simplified version assumes re-importing all assignments.
+                              // For a full implementation, need to aggregate assignments per user.
+                              const assignments = rows
+                                  .map(r => r.split(',').map(field => field.trim().replace(/^"|"$/g, '')))
+                                  .filter(cols => cols[0] === id && cols[2])
+                                  .map((cols, i) => ({
+                                      id: Date.now() + i,
+                                      subject: cols[2],
+                                      className: cols[3],
+                                      day: cols[4],
+                                      session: cols[5]
+                                  }));
+                              roleList[userIndex].teachingAssignments = assignments;
+                              break;
+                      }
+                  }
+              });
+              
+              if(role === 'guru_mapel'){
+                  // To avoid multiple updates for the same user, we process all at once.
+                   const assignmentsByUser = rows
+                      .map(r => r.split(',').map(field => field.trim().replace(/^"|"$/g, '')))
+                      .reduce((acc, cols) => {
+                        const [id, _, subject, className, day, session] = cols;
+                        if(id && subject) {
+                           if (!acc[id]) acc[id] = [];
+                           acc[id].push({ id: Date.now() + acc[id].length, subject, className, day, session });
+                        }
+                        return acc;
+                      }, {} as Record<string, TeachingAssignment[]>);
+                      
+                   roleList.forEach(user => {
+                       if(assignmentsByUser[user.id]){
+                           user.teachingAssignments = assignmentsByUser[user.id];
+                           updatedCount++;
+                       }
+                   });
+              }
+
+
+              rolesData[role] = roleList;
+              updateSourceData('teachersData', { ...currentFullData, ...rolesData });
+              loadData();
+              toast({ title: "Impor Selesai", description: `${updatedCount} data penugasan untuk ${getRoleName(role)} telah diperbarui.` });
+
+          } catch (error) {
+              console.error("Error importing data:", error);
+              toast({ title: "Error", description: "Gagal memproses file. Pastikan format CSV sesuai.", variant: "destructive" });
+          } finally {
+              if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+      };
+      reader.readAsText(file);
+  };
 
   const getTugasDetailComponent = (guru: Guru, role: TeacherRole) => {
       switch(role) {
@@ -279,142 +434,6 @@ export default function ManajemenGuruPage() {
       }
   };
   
-  const handleExportData = () => {
-    const allUsers: any[] = [];
-    roleOptions.forEach(role => {
-        const usersInRole = teachers[role.value];
-        if (Array.isArray(usersInRole)) {
-            usersInRole.forEach(guru => {
-                const userData: any = {
-                    id: guru.id,
-                    nama: guru.nama,
-                    peran: role.label,
-                    wali_kelas_binaan: '',
-                    guru_mapel_tugas: '',
-                    guru_piket_tanggal: '',
-                    guru_bk_binaan: '',
-                    guru_pendamping_siswa: ''
-                };
-
-                switch (role.value) {
-                    case 'wali_kelas':
-                        userData.wali_kelas_binaan = (guru.kelas || []).join(';');
-                        break;
-                    case 'guru_mapel':
-                        userData.guru_mapel_tugas = (guru.teachingAssignments || []).map(a => `${a.subject}|${a.className}|${a.day}|${a.session}`).join(';');
-                        break;
-                    case 'guru_piket':
-                        userData.guru_piket_tanggal = (guru.tanggalPiket || []).join(';');
-                        break;
-                    case 'guru_bk':
-                        userData.guru_bk_binaan = guru.tugasKelas || '';
-                        break;
-                    case 'guru_pendamping':
-                        userData.guru_pendamping_siswa = (guru.siswaBinaan || []).join(';');
-                        break;
-                }
-                allUsers.push(userData);
-            });
-        }
-    });
-
-    const headers = ['id', 'nama', 'peran', 'wali_kelas_binaan', 'guru_mapel_tugas', 'guru_piket_tanggal', 'guru_bk_binaan', 'guru_pendamping_siswa'];
-    const csvContent = [
-        headers.join(','),
-        ...allUsers.map(user => headers.map(header => `"${user[header] || ''}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', 'penugasan_guru.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: "Ekspor Berhasil", description: "Data penugasan guru telah diunduh." });
-  };
-
-  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const text = e.target?.result as string;
-            const rows = text.split('\n').slice(1); // Skip header
-            if (rows.length === 0) {
-                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak valid.", variant: "destructive" });
-                return;
-            }
-
-            const currentFullData = getSourceData('teachersData', {});
-            const { schoolInfo, ...roles } = currentFullData;
-            
-            let updatedCount = 0;
-
-            const headers = ['id', 'nama', 'peran', 'wali_kelas_binaan', 'guru_mapel_tugas', 'guru_piket_tanggal', 'guru_bk_binaan', 'guru_pendamping_siswa'];
-
-            rows.forEach(row => {
-                if (!row.trim()) return;
-                
-                const values = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(field => field.trim().replace(/^"|"$/g, '')) || [];
-                const importedData = headers.reduce((obj, header, index) => {
-                    obj[header] = values[index];
-                    return obj;
-                }, {} as any);
-
-                const roleKey = roleOptions.find(r => r.label === importedData.peran)?.value;
-                if (!roleKey || !importedData.id) return;
-                
-                const roleList: Guru[] = roles[roleKey] || [];
-                const userIndex = roleList.findIndex(u => u.id.toString() === importedData.id);
-
-                if (userIndex > -1) {
-                    updatedCount++;
-                    const userToUpdate = roleList[userIndex];
-                    switch(roleKey) {
-                        case 'wali_kelas':
-                            userToUpdate.kelas = importedData.wali_kelas_binaan ? importedData.wali_kelas_binaan.split(';') : [];
-                            break;
-                        case 'guru_mapel':
-                             userToUpdate.teachingAssignments = importedData.guru_mapel_tugas ? importedData.guru_mapel_tugas.split(';').map((d: string, index: number) => {
-                                const [subject, className, day, session] = d.split('|');
-                                return { id: Date.now() + index, subject, className, day, session };
-                            }) : [];
-                            break;
-                        case 'guru_piket':
-                            userToUpdate.tanggalPiket = importedData.guru_piket_tanggal ? importedData.guru_piket_tanggal.split(';') : [];
-                            break;
-                        case 'guru_bk':
-                            userToUpdate.tugasKelas = importedData.guru_bk_binaan;
-                            break;
-                        case 'guru_pendamping':
-                            userToUpdate.siswaBinaan = importedData.guru_pendamping_siswa ? importedData.guru_pendamping_siswa.split(';') : [];
-                            break;
-                    }
-                    roleList[userIndex] = userToUpdate;
-                }
-                 roles[roleKey] = roleList;
-            });
-
-            updateSourceData('teachersData', { ...currentFullData, ...roles });
-            loadData();
-            toast({ title: "Impor Selesai", description: `${updatedCount} data penugasan guru telah diperbarui.` });
-
-        } catch (error) {
-            console.error("Error importing data:", error);
-            toast({ title: "Error", description: "Gagal memproses file. Pastikan format CSV sudah benar.", variant: "destructive" });
-        } finally {
-            if(fileInputRef.current) fileInputRef.current.value = "";
-        }
-    };
-    reader.readAsText(file);
-  };
-
-
   const handlePrint = () => {
       window.print();
   };
@@ -588,21 +607,10 @@ export default function ManajemenGuruPage() {
             Kelola penugasan guru. Data guru diambil dari daftar pengguna yang diatur oleh Administrator.
             </p>
         </div>
-      </div>
-      <div className="flex justify-end gap-2 print:hidden">
-            <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" />
-                Impor Tugas
-            </Button>
-            <Button variant="outline" onClick={handleExportData}>
-                <Download className="mr-2 h-4 w-4" />
-                Ekspor Tugas
-            </Button>
-            <Button variant="outline" onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" />
-                Cetak
-            </Button>
+         <Button variant="outline" onClick={handlePrint} className="print:hidden">
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak Halaman
+        </Button>
       </div>
         
       <Card>
@@ -625,6 +633,17 @@ export default function ManajemenGuruPage() {
 
             {Object.keys(teachers).map((key) => (
               <TabsContent value={key} key={key} className="mt-4">
+                <div className="flex justify-end gap-2 mb-4 print:hidden">
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => handleImportData(e, key as TeacherRole)} accept=".csv" />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Impor Tugas
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExportData(key as TeacherRole)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Ekspor Tugas
+                    </Button>
+                </div>
                 <div className="overflow-x-auto">
                     <Table>
                     <TableHeader>
