@@ -1,92 +1,87 @@
 
 "use client"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from "recharts"
 import {
   ChartConfig,
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-
-interface Kehadiran {
-  tanggal: string;
-  status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
-}
+import { getAttendanceChartData } from "@/lib/data";
 
 const chartConfig = {
-  hadir: {
-    label: "Hadir",
+  persentaseHadir: {
+    label: "Hadir (%)",
     color: "hsl(var(--chart-1))",
-  },
-  alpa: {
-    label: "Alpa",
-    color: "hsl(var(--destructive))",
-  },
-  izin: {
-    label: "Izin/Sakit",
-    color: "hsl(var(--muted-foreground))",
   },
 } satisfies ChartConfig
 
 export default function AttendanceChart() {
   const [chartData, setChartData] = useState<any[]>([]);
-  const [chartKey, setChartKey] = useState(0);
-
+  
   useEffect(() => {
-    try {
-      const rawData = localStorage.getItem("kehadiranSiswa");
-      if (rawData) {
-        const kehadiranSiswa: Kehadiran[] = JSON.parse(rawData);
-        
-        const attendanceByDay: { [key: string]: { hadir: number; alpa: number; izin: number } } = {};
-
-        kehadiranSiswa.forEach(item => {
-          if (!attendanceByDay[item.tanggal]) {
-            attendanceByDay[item.tanggal] = { hadir: 0, alpa: 0, izin: 0 };
-          }
-          if (item.status === 'Hadir') attendanceByDay[item.tanggal].hadir++;
-          else if (item.status === 'Alpa') attendanceByDay[item.tanggal].alpa++;
-          else if (item.status === 'Izin' || item.status === 'Sakit') attendanceByDay[item.tanggal].izin++;
-        });
-
-        const sortedDays = Object.keys(attendanceByDay).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-        
-        const lastFiveDaysWithData = sortedDays.slice(0, 5);
-
-        const formattedData = lastFiveDaysWithData.map(day => ({
-          day: format(new Date(day), "EEEE", { locale: id }),
-          ...attendanceByDay[day]
-        })).reverse(); // Reverse to show chronologically
-
+    const loadChartData = () => {
+        const data = getAttendanceChartData();
+        const formattedData = data.map(item => ({
+            ...item,
+            hari: format(new Date(item.tanggal), "eee", { locale: id }), // Format to "Sen", "Sel", etc.
+        }));
         setChartData(formattedData);
-        setChartKey(prevKey => prevKey + 1); // Force re-render of chart
-      }
-    } catch(error) {
-        console.error("Failed to parse attendance data:", error);
-    }
+    };
+
+    loadChartData();
+    window.addEventListener('dataUpdated', loadChartData);
+    return () => window.removeEventListener('dataUpdated', loadChartData);
   }, []);
 
+  if (chartData.length === 0) {
+    return (
+        <div className="flex items-center justify-center h-[250px] w-full text-muted-foreground">
+            <p>Belum ada data absensi yang cukup untuk menampilkan grafik.</p>
+        </div>
+    );
+  }
 
   return (
-    <ChartContainer key={chartKey} config={chartConfig} className="min-h-[200px] w-full">
-      <BarChart accessibilityLayer data={chartData}>
+    <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+      <BarChart 
+        accessibilityLayer 
+        data={chartData}
+        margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
+      >
         <CartesianGrid vertical={false} />
         <XAxis
-          dataKey="day"
+          dataKey="hari"
           tickLine={false}
           tickMargin={10}
           axisLine={false}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="hadir" fill="var(--color-hadir)" radius={4} />
-        <Bar dataKey="alpa" fill="var(--color-alpa)" radius={4} />
-        <Bar dataKey="izin" fill="var(--color-izin)" radius={4} />
+        <YAxis 
+            domain={[0, 100]} 
+            tickFormatter={(value) => `${value}%`}
+            width={30}
+            tickLine={false}
+            axisLine={false}
+        />
+        <ChartTooltip 
+            cursor={false}
+            content={<ChartTooltipContent 
+                formatter={(value) => `${value}%`}
+                indicator="dot"
+            />} 
+        />
+        <Bar dataKey="persentaseHadir" fill="var(--color-persentaseHadir)" radius={8}>
+            <LabelList
+                position="top"
+                offset={10}
+                className="fill-foreground"
+                fontSize={12}
+                formatter={(value: number) => `${value}%`}
+            />
+        </Bar>
       </BarChart>
     </ChartContainer>
   )

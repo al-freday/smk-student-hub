@@ -1,29 +1,29 @@
 
-import { format } from "date-fns";
+import { format, subDays, eachDayOfInterval } from "date-fns";
 import { getSourceData } from "./data-manager";
 
-// Tipe data yang relevan
-interface Guru { id: number; nama: string; }
-interface Kelas { id: number; nama: string; }
+// --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
-interface Kehadiran { id: string; tanggal: string; status: string; }
-interface CatatanSiswa { id: number; tanggal: string; tipe: 'pelanggaran' | 'prestasi'; }
+interface KehadiranPerSesi { tanggal: string; status: string; }
 
-// Fungsi utama untuk mengambil semua statistik dasbor
+// --- Fungsi Utama ---
+
+/**
+ * Mengambil dan menghitung statistik kunci untuk ditampilkan di dasbor.
+ * @returns {object} Objek berisi statistik total siswa, guru, dan kehadiran hari ini.
+ */
 export const getDashboardStats = () => {
     // 1. Total Siswa
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
     const totalSiswa = Array.isArray(allSiswa) ? allSiswa.length : 0;
 
-    // 2. Total Guru (menghitung semua peran)
+    // 2. Total Guru & Staf (menghitung semua peran)
     const teachersData = getSourceData('teachersData', {});
     let totalGuru = 0;
     if (teachersData && typeof teachersData === 'object' && !Array.isArray(teachersData)) {
-        // Tambah 1 untuk Wakasek Kesiswaan yang mungkin tidak ada di daftar
-        totalGuru = 1;
-        
+        // Tambah 1 untuk Wakasek Kesiswaan
+        totalGuru = 1; 
         const { schoolInfo, ...roles } = teachersData;
-
         Object.values(roles).forEach((roleArray: any) => {
             if (Array.isArray(roleArray)) {
                 totalGuru += roleArray.length;
@@ -31,28 +31,71 @@ export const getDashboardStats = () => {
         });
     }
 
-    // 3. Jumlah Kelas
-    const allKelas: Kelas[] = getSourceData('kelasData', []);
-    const totalKelas = Array.isArray(allKelas) ? allKelas.length : 0;
-    
-    // 4. Kehadiran Hari Ini
-    const riwayatKehadiran: Kehadiran[] = getSourceData('kehadiranSiswa', []);
+    // 3. Rata-rata Kehadiran Hari Ini (berdasarkan data per sesi)
+    const kehadiranSiswaPerSesi: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
     const today = format(new Date(), "yyyy-MM-dd");
     
-    const kehadiranHariIni = Array.isArray(riwayatKehadiran) ? riwayatKehadiran.filter(k => k.tanggal === today) : [];
-    const hadir = kehadiranHariIni.filter(k => k.status === 'Hadir').length;
+    const recordsToday = Array.isArray(kehadiranSiswaPerSesi) 
+        ? kehadiranSiswaPerSesi.filter(k => k.tanggal === today) 
+        : [];
     
-    const kehadiranPercentage = totalSiswa > 0 ? ((hadir / totalSiswa) * 100).toFixed(0) + "%" : "0%";
-
-    // 5. Pelanggaran Hari Ini
-    const riwayatPelanggaran: CatatanSiswa[] = getSourceData('riwayatPelanggaran', []);
-    const pelanggaranHariIni = Array.isArray(riwayatPelanggaran) ? riwayatPelanggaran.filter(p => p.tanggal === today && p.tipe === 'pelanggaran').length : 0;
+    const hadirToday = recordsToday.filter(k => k.status === 'Hadir').length;
+    
+    const kehadiranPercentage = recordsToday.length > 0 
+        ? ((hadirToday / recordsToday.length) * 100).toFixed(0) + "%" 
+        : "N/A";
 
     return {
         totalSiswa,
         totalGuru,
-        totalKelas,
         kehadiranHariIni: kehadiranPercentage,
-        pelanggaranHariIni,
     };
+};
+
+
+/**
+ * Mengambil dan memproses data kehadiran siswa untuk ditampilkan di grafik.
+ * @returns {Array<object>} Array data yang diformat untuk diagram batang.
+ */
+export const getAttendanceChartData = () => {
+    const allRecords: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
+    if (!Array.isArray(allRecords) || allRecords.length === 0) {
+        return [];
+    }
+    
+    const today = new Date();
+    const last5Days = eachDayOfInterval({
+        start: subDays(today, 4),
+        end: today,
+    });
+
+    const attendanceByDay: { [key: string]: { hadir: number; total: number } } = {};
+
+    // Inisialisasi semua hari dalam rentang
+    last5Days.forEach(day => {
+        const formattedDate = format(day, 'yyyy-MM-dd');
+        attendanceByDay[formattedDate] = { hadir: 0, total: 0 };
+    });
+
+    // Proses data kehadiran
+    allRecords.forEach(record => {
+        if (attendanceByDay[record.tanggal]) {
+            attendanceByDay[record.tanggal].total++;
+            if (record.status === 'Hadir') {
+                attendanceByDay[record.tanggal].hadir++;
+            }
+        }
+    });
+    
+    // Format data untuk grafik
+    const formattedData = Object.keys(attendanceByDay).map(date => {
+        const dayData = attendanceByDay[date];
+        const percentage = dayData.total > 0 ? (dayData.hadir / dayData.total) * 100 : 0;
+        return {
+            tanggal: date,
+            persentaseHadir: parseFloat(percentage.toFixed(1)),
+        };
+    }).sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+
+    return formattedData;
 };

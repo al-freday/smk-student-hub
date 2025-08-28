@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, School, UserCog, FileText, Loader2 } from "lucide-react";
+import { Activity, Users, UserCog, Loader2 } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AttendanceChart from "@/components/attendance-chart";
@@ -15,9 +15,7 @@ const WakasekDashboard = () => {
     const [stats, setStats] = useState({
         totalSiswa: 0,
         totalGuru: 0,
-        totalKelas: 0,
         kehadiranHariIni: "0%",
-        pelanggaranHariIni: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -28,12 +26,15 @@ const WakasekDashboard = () => {
             setIsLoading(false);
         };
         fetchStats();
+        // Listener untuk memperbarui statistik jika data berubah di tab lain
+        window.addEventListener('dataUpdated', fetchStats);
+        return () => window.removeEventListener('dataUpdated', fetchStats);
     }, []);
 
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Link href="/dashboard/manajemen-siswa">
+                <Link href="/dashboard/manajemen-siswa" passHref>
                     <StatCard
                         title="Total Siswa Aktif"
                         value={stats.totalSiswa.toLocaleString()}
@@ -42,37 +43,35 @@ const WakasekDashboard = () => {
                         isLoading={isLoading}
                     />
                 </Link>
-                 <Link href="/dashboard/manajemen-guru">
+                 <Link href="/dashboard/manajemen-guru" passHref>
                     <StatCard
-                        title="Total Guru"
+                        title="Total Guru & Staf"
                         value={stats.totalGuru.toLocaleString()}
                         icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
-                        description="Data dari Manajemen Guru"
+                        description="Jumlah seluruh pengguna terdaftar"
                         isLoading={isLoading}
                     />
                 </Link>
-                <Link href="/dashboard/kehadiran-siswa">
+                <Link href="/dashboard/kehadiran-siswa" passHref>
                     <StatCard
-                        title="Kehadiran Hari Ini"
+                        title="Rata-Rata Kehadiran Hari Ini"
                         value={stats.kehadiranHariIni}
                         icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-                        description="Berdasarkan data absensi"
+                        description="Berdasarkan absensi per jam pelajaran"
                         isLoading={isLoading}
                     />
                 </Link>
             </div>
 
-            <div className="grid gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Grafik Absensi Siswa (Minggu Ini)</CardTitle>
-                        <CardDescription>Perbandingan kehadiran siswa selama 5 hari terakhir.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <AttendanceChart />
-                    </CardContent>
-                </Card>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Grafik Rata-Rata Kehadiran Siswa (5 Hari Terakhir)</CardTitle>
+                    <CardDescription>Menampilkan persentase siswa yang hadir berdasarkan data absensi per sesi.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                    <AttendanceChart />
+                </CardContent>
+            </Card>
         </>
     )
 };
@@ -107,6 +106,7 @@ const renderDashboardByRole = (role: string) => {
         case 'admin':
             return <AdminDashboard />;
         default:
+             // Default ke dashboard Wakasek untuk peran lain agar tidak kosong
              return <WakasekDashboard />; 
     }
 }
@@ -119,6 +119,7 @@ export default function DashboardPage() {
     useEffect(() => {
         const role = localStorage.getItem('userRole');
         if (!role) {
+            // Jika tidak ada peran, kembali ke halaman login
             router.replace('/');
             return;
         }
@@ -129,10 +130,8 @@ export default function DashboardPage() {
 
     if (isLoading) {
         return (
-            <div className="flex-1 space-y-6">
-                <div className="flex justify-center items-center h-screen">
-                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
+            <div className="flex-1 space-y-6 flex justify-center items-center h-[calc(100vh-8rem)]">
+                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         );
     }
@@ -141,7 +140,7 @@ export default function DashboardPage() {
         <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor Wakasek Kesiswaan'}
+                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor Kesiswaan'}
                 </h2>
             </div>
             
