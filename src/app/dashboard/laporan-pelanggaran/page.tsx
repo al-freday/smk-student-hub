@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useMemo } from "react";
+import { getSourceData } from "@/lib/data-manager";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -22,26 +23,16 @@ interface Siswa {
 }
 
 interface CatatanSiswa {
-  id: number;
+  id: number | string;
   tanggal: string;
   tipe: 'pelanggaran' | 'prestasi';
   nis: string;
   siswa: string;
   kelas: string;
   deskripsi: string;
-  poin?: number; // Poin untuk pelanggaran
+  poin: number;
 }
 
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window === 'undefined') return defaultValue;
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-        console.error(`Error reading from localStorage: ${key}`, error);
-        return defaultValue;
-    }
-};
 
 export default function LaporanPelanggaranPage() {
   const { toast } = useToast();
@@ -56,9 +47,19 @@ export default function LaporanPelanggaranPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    const siswaData = getSourceData('siswaData', []);
-    const pelanggaranData = getSourceData('riwayatPelanggaran', []);
-    const prestasiData = getSourceData('prestasiData', []).map((p: any) => ({
+    const siswaData: Siswa[] = getSourceData('siswaData', []);
+    
+    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
+    const pelanggaranFormatted: CatatanSiswa[] = pelanggaranData.map(p => ({
+        ...p,
+        id: `pelanggaran-${p.id}`,
+        tipe: 'pelanggaran',
+        siswa: p.namaSiswa,
+        deskripsi: p.pelanggaran,
+    }));
+
+    const prestasiData: any[] = getSourceData('prestasiData', []);
+    const prestasiFormatted: CatatanSiswa[] = prestasiData.map(p => ({
         id: `prestasi-${p.id}`,
         tanggal: p.tanggal,
         tipe: 'prestasi',
@@ -66,15 +67,15 @@ export default function LaporanPelanggaranPage() {
         siswa: p.namaSiswa,
         kelas: p.kelas,
         deskripsi: p.deskripsi,
-        poin: 0
+        poin: 0,
     }));
 
-    const catatanData = [...pelanggaranData.map((p:any) => ({...p, tipe: 'pelanggaran', siswa: p.namaSiswa})), ...prestasiData];
+    const catatanData = [...pelanggaranFormatted, ...prestasiFormatted];
 
     setDaftarSiswa(siswaData);
     setRiwayatCatatan(catatanData);
     
-    const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s: Siswa) => s.kelas)))];
+    const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s) => s.kelas)))];
     setDaftarKelas(kelasUnik.sort());
   }, []);
 
