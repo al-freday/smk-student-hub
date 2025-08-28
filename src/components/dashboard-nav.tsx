@@ -83,6 +83,7 @@ const navItemsByRole = {
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/administrasi-guru-mapel", icon: FolderKanban, label: "Administrasi Mapel" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
