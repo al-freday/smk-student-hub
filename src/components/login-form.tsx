@@ -70,14 +70,32 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
+    // Hardcoded check for wakasek comes first
+    if ((values.email.toLowerCase() === 'wakasek@schoolemail.com' || values.email.toLowerCase() === 'wakasek@email.com') && values.password === 'password123') {
+        setTimeout(() => {
+            setIsLoading(false);
+            handleLoginSuccess('wakasek_kesiswaan', { nama: 'Wakasek Kesiswaan', email: values.email.toLowerCase() });
+        }, 1000);
+        return;
+    }
+
     const savedTeachers = localStorage.getItem('teachersData');
-    const teachersData = savedTeachers ? JSON.parse(savedTeachers) : {};
+    if (!savedTeachers) {
+        setIsLoading(false);
+        toast({
+          title: "Login Gagal",
+          description: "Tidak ada data pengguna yang ditemukan. Harap login sebagai admin terlebih dahulu untuk membuat pengguna.",
+          variant: "destructive",
+        });
+        return;
+    }
+
+    const teachersData = JSON.parse(savedTeachers);
     
     let foundUser = null;
     let userRoleKey = '';
     const emailToSearch = values.email.toLowerCase();
 
-    // Pisahkan logic pencarian agar lebih mudah dibaca
     const { schoolInfo, ...roles } = teachersData;
 
     for (const role in roles) {
@@ -98,12 +116,6 @@ export function LoginForm() {
             userRoleKey = role;
             break;
         }
-    }
-    
-    // Hardcoded check for wakasek
-    if (!foundUser && (emailToSearch === 'wakasek@schoolemail.com' || emailToSearch === 'wakasek@email.com') && values.password === 'password123') {
-        foundUser = { nama: 'Wakasek Kesiswaan', id: 0, password: 'password123' };
-        userRoleKey = 'wakasek_kesiswaan';
     }
 
     setTimeout(() => {
