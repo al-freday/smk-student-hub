@@ -63,10 +63,10 @@ interface Guru {
   id: number | string;
   nama: string;
   teachingAssignments?: TeachingAssignment[];
-  kelas?: string[];
+  kelas?: string[]; // Untuk Wali Kelas & Guru Pendamping (Kelas Binaan)
   tanggalPiket?: string[];
   tugasKelas?: string; 
-  siswaBinaan?: string[];
+  siswaBinaan?: string[]; // Untuk Guru Pendamping (Siswa Binaan)
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
@@ -199,9 +199,16 @@ export default function ManajemenGuruPage() {
   const handleSaveDialog = () => {
       if (!editingTeacher) return;
       
-      const dataToSave = { ...formData };
+      let dataToSave = { ...formData };
       if (activeTab === 'guru_piket') {
           dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
+      }
+      
+      // Saat menyimpan, pastikan siswaBinaan hanya berisi siswa dari kelas binaan yang terpilih
+      if (activeTab === 'guru_pendamping') {
+          const kelasBinaan = dataToSave.kelas || [];
+          const siswaValid = daftarSiswa.filter(s => kelasBinaan.includes(s.kelas)).map(s => s.nama);
+          dataToSave.siswaBinaan = (dataToSave.siswaBinaan || []).filter(namaSiswa => siswaValid.includes(namaSiswa));
       }
 
       const currentFullData = getSourceData('teachersData', {});
@@ -483,16 +490,29 @@ export default function ManajemenGuruPage() {
       let currentSiswaBinaan = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
       
       if (isChecked) {
-          // Tambahkan semua siswa dari kelas ini, hindari duplikasi
           const newSiswaToAdd = siswaDiKelas.filter(s => !currentSiswaBinaan.includes(s));
           currentSiswaBinaan = [...currentSiswaBinaan, ...newSiswaToAdd];
       } else {
-          // Hapus semua siswa dari kelas ini
           currentSiswaBinaan = currentSiswaBinaan.filter(s => !siswaDiKelas.includes(s));
       }
       
       setFormData({ ...formData, siswaBinaan: currentSiswaBinaan });
   };
+
+  const kelasBinaan terpilihUntukPendamping = useMemo(() => formData.kelas || [], [formData.kelas]);
+  const siswaDisaringUntukPendamping = useMemo(() => {
+    return daftarSiswa.filter(siswa => kelasBinaanTerpilihUntukPendamping.includes(siswa.kelas));
+  }, [kelasBinaanTerpilihUntukPendamping, daftarSiswa]);
+
+  const siswaDisaringDanDikelompokkan = useMemo(() => {
+    return siswaDisaringUntukPendamping.reduce((acc, siswa) => {
+      if (!acc[siswa.kelas]) {
+        acc[siswa.kelas] = [];
+      }
+      acc[siswa.kelas].push(siswa);
+      return acc;
+    }, {} as { [key: string]: Siswa[] });
+  }, [siswaDisaringUntukPendamping]);
 
 
   const renderFormFields = () => (
@@ -627,50 +647,77 @@ export default function ManajemenGuruPage() {
         </div>
       )}
        {activeTab === 'guru_pendamping' && (
-        <div className="grid grid-cols-4 items-start gap-4">
-          <Label htmlFor="siswaBinaan" className="text-right pt-2">Siswa Binaan</Label>
-            <ScrollArea className="col-span-3 h-64 rounded-md border">
-                 <Accordion type="multiple" className="w-full">
-                    {Object.keys(siswaByKelas).sort().map(namaKelas => {
-                        const siswaDiKelas = siswaByKelas[namaKelas] || [];
-                        const siswaBinaan = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
-                        const selectedSiswaInClass = siswaDiKelas.filter(s => siswaBinaan.includes(s.nama));
-                        const isAllSelected = siswaDiKelas.length > 0 && selectedSiswaInClass.length === siswaDiKelas.length;
+        <div className="space-y-6">
+            <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">1. Pilih Kelas Binaan</Label>
+                <ScrollArea className="col-span-3 h-32 rounded-md border p-4">
+                    <div className="space-y-2">
+                        {availableKelas.map((k) => (
+                            <div key={k.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`kelas-binaan-${k.id}`}
+                                    checked={Array.isArray(formData.kelas) && formData.kelas.includes(k.nama)}
+                                    onCheckedChange={(checked) => handleKelasBinaanChange(k.nama, !!checked)}
+                                />
+                                <label htmlFor={`kelas-binaan-${k.id}`} className="text-sm font-medium leading-none">
+                                    {k.nama}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">2. Pilih Siswa Binaan</Label>
+                <ScrollArea className="col-span-3 h-52 rounded-md border">
+                    {kelasBinaanTerpilihUntukPendamping.length > 0 ? (
+                     <Accordion type="multiple" className="w-full">
+                        {Object.keys(siswaDisaringDanDikelompokkan).sort().map(namaKelas => {
+                            const siswaDiKelas = siswaDisaringDanDikelompokkan[namaKelas] || [];
+                            const siswaBinaan = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
+                            const selectedSiswaInClass = siswaDiKelas.filter(s => siswaBinaan.includes(s.nama));
+                            const isAllSelected = siswaDiKelas.length > 0 && selectedSiswaInClass.length === siswaDiKelas.length;
 
-                        return (
-                            <AccordionItem value={namaKelas} key={namaKelas}>
-                                <AccordionTrigger className="px-4 py-2 bg-muted/50">
-                                   <div className="flex items-center gap-3 w-full">
-                                        <Checkbox
-                                            id={`kelas-check-${namaKelas}`}
-                                            checked={isAllSelected}
-                                            onCheckedChange={(checked) => handleSelectKelasForPendamping(namaKelas, !!checked)}
-                                            onClick={(e) => e.stopPropagation()} 
-                                        />
-                                        <label htmlFor={`kelas-check-${namaKelas}`} className="flex-1 text-left">{namaKelas}</label>
-                                   </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="p-4 space-y-2">
-                                        {siswaDiKelas.map(siswa => (
-                                            <div key={siswa.id} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id={`siswa-${siswa.id}`}
-                                                    checked={siswaBinaan.includes(siswa.nama)}
-                                                    onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
-                                                />
-                                                <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
-                                                    {siswa.nama}
-                                                </label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        );
-                    })}
-                 </Accordion>
-            </ScrollArea>
+                            return (
+                                <AccordionItem value={namaKelas} key={namaKelas}>
+                                    <AccordionTrigger className="px-4 py-2 bg-muted/50">
+                                       <div className="flex items-center gap-3 w-full">
+                                            <Checkbox
+                                                id={`kelas-check-${namaKelas}`}
+                                                checked={isAllSelected}
+                                                onCheckedChange={(checked) => handleSelectKelasForPendamping(namaKelas, !!checked)}
+                                                onClick={(e) => e.stopPropagation()} 
+                                            />
+                                            <label htmlFor={`kelas-check-${namaKelas}`} className="flex-1 text-left">{namaKelas}</label>
+                                       </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="p-4 space-y-2">
+                                            {siswaDiKelas.map(siswa => (
+                                                <div key={siswa.id} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`siswa-${siswa.id}`}
+                                                        checked={siswaBinaan.includes(siswa.nama)}
+                                                        onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
+                                                    />
+                                                    <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
+                                                        {siswa.nama}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            );
+                        })}
+                     </Accordion>
+                     ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                            Pilih setidaknya satu kelas binaan untuk menampilkan daftar siswa.
+                        </div>
+                     )}
+                </ScrollArea>
+            </div>
         </div>
       )}
     </>
