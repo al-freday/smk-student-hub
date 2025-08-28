@@ -131,18 +131,24 @@ export default function ManajemenPelanggaranPage() {
 
   const filteredPelanggaran = useMemo(() => {
     if (!currentUser) return [];
-    
+
     let filtered = riwayatPelanggaran;
     const role = currentUser.role;
 
-    if (role === 'guru_mapel' || role === 'guru_piket' || role === 'guru_pendamping') {
-        filtered = riwayatPelanggaran.filter(item => item.guruPelapor === currentUser.nama);
-    } else if (role === 'wali_kelas') {
-        filtered = riwayatPelanggaran.filter(item => penugasan.kelasBinaan?.includes(item.kelas) && item.status === 'Dilaporkan');
+    if (role === 'wali_kelas') {
+        const kelasBinaan = penugasan.kelasBinaan || [];
+        filtered = riwayatPelanggaran.filter(item => 
+            kelasBinaan.includes(item.kelas) && item.status === 'Dilaporkan'
+        );
     } else if (role === 'guru_bk') {
         const gradePrefix = penugasan.tingkatBinaan ? penugasan.tingkatBinaan.split(' ')[1] : '';
-        filtered = riwayatPelanggaran.filter(item => item.kelas.startsWith(gradePrefix) && item.status === 'Diteruskan ke BK');
+        filtered = riwayatPelanggaran.filter(item => 
+            item.kelas.startsWith(gradePrefix) && item.status === 'Diteruskan ke BK'
+        );
+    } else if (role === 'guru_mapel' || role === 'guru_piket' || role === 'guru_pendamping') {
+        filtered = riwayatPelanggaran.filter(item => item.guruPelapor === currentUser.nama);
     }
+    // Untuk 'wakasek_kesiswaan', tidak ada filter awal (melihat semua)
 
     return filtered.filter(item => 
       item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
@@ -150,6 +156,7 @@ export default function ManajemenPelanggaranPage() {
       item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
     ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
   }, [riwayatPelanggaran, filter, currentUser, penugasan]);
+
 
   const handleOpenDialog = () => {
     setSelectedNis("");
@@ -219,6 +226,42 @@ export default function ManajemenPelanggaranPage() {
 
   const canRecord = currentUser?.role === 'wakasek_kesiswaan' || currentUser?.role === 'wali_kelas' || currentUser?.role === 'guru_mapel' || currentUser?.role === 'guru_piket' || currentUser?.role === 'guru_pendamping';
   const canDelete = currentUser?.role === 'wakasek_kesiswaan';
+  
+  const renderActionMenu = (catatan: CatatanPelanggaran) => {
+    const role = currentUser?.role;
+    const status = catatan.status;
+
+    if (role === 'wali_kelas' && status === 'Dilaporkan') {
+        return (
+            <>
+                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>
+            </>
+        );
+    }
+
+    if (role === 'guru_bk' && status === 'Diteruskan ke BK') {
+        return (
+            <>
+                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>
+            </>
+        );
+    }
+    
+    if (role === 'wakasek_kesiswaan') {
+       return (
+            <>
+                {status !== 'Ditindaklanjuti Wali Kelas' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti</DropdownMenuItem>}
+                {status !== 'Diteruskan ke BK' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>}
+                {status !== 'Diteruskan ke Wakasek' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>}
+                {status !== 'Selesai' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>}
+            </>
+        );
+    }
+
+    return null;
+  };
 
   return (
     <div className="flex-1 space-y-6">
@@ -291,20 +334,7 @@ export default function ManajemenPelanggaranPage() {
                                             <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                             {(currentUser?.role === 'wali_kelas' || currentUser?.role === 'wakasek_kesiswaan') && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>
-                                                </>
-                                             )}
-                                             {(currentUser?.role === 'guru_bk' || currentUser?.role === 'wakasek_kesiswaan') && (
-                                                <>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>
-                                                </>
-                                             )}
-                                             {(currentUser?.role === 'guru_bk' || currentUser?.role === 'wakasek_kesiswaan') && (
-                                                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>
-                                             )}
+                                            {renderActionMenu(catatan)}
                                             {canDelete && (
                                                 <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
                                                     <Trash2 className="mr-2 h-4 w-4"/> Hapus
