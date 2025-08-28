@@ -15,7 +15,7 @@ const daftarHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabt
 export default function GuruPiketDashboard() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{ nama: string } | null(null);
+  const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   const [isPiketToday, setIsPiketToday] = useState(false);
   const [stats, setStats] = useState({ hadir: 0, absen: 0 });
 
