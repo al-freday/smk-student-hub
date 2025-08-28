@@ -27,6 +27,7 @@ import {
   BookCopy,
   FolderKanban,
   HeartHandshake,
+  Contact,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -86,6 +87,7 @@ const navItemsByRole = {
   ],
   guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/bimbingan-siswa", icon: Contact, label: "Bimbingan Siswa" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
     { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Catat Prestasi" },
   ],
@@ -222,3 +224,5 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
+
+    

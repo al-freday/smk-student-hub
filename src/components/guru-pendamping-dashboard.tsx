@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ShieldAlert, Trophy, Loader2, ArrowRight } from "lucide-react";
+import { Users, ShieldAlert, Trophy, Loader2, ArrowRight, Contact } from "lucide-react";
 import { getSourceData } from "@/lib/data-manager";
 import StatCard from "./stat-card";
 import { Badge } from "./ui/badge";
@@ -111,10 +111,21 @@ export default function GuruPendampingDashboard() {
         </CardHeader>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Siswa Binaan" value={stats.totalSiswa.toString()} icon={<Users/>} isLoading={isLoading} />
         <StatCard title="Total Poin Pelanggaran" value={stats.totalPoin.toString()} icon={<ShieldAlert/>} isNegative={stats.totalPoin > 0} isLoading={isLoading} />
         <StatCard title="Total Prestasi" value={stats.totalPrestasi.toString()} icon={<Trophy/>} isLoading={isLoading} />
+        <Card className="md:col-span-2 lg:col-span-1 bg-primary text-primary-foreground flex flex-col justify-center">
+            <CardHeader>
+                <CardTitle>Ruang Kerja Anda</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button variant="secondary" className="w-full justify-between text-base" onClick={() => router.push('/dashboard/bimbingan-siswa')}>
+                    <span><Contact className="inline-block mr-2"/>Kelola Bimbingan</span>
+                    <ArrowRight/>
+                </Button>
+            </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -148,17 +159,9 @@ export default function GuruPendampingDashboard() {
                                     <p className="text-xs text-muted-foreground">Prestasi</p>
                                 </div>
                             </div>
-                            <p className="text-xs text-muted-foreground italic text-center p-2 bg-secondary rounded-md">
+                            <p className="text-xs text-muted-foreground italic text-center p-2 bg-secondary rounded-md h-12">
                                 {siswa.catatanTerakhir}
                             </p>
-                            <div className="flex gap-2">
-                                <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/dashboard/manajemen-pelanggaran')}>
-                                    <ShieldAlert className="mr-2 h-4 w-4"/> Lapor
-                                </Button>
-                                <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/dashboard/ekskul-prestasi')}>
-                                    <Trophy className="mr-2 h-4 w-4"/> Catat Prestasi
-                                </Button>
-                            </div>
                         </CardContent>
                     </Card>
                 ))
@@ -172,3 +175,5 @@ export default function GuruPendampingDashboard() {
     </div>
   );
 }
+
+    
