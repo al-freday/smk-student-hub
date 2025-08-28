@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getSourceData } from "@/lib/data-manager";
-import { Loader2, Users, CalendarClock, UserCog, ClipboardList, ShieldAlert, BarChart3, BookUser, FileText, Award } from "lucide-react";
+import { Loader2, Users, CalendarClock, BookUser, FileText, Award, ShieldAlert, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +124,7 @@ export default function AdministrasiWaliKelasPage() {
         </p>
       </div>
       
-      <Accordion type="multiple" className="w-full space-y-4">
+      <Accordion type="multiple" className="w-full space-y-4" defaultValue={["dokumen-pokok"]}>
         
         {/* Dokumen Pokok */}
         <AccordionItem value="dokumen-pokok" className="border rounded-lg bg-card">

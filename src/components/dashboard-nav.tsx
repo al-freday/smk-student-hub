@@ -67,8 +67,9 @@ const navItemsByRole = {
   ],
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { type: 'divider', label: 'Manajemen Kelas' },
     { href: "/dashboard/administrasi-wali-kelas", icon: FolderKanban, label: "Administrasi Kelas" },
-    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran Siswa" },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
   ],
   guru_bk: [
