@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User, Shield, UserCog, Loader2, Printer } from "lucide-react";
+import { User, Shield, UserCog, Loader2, Printer, CalendarDays } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData } from "@/lib/data-manager";
 import { Button } from "@/components/ui/button";
@@ -58,18 +58,25 @@ export default function JadwalPelajaranPage() {
   const [waliKelasMap, setWaliKelasMap] = useState<{ [key: string]: string }>({});
   const [guruPiketMap, setGuruPiketMap] = useState<{ [key: string]: string[] }>({});
   const [guruBkMap, setGuruBkMap] = useState<{ [key: string]: string[] }>({});
+  
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
 
   const loadData = () => {
     setIsLoading(true);
     try {
+        const role = localStorage.getItem('userRole');
+        const user = getSourceData('currentUser', null);
+        setUserRole(role);
+        setCurrentUser(user);
+
         const teachersData = getSourceData('teachersData', {});
         const kelasData = getSourceData('kelasData', []);
         
         setDaftarKelas(kelasData);
         
-        // Generate Jadwal from Guru Mapel assignments
         const guruMapelList: GuruMapel[] = teachersData.guru_mapel || [];
-        const generatedJadwal: Jadwal[] = [];
+        let generatedJadwal: Jadwal[] = [];
         if (Array.isArray(guruMapelList)) {
             guruMapelList.forEach(guru => {
                 if (Array.isArray(guru.teachingAssignments)) {
@@ -86,9 +93,13 @@ export default function JadwalPelajaranPage() {
                 }
             });
         }
+        
+        // Filter jadwal jika yang login adalah Guru Mapel
+        if (role === 'guru_mapel' && user) {
+            generatedJadwal = generatedJadwal.filter(j => j.guru === user.nama);
+        }
         setJadwal(generatedJadwal);
 
-        // Populate Wali Kelas Map
         const waliKelasList = teachersData.wali_kelas || [];
         const newWaliKelasMap: { [key: string]: string } = {};
         if (Array.isArray(waliKelasList)) {
@@ -102,7 +113,6 @@ export default function JadwalPelajaranPage() {
         }
         setWaliKelasMap(newWaliKelasMap);
         
-        // Populate Guru Piket Map
         const guruPiketList = teachersData.guru_piket || [];
         const newGuruPiketMap: { [key: string]: string[] } = {};
          if (Array.isArray(guruPiketList)) {
@@ -121,7 +131,6 @@ export default function JadwalPelajaranPage() {
         }
         setGuruPiketMap(newGuruPiketMap);
 
-        // Populate Guru BK Map
         const guruBkList = teachersData.guru_bk || [];
         const newGuruBkMap: { [key: string]: string[] } = {};
         if (Array.isArray(guruBkList)) {
@@ -136,8 +145,6 @@ export default function JadwalPelajaranPage() {
         }
         setGuruBkMap(newGuruBkMap);
         
-        toast({ title: "Sinkronisasi Berhasil", description: "Jadwal pelajaran telah dimuat otomatis dari data penugasan guru." });
-
     } catch(error) {
         console.error("Gagal memuat data terintegrasi:", error);
         toast({ title: "Gagal Memuat", description: "Terjadi kesalahan saat sinkronisasi data.", variant: "destructive" });
@@ -160,7 +167,7 @@ export default function JadwalPelajaranPage() {
 
   const jadwalByHari = daftarHari.map(hari => ({
     hari,
-    jadwal: jadwal.filter(j => j.hari === hari),
+    jadwal: jadwal.filter(j => j.hari === hari).sort((a,b) => a.sesi.localeCompare(b.sesi)),
     piket: guruPiketMap[hari] || [],
   }));
 
@@ -172,11 +179,60 @@ export default function JadwalPelajaranPage() {
       );
   }
 
+  // --- Tampilan Khusus Guru Mapel ---
+  if (userRole === 'guru_mapel') {
+    return (
+       <div className="flex-1 space-y-6">
+        <div className="flex items-center justify-between print:hidden">
+            <div>
+                <h2 className="text-3xl font-bold tracking-tight">Jadwal Mengajar Saya</h2>
+                <p className="text-muted-foreground">Berikut adalah jadwal mengajar Anda untuk satu minggu.</p>
+            </div>
+            <Button onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Cetak Jadwal
+            </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            {jadwalByHari.filter(j => j.jadwal.length > 0).map(({ hari, jadwal: jadwalHari }) => (
+                <Card key={hari}>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><CalendarDays /> {hari}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[100px]">Jam Ke-</TableHead>
+                                    <TableHead>Kelas</TableHead>
+                                    <TableHead>Mata Pelajaran</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {jadwalHari.map(j => (
+                                    <TableRow key={j.id}>
+                                        <TableCell className="font-medium text-center">{j.sesi}</TableCell>
+                                        <TableCell>{j.kelas}</TableCell>
+                                        <TableCell>{j.mataPelajaran}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                         </Table>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+       </div>
+    )
+  }
+
+  // --- Tampilan Umum (Wakasek, dll) ---
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Jadwal Pelajaran Otomatis</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Jadwal Pelajaran Sekolah</h2>
           <p className="text-muted-foreground">Jadwal ini dihasilkan secara otomatis dari menu Manajemen Guru.</p>
         </div>
         <Button onClick={handlePrint}>
@@ -247,3 +303,5 @@ export default function JadwalPelajaranPage() {
     </div>
   );
 }
+
+    

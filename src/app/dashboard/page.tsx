@@ -13,6 +13,7 @@ import SiswaPerKelasChart from "@/components/siswa-per-kelas-chart";
 import WaliKelasDashboard from "@/components/wali-kelas-dashboard";
 import { Button } from "@/components/ui/button";
 import KonselingBkPage from "./konseling-bk/page";
+import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
@@ -131,6 +132,8 @@ const renderDashboardByRole = (role: string) => {
             return <WaliKelasDashboard />;
         case 'guru_bk':
             return <KonselingBkPage />;
+        case 'guru_mapel':
+            return <GuruMapelDashboard />;
         case 'admin':
             return <AdminDashboard />;
         default:

@@ -72,6 +72,12 @@ const navItemsByRole = {
     { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Konseling BK" },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Rekap Poin Siswa"},
   ],
+  guru_mapel: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+  ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
