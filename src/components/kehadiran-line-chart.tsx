@@ -17,22 +17,26 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export default function KehadiranLineChart() {
+interface KehadiranLineChartProps {
+    filterKelas?: string[];
+}
+
+export default function KehadiranLineChart({ filterKelas }: KehadiranLineChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
   
   useEffect(() => {
     const loadChartData = () => {
-        setChartData(getKehadiranTrenBulanan());
+        setChartData(getKehadiranTrenBulanan(filterKelas));
     };
 
     loadChartData();
     window.addEventListener('dataUpdated', loadChartData);
     return () => window.removeEventListener('dataUpdated', loadChartData);
-  }, []);
+  }, [filterKelas]);
 
   if (chartData.length === 0) {
     return (
-        <div className="flex items-center justify-center h-full w-full text-muted-foreground">
+        <div className="flex items-center justify-center h-[200px] w-full text-muted-foreground">
             <p>Belum ada data absensi yang cukup untuk menampilkan grafik tren.</p>
         </div>
     );

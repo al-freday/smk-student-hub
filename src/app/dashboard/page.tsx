@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import KehadiranLineChart from "@/components/kehadiran-line-chart";
 import PelanggaranPieChart from "@/components/pelanggaran-pie-chart";
 import SiswaPerKelasChart from "@/components/siswa-per-kelas-chart";
+import WaliKelasDashboard from "@/components/wali-kelas-dashboard";
+import { Button } from "@/components/ui/button";
 
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
@@ -124,6 +126,8 @@ const renderDashboardByRole = (role: string) => {
     switch (role) {
         case 'wakasek_kesiswaan':
             return <WakasekDashboard />;
+        case 'wali_kelas':
+            return <WaliKelasDashboard />;
         case 'admin':
             return <AdminDashboard />;
         default:
@@ -159,7 +163,7 @@ export default function DashboardPage() {
         <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor Kesiswaan'}
+                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor'}
                 </h2>
             </div>
             

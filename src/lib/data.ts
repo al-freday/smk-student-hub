@@ -5,7 +5,7 @@ import { tataTertibData } from "./tata-tertib-data";
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
-interface KehadiranPerSesi { tanggal: string; status: string; }
+interface KehadiranPerSesi { tanggal: string; status: string; nis: string; kelas: string; }
 interface CatatanPelanggaran { id: number; poin: number; pelanggaran: string; }
 interface Kelas { id: number; nama: string; }
 
@@ -101,10 +101,16 @@ export const getPelanggaranStats = () => {
 
 /**
  * Menghitung tren kehadiran selama 30 hari terakhir.
+ * @param filterKelas Opsional, array nama kelas untuk memfilter data kehadiran.
  * @returns {Array<object>} Data untuk diagram garis tren kehadiran.
  */
-export const getKehadiranTrenBulanan = () => {
-    const allRecords: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
+export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
+    let allRecords: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
+    
+    if (filterKelas && filterKelas.length > 0) {
+        allRecords = allRecords.filter(record => filterKelas.includes(record.kelas));
+    }
+
     if (!Array.isArray(allRecords) || allRecords.length === 0) {
         return [];
     }
