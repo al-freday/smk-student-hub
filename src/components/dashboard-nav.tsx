@@ -31,6 +31,7 @@ import {
   LineChart,
   ClipboardCheck,
   Briefcase,
+  Folders,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -73,12 +74,12 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
   ],
   guru_bk: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK" },
     { type: 'divider', label: 'Layanan BK' },
-    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK & Kasus" },
     { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
     { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
+    { href: "/dashboard/administrasi-bk", icon: Folders, label: "Administrasi BK" },
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -130,8 +131,23 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const containerClass = isMobile ? "flex flex-col h-full" : "";
   
   const renderNavItems = () => {
-    const navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
+    let navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
     
+    // Khusus untuk Guru BK, ganti href dasbor
+    if (userRole === 'guru_bk') {
+        navItems = [
+            { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK" },
+            ...navItems.filter(item => 'href' in item && item.href !== "/dashboard")
+        ]
+    } else {
+        // Hapus duplikat dasbor jika ada
+        const dashboardIndex = navItems.findIndex(item => 'href' in item && item.href === '/dashboard');
+        if (dashboardIndex > 0) {
+            navItems.splice(dashboardIndex, 1);
+        }
+    }
+
+
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
       return (
@@ -159,10 +175,11 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
             );
           }
           if ('href' in item) {
+             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard" && item.href !== "/dashboard/konseling-bk");
             return (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href}>
-                  <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard")}>
+                  <SidebarMenuButton tooltip={item.label} isActive={isActive}>
                       <item.icon className="size-4" />
                       <span className="group-data-[collapsible=icon]:hidden">
                         {item.label}
