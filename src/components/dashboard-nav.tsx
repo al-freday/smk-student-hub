@@ -25,6 +25,7 @@ import {
   Megaphone,
   BookMarked,
   BookCopy,
+  FolderKanban,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -59,6 +60,12 @@ const navItemsByRole = {
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Wakasek" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
+  wali_kelas: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/administrasi-wali-kelas", icon: FolderKanban, label: "Administrasi Kelas" },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran Siswa" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+  ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
@@ -91,7 +98,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const containerClass = isMobile ? "flex flex-col h-full" : "";
   
   const renderNavItems = () => {
-    const navItems = userRole ? (navItemsByRole[userRole] || []) : navItemsByRole['wakasek_kesiswaan'];
+    const navItems = userRole ? (navItemsByRole[userRole] || []) : [];
     
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
