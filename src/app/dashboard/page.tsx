@@ -12,6 +12,7 @@ import PelanggaranPieChart from "@/components/pelanggaran-pie-chart";
 import SiswaPerKelasChart from "@/components/siswa-per-kelas-chart";
 import WaliKelasDashboard from "@/components/wali-kelas-dashboard";
 import { Button } from "@/components/ui/button";
+import KonselingBkPage from "./konseling-bk/page";
 
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
@@ -128,6 +129,8 @@ const renderDashboardByRole = (role: string) => {
             return <WakasekDashboard />;
         case 'wali_kelas':
             return <WaliKelasDashboard />;
+        case 'guru_bk':
+            return <KonselingBkPage />;
         case 'admin':
             return <AdminDashboard />;
         default:
@@ -171,3 +174,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

@@ -26,6 +26,7 @@ import {
   BookMarked,
   BookCopy,
   FolderKanban,
+  HeartHandshake,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -66,6 +67,11 @@ const navItemsByRole = {
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran Siswa" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
   ],
+  guru_bk: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Konseling BK" },
+    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Rekap Poin Siswa"},
+  ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
@@ -98,7 +104,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const containerClass = isMobile ? "flex flex-col h-full" : "";
   
   const renderNavItems = () => {
-    const navItems = userRole ? (navItemsByRole[userRole] || []) : [];
+    const navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
     
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
@@ -199,3 +205,5 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
+
+    
