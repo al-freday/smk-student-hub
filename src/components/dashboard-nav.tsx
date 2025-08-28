@@ -28,6 +28,9 @@ import {
   FolderKanban,
   HeartHandshake,
   Contact,
+  LineChart,
+  ClipboardCheck,
+  Briefcase,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -70,8 +73,11 @@ const navItemsByRole = {
   ],
   guru_bk: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Konseling BK" },
-    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Rekap Poin Siswa"},
+    { type: 'divider', label: 'Layanan BK' },
+    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK & Kasus" },
+    { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
+    { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
+    { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },

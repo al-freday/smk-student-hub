@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,7 +30,6 @@ export default function KonselingBkPage() {
   const [tingkatBinaan, setTingkatBinaan] = useState<string | null>(null);
   
   // --- Data Terfilter ---
-  const [siswaBinaan, setSiswaBinaan] = useState<SiswaDenganPoin[]>([]);
   const [kasusMasuk, setKasusMasuk] = useState<CatatanPelanggaran[]>([]);
   const [stats, setStats] = useState({ totalSiswa: 0, kasusAktif: 0, siswaPoinTertinggi: "N/A" });
 
@@ -65,7 +64,6 @@ export default function KonselingBkPage() {
           const totalPoin = pelanggaranSiswa.reduce((sum, p) => sum + p.poin, 0);
           return { ...siswa, totalPoin, jumlahPelanggaran: pelanggaranSiswa.length };
       }).sort((a, b) => b.totalPoin - a.totalPoin);
-      setSiswaBinaan(siswaDenganPoin);
 
       // Filter kasus yang diteruskan ke BK untuk tingkat binaan
       const kasusUntukBk = allPelanggaran
@@ -129,7 +127,7 @@ export default function KonselingBkPage() {
        <div>
         <h2 className="text-3xl font-bold tracking-tight">Dasbor Bimbingan Konseling (BK)</h2>
         <p className="text-muted-foreground">
-            Anda bertanggung jawab untuk pembinaan <span className="font-semibold text-primary">{tingkatBinaan}</span>.
+            Fokus pada layanan responsif dan pemantauan kasus siswa binaan Anda di <span className="font-semibold text-primary">{tingkatBinaan}</span>.
         </p>
       </div>
       
@@ -139,69 +137,40 @@ export default function KonselingBkPage() {
         <StatCard title="Poin Pelanggaran Tertinggi" value={stats.siswaPoinTertinggi} icon={<TrendingUp />} isLoading={isLoading} />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <Card>
-            <CardHeader>
-                <CardTitle>Kasus Masuk</CardTitle>
-                <CardDescription>Daftar pelanggaran yang diteruskan oleh Wali Kelas dan membutuhkan penanganan Anda.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {kasusMasuk.length > 0 ? kasusMasuk.map(p => (
-                             <TableRow key={p.id}>
-                                <TableCell>
-                                    <p className="font-medium">{p.namaSiswa}</p>
-                                    <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yy", { locale: id })}</p>
-                                </TableCell>
-                                <TableCell>
-                                    <p>{p.pelanggaran} <Badge variant="destructive">{p.poin} Poin</Badge></p>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" />Tandai Selesai</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow><TableCell colSpan={3} className="text-center h-24">Tidak ada kasus yang diteruskan.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-
-        <Card>
+      <Card>
           <CardHeader>
-            <CardTitle>Pemantauan Siswa Binaan</CardTitle>
-            <CardDescription>Siswa diurutkan berdasarkan total poin pelanggaran tertinggi.</CardDescription>
+              <CardTitle>Layanan Responsif: Kasus Masuk</CardTitle>
+              <CardDescription>Daftar pelanggaran yang diteruskan oleh Wali Kelas dan membutuhkan penanganan segera dari Anda.</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-96 overflow-y-auto">
-             <Table>
-                <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Kelas</TableHead><TableHead className="text-center">Total Poin</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {siswaBinaan.map(s => (
-                        <TableRow key={s.id}>
-                            <TableCell className="font-medium">{s.nama}</TableCell>
-                            <TableCell>{s.kelas}</TableCell>
-                            <TableCell className="text-center">
-                                <Badge variant={s.totalPoin > 50 ? "destructive" : s.totalPoin > 20 ? "secondary" : "outline"}>
-                                    {s.totalPoin}
-                                </Badge>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-             </Table>
+          <CardContent>
+              <Table>
+                  <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                      {kasusMasuk.length > 0 ? kasusMasuk.map(p => (
+                           <TableRow key={p.id}>
+                              <TableCell>
+                                  <p className="font-medium">{p.namaSiswa}</p>
+                                  <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yy", { locale: id })}</p>
+                              </TableCell>
+                              <TableCell>
+                                  <p>{p.pelanggaran} <Badge variant="destructive">{p.poin} Poin</Badge></p>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                          <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" />Tandai Selesai</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                              </TableCell>
+                          </TableRow>
+                      )) : (
+                          <TableRow><TableCell colSpan={3} className="text-center h-24">Tidak ada kasus yang diteruskan.</TableCell></TableRow>
+                      )}
+                  </TableBody>
+              </Table>
           </CardContent>
-        </Card>
-      </div>
+      </Card>
     </div>
   );
 }
-
-    
