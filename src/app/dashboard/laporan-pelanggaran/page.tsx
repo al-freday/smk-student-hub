@@ -60,8 +60,8 @@ export default function LaporanPelanggaranPage() {
 
     const prestasiData: any[] = getSourceData('prestasiData', []);
     const prestasiFormatted: CatatanSiswa[] = prestasiData.map(p => ({
+        ...p,
         id: `prestasi-${p.id}`,
-        tanggal: p.tanggal,
         tipe: 'prestasi',
         nis: p.nis,
         siswa: p.namaSiswa,
