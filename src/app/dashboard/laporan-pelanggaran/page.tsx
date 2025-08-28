@@ -154,12 +154,12 @@ export default function LaporanPelanggaranPage() {
     <div className="flex-1 space-y-6 report-container">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Laporan Tindakan & Pelanggaran Siswa</h2>
-          <p className="text-muted-foreground">Analisis dan rekapitulasi data pelanggaran dan prestasi siswa.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Laporan Pelanggaran Siswa</h2>
+          <p className="text-muted-foreground">Analisis dan rekapitulasi data pelanggaran dan prestasi siswa untuk evaluasi.</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" />Unduh</Button>
-            <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak</Button>
+            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" />Unduh CSV</Button>
+            <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Cetak Laporan</Button>
         </div>
       </div>
       
