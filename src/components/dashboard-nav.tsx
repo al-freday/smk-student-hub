@@ -139,21 +139,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const renderNavItems = () => {
     let navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
     
-    // Khusus untuk Guru BK, ganti href dasbor
-    if (userRole === 'guru_bk') {
-        navItems = [
-            { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK" },
-            ...navItems.filter(item => 'href' in item && item.href !== "/dashboard")
-        ]
-    } else {
-        // Hapus duplikat dasbor jika ada
-        const dashboardIndex = navItems.findIndex(item => 'href' in item && item.href === '/dashboard');
-        if (dashboardIndex > 0) {
-            navItems.splice(dashboardIndex, 1);
-        }
-    }
-
-
     // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
       return (
