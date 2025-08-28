@@ -478,6 +478,22 @@ export default function ManajemenGuruPage() {
     }, {} as { [key: string]: Siswa[] });
   }, [daftarSiswa]);
 
+  const handleSelectKelasForPendamping = (namaKelas: string, isChecked: boolean) => {
+      const siswaDiKelas = siswaByKelas[namaKelas]?.map(s => s.nama) || [];
+      let currentSiswaBinaan = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
+      
+      if (isChecked) {
+          // Tambahkan semua siswa dari kelas ini, hindari duplikasi
+          const newSiswaToAdd = siswaDiKelas.filter(s => !currentSiswaBinaan.includes(s));
+          currentSiswaBinaan = [...currentSiswaBinaan, ...newSiswaToAdd];
+      } else {
+          // Hapus semua siswa dari kelas ini
+          currentSiswaBinaan = currentSiswaBinaan.filter(s => !siswaDiKelas.includes(s));
+      }
+      
+      setFormData({ ...formData, siswaBinaan: currentSiswaBinaan });
+  };
+
 
   const renderFormFields = () => (
     <>
@@ -615,29 +631,44 @@ export default function ManajemenGuruPage() {
           <Label htmlFor="siswaBinaan" className="text-right pt-2">Siswa Binaan</Label>
             <ScrollArea className="col-span-3 h-64 rounded-md border">
                  <Accordion type="multiple" className="w-full">
-                    {Object.keys(siswaByKelas).sort().map(namaKelas => (
-                        <AccordionItem value={namaKelas} key={namaKelas}>
-                            <AccordionTrigger className="px-4 py-2 bg-muted/50">
-                                {namaKelas}
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="p-4 space-y-2">
-                                    {siswaByKelas[namaKelas].map(siswa => (
-                                        <div key={siswa.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`siswa-${siswa.id}`}
-                                                checked={(Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : []).includes(siswa.nama)}
-                                                onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
-                                            />
-                                            <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
-                                                {siswa.nama}
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
+                    {Object.keys(siswaByKelas).sort().map(namaKelas => {
+                        const siswaDiKelas = siswaByKelas[namaKelas] || [];
+                        const siswaBinaan = Array.isArray(formData.siswaBinaan) ? formData.siswaBinaan : [];
+                        const selectedSiswaInClass = siswaDiKelas.filter(s => siswaBinaan.includes(s.nama));
+                        const isAllSelected = siswaDiKelas.length > 0 && selectedSiswaInClass.length === siswaDiKelas.length;
+
+                        return (
+                            <AccordionItem value={namaKelas} key={namaKelas}>
+                                <AccordionTrigger className="px-4 py-2 bg-muted/50">
+                                   <div className="flex items-center gap-3 w-full">
+                                        <Checkbox
+                                            id={`kelas-check-${namaKelas}`}
+                                            checked={isAllSelected}
+                                            onCheckedChange={(checked) => handleSelectKelasForPendamping(namaKelas, !!checked)}
+                                            onClick={(e) => e.stopPropagation()} 
+                                        />
+                                        <label htmlFor={`kelas-check-${namaKelas}`} className="flex-1 text-left">{namaKelas}</label>
+                                   </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="p-4 space-y-2">
+                                        {siswaDiKelas.map(siswa => (
+                                            <div key={siswa.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`siswa-${siswa.id}`}
+                                                    checked={siswaBinaan.includes(siswa.nama)}
+                                                    onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
+                                                />
+                                                <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
+                                                    {siswa.nama}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        );
+                    })}
                  </Accordion>
             </ScrollArea>
         </div>
