@@ -67,7 +67,6 @@ export default function LaporanWakasekPage() {
                     guruId: guru.id,
                     namaGuru: guru.nama,
                     peran: getRoleName(roleKey),
-                    // Hanya set tanggal jika laporan sudah dikirim
                     tanggalKirim: status !== 'Belum Mengirim' ? format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd") : '-',
                     status: status,
                 });

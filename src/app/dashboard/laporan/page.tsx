@@ -6,39 +6,23 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-
-const reportTypesByRole = {
-  wakasek_kesiswaan: [
-    { title: "Laporan Wali Kelas", href: "/dashboard/laporan-wakasek", description: "Kumpulan laporan bulanan dari semua wali kelas." },
-  ],
-  wali_kelas: [],
-  guru_bk: [],
-  guru_mapel: [],
-  guru_piket: [],
-  guru_pendamping: [],
-  siswa: [],
-  orang_tua: [],
-};
+import { useRouter } from "next/navigation";
 
 export default function LaporanPage() {
-  const [userRole, setUserRole] = useState<keyof typeof reportTypesByRole | null>(null);
-  
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const router = useRouter();
+
   useEffect(() => {
-    const role = (localStorage.getItem('userRole') as keyof typeof reportTypesByRole) || null;
+    const role = localStorage.getItem('userRole') || null;
     setUserRole(role);
-  }, []);
+    // Redirect to the new unified report page for Wakasek
+    if (role === 'wakasek_kesiswaan') {
+      router.replace('/dashboard/laporan-wakasek');
+    }
+  }, [router]);
 
-  const getPageTitle = () => {
-    return "Laporan Penugasan Wakasek";
-  };
-
-  const getPageDescription = () => {
-    if (userRole === 'wakasek_kesiswaan') return "Pantau, kelola, dan unduh semua laporan yang masuk dari para guru.";
-    return "Pilih jenis laporan yang ingin Anda lihat atau buat.";
-  };
-
-
-  if (!userRole) {
+  // Render a loader while redirecting for wakasek
+  if (!userRole || userRole === 'wakasek_kesiswaan') {
     return (
       <div className="flex-1 space-y-6 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -46,43 +30,22 @@ export default function LaporanPage() {
     );
   }
 
-  const availableReports = reportTypesByRole[userRole] || [];
-
+  // This part of the component will now effectively be unused for wakasek
+  // but we keep it for potential future roles.
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">{getPageTitle()}</h2>
-        <p className="text-muted-foreground">{getPageDescription()}</p>
+        <h2 className="text-3xl font-bold tracking-tight">Pusat Laporan</h2>
+        <p className="text-muted-foreground">Pilih jenis laporan yang ingin Anda lihat atau buat.</p>
       </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {availableReports.length > 0 ? (
-          availableReports.map((report) => (
-            <Card key={report.title} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{report.title}</CardTitle>
-                <CardDescription>{report.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="mt-auto">
-                <Link href={report.href} passHref>
-                  <Button className="w-full">
-                    Lihat Laporan
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Tidak Ada Laporan Tersedia</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Tidak ada jenis laporan yang tersedia untuk peran Anda saat ini.</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+       <Card className="md:col-span-2 lg:col-span-3">
+        <CardHeader>
+          <CardTitle>Tidak Ada Laporan Tersedia</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Tidak ada jenis laporan yang tersedia untuk peran Anda saat ini.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
