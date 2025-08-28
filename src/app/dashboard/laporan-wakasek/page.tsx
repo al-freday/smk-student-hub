@@ -11,6 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface Guru {
   id: number | string;
@@ -25,6 +27,7 @@ interface ReceivedReport {
   guruId: number | string;
   namaGuru: string;
   peran: string;
+  roleKey: string;
   tanggalKirim: string;
   status: ReportStatus;
 }
@@ -43,9 +46,10 @@ const getRoleName = (roleKey: string) => {
 const reportableRoles = ['wali_kelas', 'guru_bk', 'guru_mapel', 'guru_piket', 'guru_pendamping'];
 
 export default function LaporanWakasekPage() {
-  const [receivedReports, setReceivedReports] = useState<ReceivedReport[]>([]);
+  const [allReports, setAllReports] = useState<ReceivedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('wali_kelas');
   
   const reportStorageKey = 'waliKelasReportsStatus';
 
@@ -55,26 +59,27 @@ export default function LaporanWakasekPage() {
       const teachersData = getSourceData('teachersData', {});
       const savedStatuses = getSourceData(reportStorageKey, {});
       
-      const allReports: ReceivedReport[] = [];
+      const reports: ReceivedReport[] = [];
 
       reportableRoles.forEach(roleKey => {
         const guruList: Guru[] = teachersData[roleKey] || [];
         if (Array.isArray(guruList)) {
-            guruList.forEach((guru, index) => {
+            guruList.forEach((guru) => {
                 const status = savedStatuses[guru.id] || 'Belum Mengirim';
-                allReports.push({
+                reports.push({
                     id: `${roleKey}-${guru.id}`,
                     guruId: guru.id,
                     namaGuru: guru.nama,
                     peran: getRoleName(roleKey),
-                    tanggalKirim: status !== 'Belum Mengirim' ? format(new Date(new Date().setDate(new Date().getDate() - index)), "yyyy-MM-dd") : '-',
+                    roleKey: roleKey,
+                    tanggalKirim: status !== 'Belum Mengirim' ? format(new Date(), "yyyy-MM-dd") : '-',
                     status: status,
                 });
             });
         }
       });
       
-      setReceivedReports(allReports.sort((a,b) => a.namaGuru.localeCompare(b.namaGuru)));
+      setAllReports(reports.sort((a,b) => a.namaGuru.localeCompare(b.namaGuru)));
 
     } catch (error) {
       console.error("Gagal memuat data laporan:", error);
@@ -95,10 +100,10 @@ export default function LaporanWakasekPage() {
   }, []);
 
   const handleStatusChange = (guruId: number | string, status: ReportStatus) => {
-    const updatedReports = receivedReports.map(report =>
+    const updatedReports = allReports.map(report =>
       report.guruId === guruId ? { ...report, status, tanggalKirim: format(new Date(), "yyyy-MM-dd") } : report
     );
-    setReceivedReports(updatedReports);
+    setAllReports(updatedReports);
 
     const savedStatuses = getSourceData(reportStorageKey, {});
     savedStatuses[guruId] = status;
@@ -112,16 +117,11 @@ export default function LaporanWakasekPage() {
 
   const getStatusBadgeVariant = (status: ReportStatus) => {
     switch (status) {
-      case 'Diterima':
-        return 'default';
-      case 'Diproses':
-        return 'secondary';
-      case 'Terkirim':
-        return 'outline';
-      case 'Belum Mengirim':
-        return 'destructive';
-      default:
-        return 'outline';
+      case 'Diterima': return 'default';
+      case 'Diproses': return 'secondary';
+      case 'Terkirim': return 'outline';
+      case 'Belum Mengirim': return 'destructive';
+      default: return 'outline';
     }
   };
 
@@ -141,9 +141,9 @@ export default function LaporanWakasekPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Laporan Masuk</CardTitle>
+          <CardTitle>Laporan Masuk per Peran</CardTitle>
           <CardDescription>
-            Kelola status setiap laporan melalui menu Aksi.
+            Pilih peran untuk melihat laporan, lalu kelola statusnya melalui menu Aksi.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -152,58 +152,74 @@ export default function LaporanWakasekPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama Guru</TableHead>
-                  <TableHead>Peran</TableHead>
-                  <TableHead>Tanggal Kirim</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {receivedReports.length > 0 ? (
-                  receivedReports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-medium">{report.namaGuru}</TableCell>
-                      <TableCell>{report.peran}</TableCell>
-                      <TableCell>{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
-                      <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
-                                    <span className="sr-only">Buka menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem disabled>
-                                    <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Tandai Diproses
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Tandai Diterima
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                   <TableRow>
-                      <TableCell colSpan={5} className="text-center h-24">
-                        Belum ada guru yang ditugaskan.
-                      </TableCell>
-                    </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList>
+                        {reportableRoles.map(roleKey => (
+                            <TabsTrigger key={roleKey} value={roleKey}>{getRoleName(roleKey)}</TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+
+                {reportableRoles.map(roleKey => {
+                    const filteredReports = allReports.filter(r => r.roleKey === roleKey);
+                    return (
+                        <TabsContent value={roleKey} key={roleKey} className="mt-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Nama Guru</TableHead>
+                                  <TableHead>Tanggal Kirim</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead className="text-right">Aksi</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredReports.length > 0 ? (
+                                  filteredReports.map((report) => (
+                                    <TableRow key={report.id}>
+                                      <TableCell className="font-medium">{report.namaGuru}</TableCell>
+                                      <TableCell>{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
+                                      <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
+                                      <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
+                                                    <span className="sr-only">Buka menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem disabled>
+                                                    <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
+                                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                                    Tandai Diproses
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
+                                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                                    Tandai Diterima
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                ) : (
+                                   <TableRow>
+                                      <TableCell colSpan={4} className="text-center h-24">
+                                        Tidak ada guru yang ditugaskan untuk peran ini.
+                                      </TableCell>
+                                    </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                        </TabsContent>
+                    )
+                })}
+            </Tabs>
           )}
         </CardContent>
       </Card>
