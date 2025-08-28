@@ -621,17 +621,16 @@ export default function ManajemenGuruPage() {
                                 
                                 return (
                                     <AccordionItem value={namaKelas} key={namaKelas}>
-                                        <AccordionTrigger className="text-sm p-2 hover:no-underline">
-                                            <div className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id={`kelas-all-${namaKelas}`}
-                                                    checked={semuaSiswaDiKelasTerpilih}
-                                                    onCheckedChange={checked => handleSelectAllSiswaInClass(namaKelas, !!checked)}
-                                                    onClick={e => e.stopPropagation()} // Mencegah akordion membuka/menutup
-                                                />
-                                                <label htmlFor={`kelas-all-${namaKelas}`} className="font-medium">{namaKelas}</label>
-                                            </div>
-                                        </AccordionTrigger>
+                                        <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
+                                            <Checkbox
+                                                id={`kelas-all-${namaKelas}`}
+                                                checked={semuaSiswaDiKelasTerpilih}
+                                                onCheckedChange={checked => handleSelectAllSiswaInClass(namaKelas, !!checked)}
+                                            />
+                                            <AccordionTrigger className="text-sm p-0 flex-1 hover:no-underline">
+                                                <label htmlFor={`kelas-all-${namaKelas}`} className="font-medium cursor-pointer">{namaKelas}</label>
+                                            </AccordionTrigger>
+                                        </div>
                                         <AccordionContent className="p-2 pl-4">
                                             {siswaDiKelas.map(siswa => (
                                                 <div key={siswa.id} className="flex items-center space-x-2 my-1">
@@ -825,6 +824,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-
-    
