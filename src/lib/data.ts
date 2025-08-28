@@ -1,12 +1,12 @@
 
-import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
+import { format, subDays, eachDayOfInterval, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { getSourceData } from "./data-manager";
-import { tataTertibData } from "./tata-tertib-data";
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface KehadiranPerSesi { tanggal: string; status: string; nis: string; kelas: string; }
-interface CatatanPelanggaran { id: number; poin: number; pelanggaran: string; }
+interface CatatanPelanggaran { id: number; poin: number; pelanggaran: string; nis: string; }
+interface Prestasi { nis: string; }
 interface Kelas { id: number; nama: string; }
 
 // --- Fungsi Utama ---
@@ -145,4 +145,94 @@ export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
             Hadir: parseFloat(percentage.toFixed(1)),
         };
     }).sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+};
+
+/**
+ * Mengambil dan mengolah semua data yang dibutuhkan untuk halaman Administrasi Wali Kelas.
+ * @returns {object} Objek berisi semua data yang telah diolah.
+ */
+export const getAdministrasiWaliKelasData = () => {
+    const currentUser = getSourceData('currentUser', null);
+    if (!currentUser) return { currentUser: null };
+    
+    const teachersData = getSourceData('teachersData', {});
+    const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
+    const kelasBinaan = waliKelasData?.kelas || [];
+
+    const allSiswa: Siswa[] = getSourceData('siswaData', []);
+    const siswaBinaan = allSiswa.filter(s => kelasBinaan.includes(s.kelas));
+    
+    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
+    const allPrestasi: any[] = getSourceData('prestasiData', []);
+    const allKehadiran: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
+
+    // Statistik
+    const today = format(new Date(), "yyyy-MM-dd");
+    const nisSiswaBinaan = new Set(siswaBinaan.map(s => s.nis));
+    const kehadiranBinaanHariIni = allKehadiran.filter(k => k.tanggal === today && nisSiswaBinaan.has(k.nis));
+    const hadirCount = kehadiranBinaanHariIni.filter(k => k.status === 'Hadir').length;
+    const kehadiranRataRata = kehadiranBinaanHariIni.length > 0 ? `${((hadirCount / kehadiranBinaanHariIni.length) * 100).toFixed(0)}%` : "N/A";
+    
+    // Guru Mapel
+    const guruMapelList = teachersData.guru_mapel || [];
+    const guruDiKelas = new Map<string, string[]>();
+    if (Array.isArray(guruMapelList)) {
+        guruMapelList.forEach((guru: any) => {
+            if (Array.isArray(guru.teachingAssignments)) {
+                guru.teachingAssignments.forEach((assignment: any) => {
+                    if (kelasBinaan.includes(assignment.className)) {
+                        const currentGurus = guruDiKelas.get(assignment.subject) || [];
+                        if (!currentGurus.includes(guru.nama)) {
+                            guruDiKelas.set(assignment.subject, [...currentGurus, guru.nama]);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Rekap Kehadiran Bulanan
+    const now = new Date();
+    const interval = { start: startOfMonth(now), end: endOfMonth(now) };
+    const rekapKehadiran = siswaBinaan.map(siswa => {
+        const records = allKehadiran.filter(k => k.nis === siswa.nis && isWithinInterval(new Date(k.tanggal), interval));
+        const totalRecords = records.length;
+        const hadir = records.filter(k => k.status === 'Hadir').length;
+        const sakit = records.filter(k => k.status === 'Sakit').length;
+        const izin = records.filter(k => k.status === 'Izin').length;
+        const alpa = records.filter(k => k.status === 'Alpa' || k.status === 'Bolos').length;
+        return {
+            nis: siswa.nis,
+            nama: siswa.nama,
+            hadir, sakit, izin, alpa,
+            persentase: totalRecords > 0 ? (hadir / totalRecords) * 100 : 100,
+        };
+    });
+
+    // Catatan Perilaku
+    const catatanPelanggaran = allPelanggaran.filter(p => nisSiswaBinaan.has(p.nis)).map(p => ({ tanggal: p.tanggal, tipe: 'pelanggaran', deskripsi: p.pelanggaran, poin: p.poin, nama: p.namaSiswa }));
+    const catatanPrestasi = allPrestasi.filter(p => nisSiswaBinaan.has(p.nis)).map(p => ({ tanggal: p.tanggal, tipe: 'prestasi', deskripsi: p.deskripsi, nama: p.namaSiswa }));
+    const catatanPerilaku = [...catatanPelanggaran, ...catatanPrestasi].sort((a,b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+    
+    // Rekap Poin
+    const rekapPoin = siswaBinaan.map(siswa => {
+        const totalPoin = allPelanggaran.filter(p => p.nis === siswa.nis).reduce((sum, c) => sum + (c.poin || 0), 0);
+        const totalPrestasi = allPrestasi.filter(p => p.nis === siswa.nis).length;
+        return { ...siswa, totalPoin, totalPrestasi };
+    }).sort((a, b) => b.totalPoin - a.totalPoin);
+    
+    const siswaPoinTertinggi = rekapPoin[0] ? { nama: rekapPoin[0].nama, poin: rekapPoin[0].totalPoin } : { nama: "N/A", poin: 0 };
+    
+    return {
+        currentUser,
+        kelasBinaan,
+        totalSiswa: siswaBinaan.length,
+        kehadiranRataRata,
+        siswaPoinTertinggi,
+        siswa: siswaBinaan,
+        guruMapel: guruDiKelas,
+        rekapKehadiran,
+        catatanPerilaku,
+        rekapPoin,
+    };
 };
