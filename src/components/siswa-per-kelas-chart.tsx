@@ -8,24 +8,21 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
-import { getKehadiranTrenBulanan } from "@/lib/data";
+import { getSiswaPerKelasData } from "@/lib/data";
 
 const chartConfig = {
-  Hadir: {
-    label: "Hadir (%)",
+  total: {
+    label: "Jumlah Siswa",
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
 
-export default function AttendanceChart() {
+export default function SiswaPerKelasChart() {
   const [chartData, setChartData] = useState<any[]>([]);
   
   useEffect(() => {
     const loadChartData = () => {
-        const data = getKehadiranTrenBulanan().slice(-7); // Ambil 7 hari terakhir
-        setChartData(data);
+        setChartData(getSiswaPerKelasData());
     };
 
     loadChartData();
@@ -36,7 +33,7 @@ export default function AttendanceChart() {
   if (chartData.length === 0) {
     return (
         <div className="flex items-center justify-center h-[250px] w-full text-muted-foreground">
-            <p>Belum ada data absensi yang cukup untuk menampilkan grafik.</p>
+            <p>Belum ada data siswa atau kelas yang terdaftar.</p>
         </div>
     );
   }
@@ -46,36 +43,38 @@ export default function AttendanceChart() {
       <BarChart 
         accessibilityLayer 
         data={chartData}
+        layout="vertical"
         margin={{ top: 20, right: 10, left: 0, bottom: 5 }}
       >
-        <CartesianGrid vertical={false} />
-        <XAxis
-          dataKey="date"
+        <CartesianGrid horizontal={false} />
+        <YAxis
+          dataKey="name"
+          type="category"
           tickLine={false}
           tickMargin={10}
           axisLine={false}
+          width={80}
         />
-        <YAxis 
-            domain={[0, 100]} 
-            tickFormatter={(value) => `${value}%`}
-            width={30}
-            tickLine={false}
+        <XAxis 
+            type="number"
+            dataKey="total"
             axisLine={false}
+            tickLine={false}
+            tickFormatter={(value) => value.toString()}
         />
         <ChartTooltip 
             cursor={false}
             content={<ChartTooltipContent 
-                formatter={(value) => `${value}%`}
                 indicator="dot"
             />} 
         />
-        <Bar dataKey="Hadir" fill="var(--color-Hadir)" radius={8}>
-            <LabelList
-                position="top"
-                offset={10}
+        <Bar dataKey="total" fill="var(--color-total)" radius={4} layout="vertical">
+             <LabelList
+                dataKey="total"
+                position="right"
+                offset={8}
                 className="fill-foreground"
                 fontSize={12}
-                formatter={(value: number) => `${value}%`}
             />
         </Bar>
       </BarChart>
