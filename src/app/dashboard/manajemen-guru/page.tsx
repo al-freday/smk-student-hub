@@ -499,20 +499,19 @@ export default function ManajemenGuruPage() {
       setFormData({ ...formData, siswaBinaan: currentSiswaBinaan });
   };
 
-  const kelasBinaan terpilihUntukPendamping = useMemo(() => formData.kelas || [], [formData.kelas]);
-  const siswaDisaringUntukPendamping = useMemo(() => {
-    return daftarSiswa.filter(siswa => kelasBinaanTerpilihUntukPendamping.includes(siswa.kelas));
-  }, [kelasBinaanTerpilihUntukPendamping, daftarSiswa]);
-
+  const kelasBinaanTerpilihUntukPendamping = useMemo(() => formData.kelas || [], [formData.kelas]);
+  
   const siswaDisaringDanDikelompokkan = useMemo(() => {
-    return siswaDisaringUntukPendamping.reduce((acc, siswa) => {
-      if (!acc[siswa.kelas]) {
-        acc[siswa.kelas] = [];
-      }
-      acc[siswa.kelas].push(siswa);
-      return acc;
-    }, {} as { [key: string]: Siswa[] });
-  }, [siswaDisaringUntukPendamping]);
+    return daftarSiswa
+      .filter(siswa => kelasBinaanTerpilihUntukPendamping.includes(siswa.kelas))
+      .reduce((acc, siswa) => {
+        if (!acc[siswa.kelas]) {
+          acc[siswa.kelas] = [];
+        }
+        acc[siswa.kelas].push(siswa);
+        return acc;
+      }, {} as { [key: string]: Siswa[] });
+  }, [kelasBinaanTerpilihUntukPendamping, daftarSiswa]);
 
 
   const renderFormFields = () => (
@@ -648,9 +647,9 @@ export default function ManajemenGuruPage() {
       )}
        {activeTab === 'guru_pendamping' && (
         <div className="space-y-6">
-            <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">1. Pilih Kelas Binaan</Label>
-                <ScrollArea className="col-span-3 h-32 rounded-md border p-4">
+            <div className="space-y-2">
+                <Label className="font-semibold">1. Pilih Kelas Binaan</Label>
+                <ScrollArea className="h-32 rounded-md border p-4">
                     <div className="space-y-2">
                         {availableKelas.map((k) => (
                             <div key={k.id} className="flex items-center space-x-2">
@@ -667,9 +666,9 @@ export default function ManajemenGuruPage() {
                     </div>
                 </ScrollArea>
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">2. Pilih Siswa Binaan</Label>
-                <ScrollArea className="col-span-3 h-52 rounded-md border">
+            <div className="space-y-2">
+              <Label className="font-semibold">2. Pilih Siswa Binaan</Label>
+                <ScrollArea className="h-52 rounded-md border">
                     {kelasBinaanTerpilihUntukPendamping.length > 0 ? (
                      <Accordion type="multiple" className="w-full">
                         {Object.keys(siswaDisaringDanDikelompokkan).sort().map(namaKelas => {
