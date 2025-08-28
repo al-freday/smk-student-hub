@@ -1,10 +1,11 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle } from "lucide-react";
+import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +50,7 @@ interface TataTertib {
   poin: number;
 }
 
-type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
+type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
 interface CatatanPelanggaran {
   id: number;
@@ -86,8 +87,9 @@ export default function ManajemenPelanggaranPage() {
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
-  const [currentUser, setCurrentUser] = useState({ nama: "Wakasek Kesiswaan", role: "wakasek_kesiswaan" });
-  
+  const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
+  const [penugasan, setPenugasan] = useState<{ kelasBinaan?: string[]; tingkatBinaan?: string }>({});
+
   // --- Filter State ---
   const [filter, setFilter] = useState("");
 
@@ -100,26 +102,54 @@ export default function ManajemenPelanggaranPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [tindakanAwal, setTindakanAwal] = useState("");
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
+    const user = getSourceData('currentUser', null);
+    setCurrentUser(user);
+    
     setDaftarSiswa(getSourceData('siswaData', []));
     setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
-    setCurrentUser(getSourceData('currentUser', { nama: "Wakasek Kesiswaan", role: "wakasek_kesiswaan" }));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
-  };
+
+    if (user) {
+        const teachersData = getSourceData('teachersData', {});
+        if (user.role === 'wali_kelas') {
+            const waliData = teachersData.wali_kelas?.find((w: any) => w.nama === user.nama);
+            setPenugasan({ kelasBinaan: waliData?.kelas || [] });
+        }
+        if (user.role === 'guru_bk') {
+            const bkData = teachersData.guru_bk?.find((b: any) => b.nama === user.nama);
+            setPenugasan({ tingkatBinaan: bkData?.tugasKelas || '' });
+        }
+    }
+  }, []);
   
   useEffect(() => {
     loadData();
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
-  }, []);
+  }, [loadData]);
 
   const filteredPelanggaran = useMemo(() => {
-    return riwayatPelanggaran.filter(item => 
+    if (!currentUser) return [];
+    
+    let filtered = riwayatPelanggaran;
+    const role = currentUser.role;
+
+    if (role === 'guru_mapel' || role === 'guru_piket' || role === 'guru_pendamping') {
+        filtered = riwayatPelanggaran.filter(item => item.guruPelapor === currentUser.nama);
+    } else if (role === 'wali_kelas') {
+        filtered = riwayatPelanggaran.filter(item => penugasan.kelasBinaan?.includes(item.kelas) && item.status === 'Dilaporkan');
+    } else if (role === 'guru_bk') {
+        const gradePrefix = penugasan.tingkatBinaan ? penugasan.tingkatBinaan.split(' ')[1] : '';
+        filtered = riwayatPelanggaran.filter(item => item.kelas.startsWith(gradePrefix) && item.status === 'Diteruskan ke BK');
+    }
+
+    return filtered.filter(item => 
       item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
       item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
       item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
     ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-  }, [riwayatPelanggaran, filter]);
+  }, [riwayatPelanggaran, filter, currentUser, penugasan]);
 
   const handleOpenDialog = () => {
     setSelectedNis("");
@@ -146,7 +176,7 @@ export default function ManajemenPelanggaranPage() {
       kelas: siswa.kelas,
       pelanggaran: aturan.deskripsi,
       poin: aturan.poin,
-      guruPelapor: currentUser.nama,
+      guruPelapor: currentUser?.nama || "Guru",
       tindakanAwal: tindakanAwal,
       status: 'Dilaporkan',
     };
@@ -168,7 +198,8 @@ export default function ManajemenPelanggaranPage() {
   };
   
   const handleStatusChange = (id: number, status: StatusLaporan) => {
-    const updatedRiwayat = riwayatPelanggaran.map(item => 
+    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
+    const updatedRiwayat = allPelanggaran.map(item => 
         item.id === id ? { ...item, status: status } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
@@ -180,16 +211,20 @@ export default function ManajemenPelanggaranPage() {
         case 'Dilaporkan': return 'destructive';
         case 'Ditindaklanjuti Wali Kelas': return 'secondary';
         case 'Diteruskan ke BK': return 'default';
+        case 'Diteruskan ke Wakasek': return 'outline';
         case 'Selesai': return 'outline';
         default: return 'outline';
     }
   };
 
+  const canRecord = currentUser?.role === 'wakasek_kesiswaan' || currentUser?.role === 'wali_kelas' || currentUser?.role === 'guru_mapel' || currentUser?.role === 'guru_piket' || currentUser?.role === 'guru_pendamping';
+  const canDelete = currentUser?.role === 'wakasek_kesiswaan';
+
   return (
     <div className="flex-1 space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Manajemen Pelanggaran Siswa</h2>
-        <p className="text-muted-foreground">Catat, pantau, dan kelola pelanggaran tata tertib siswa.</p>
+        <p className="text-muted-foreground">Catat, pantau, dan kelola pelanggaran tata tertib siswa sesuai alur kerja.</p>
       </div>
 
       <Card>
@@ -197,7 +232,12 @@ export default function ManajemenPelanggaranPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                  <div>
                     <CardTitle>Riwayat Pelanggaran</CardTitle>
-                    <CardDescription>Daftar semua catatan pelanggaran yang telah dibuat.</CardDescription>
+                    <CardDescription>
+                        {currentUser?.role === 'wali_kelas' && "Daftar pelanggaran siswa binaan Anda yang perlu ditindaklanjuti."}
+                        {currentUser?.role === 'guru_bk' && "Daftar pelanggaran siswa binaan Anda yang diteruskan dari Wali Kelas."}
+                        {currentUser?.role === 'wakasek_kesiswaan' && "Daftar semua catatan pelanggaran di sekolah."}
+                        {(currentUser?.role === 'guru_mapel' || currentUser?.role === 'guru_piket' || currentUser?.role === 'guru_pendamping') && "Daftar pelanggaran yang telah Anda laporkan."}
+                    </CardDescription>
                 </div>
                  <div className="flex w-full sm:w-auto gap-2">
                     <Input 
@@ -206,10 +246,12 @@ export default function ManajemenPelanggaranPage() {
                         onChange={(e) => setFilter(e.target.value)}
                         className="w-full sm:w-64"
                     />
-                    <Button onClick={handleOpenDialog} className="whitespace-nowrap">
-                        <PlusCircle className="mr-2 h-4 w-4"/>
-                        Catat Baru
-                    </Button>
+                    {canRecord && (
+                        <Button onClick={handleOpenDialog} className="whitespace-nowrap">
+                            <PlusCircle className="mr-2 h-4 w-4"/>
+                            Catat Baru
+                        </Button>
+                    )}
                 </div>
             </div>
         </CardHeader>
@@ -249,18 +291,25 @@ export default function ManajemenPelanggaranPage() {
                                             <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                             <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}>
-                                                <UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti
-                                            </DropdownMenuItem>
-                                             <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}>
-                                                <MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}>
-                                                <CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
-                                                <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                            </DropdownMenuItem>
+                                             {(currentUser?.role === 'wali_kelas' || currentUser?.role === 'wakasek_kesiswaan') && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>
+                                                </>
+                                             )}
+                                             {(currentUser?.role === 'guru_bk' || currentUser?.role === 'wakasek_kesiswaan') && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>
+                                                </>
+                                             )}
+                                             {(currentUser?.role === 'guru_bk' || currentUser?.role === 'wakasek_kesiswaan') && (
+                                                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>
+                                             )}
+                                            {canDelete && (
+                                                <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
@@ -268,7 +317,9 @@ export default function ManajemenPelanggaranPage() {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24">Belum ada catatan pelanggaran.</TableCell>
+                            <TableCell colSpan={5} className="text-center h-24">
+                                {currentUser?.role === 'wali_kelas' ? "Tidak ada pelanggaran baru yang dilaporkan untuk siswa binaan Anda." : "Tidak ada data pelanggaran yang sesuai dengan filter Anda."}
+                            </TableCell>
                         </TableRow>
                     )}
                 </TableBody>

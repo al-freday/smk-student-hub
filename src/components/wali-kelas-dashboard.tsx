@@ -17,7 +17,8 @@ import KehadiranLineChart from "./kehadiran-line-chart";
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
-interface CatatanPelanggaran { id: number; tanggal: string; namaSiswa: string; kelas: string; pelanggaran: string; poin: number; status: string; }
+type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
+interface CatatanPelanggaran { id: number; tanggal: string; namaSiswa: string; kelas: string; pelanggaran: string; poin: number; status: StatusLaporan; }
 interface Kehadiran { tanggal: string; nis: string; status: string; }
 
 export default function WaliKelasDashboard() {
@@ -55,7 +56,7 @@ export default function WaliKelasDashboard() {
 
       const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
       const pelanggaranBinaan = allPelanggaran
-        .filter(p => binaan.includes(p.kelas))
+        .filter(p => binaan.includes(p.kelas) && p.status === 'Dilaporkan')
         .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
       setPelanggaranDiKelas(pelanggaranBinaan);
 
@@ -67,10 +68,11 @@ export default function WaliKelasDashboard() {
       const kehadiranBinaanHariIni = allKehadiran.filter(k => k.tanggal === today && nisSiswaBinaan.has(k.nis));
       const hadirCount = kehadiranBinaanHariIni.filter(k => k.status === 'Hadir').length;
       const kehadiranPersen = kehadiranBinaanHariIni.length > 0 ? `${((hadirCount / kehadiranBinaanHariIni.length) * 100).toFixed(0)}%` : "N/A";
+      const totalPelanggaranBinaan = getSourceData('riwayatPelanggaran', []).filter((p: CatatanPelanggaran) => binaan.includes(p.kelas)).length;
 
       setStats({
         totalSiswa: siswaBinaan.length,
-        totalPelanggaran: pelanggaranBinaan.length,
+        totalPelanggaran: totalPelanggaranBinaan,
         kehadiranHariIni: kehadiranPersen,
       });
 
@@ -88,7 +90,7 @@ export default function WaliKelasDashboard() {
     return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
   
-  const handleStatusChange = (id: number, status: string) => {
+  const handleStatusChange = (id: number, status: StatusLaporan) => {
     const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
     const updatedRiwayat = allPelanggaran.map(item =>
       item.id === id ? { ...item, status: status } : item
@@ -125,7 +127,7 @@ export default function WaliKelasDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <Card className="lg:col-span-2">
             <CardHeader>
-                <CardTitle>Laporan Pelanggaran Terbaru di Kelas Anda</CardTitle>
+                <CardTitle>Laporan Pelanggaran Baru (Perlu Ditindaklanjuti)</CardTitle>
                 <CardDescription>Tindak lanjuti laporan yang masuk untuk siswa binaan Anda.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -147,15 +149,14 @@ export default function WaliKelasDashboard() {
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" />Tindak Lanjuti</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" />Tandai ditindaklanjuti</DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" />Teruskan ke BK</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" />Tandai Selesai</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
                             </TableRow>
                         )) : (
-                            <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan pelanggaran di kelas Anda.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan pelanggaran baru di kelas Anda.</TableCell></TableRow>
                         )}
                     </TableBody>
                 </Table>
