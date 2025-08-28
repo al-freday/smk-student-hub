@@ -134,8 +134,8 @@ export default function WaliKelasDashboard() {
                 <Table>
                     <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                     <TableBody>
-                        {pelanggaranDiKelas.length > 0 ? pelanggaranDiKelas.slice(0, 5).map(p => (
-                             <TableRow key={p.id}>
+                        {pelanggaranDiKelas.length > 0 ? pelanggaranDiKelas.slice(0, 5).map((p, index) => (
+                             <TableRow key={`${p.id}-${index}`}>
                                 <TableCell>
                                     <p className="font-medium">{p.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{format(new Date(p.tanggal), "dd/MM/yy")}</p>
