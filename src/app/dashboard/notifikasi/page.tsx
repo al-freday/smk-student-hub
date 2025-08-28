@@ -3,29 +3,23 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Siren, Award, UserX, UserCheck, Bell, MessageSquareWarning } from "lucide-react";
+import { Loader2, Bell, MessageSquareWarning, UserCog } from "lucide-react";
 import { getSourceData } from "@/lib/data-manager";
 
-type NotificationType = 'PELANGGARAN' | 'PRESTASI' | 'ABSENSI_SISWA' | 'ABSENSI_GURU';
+interface AssignmentLog {
+    id: string;
+    timestamp: number;
+    user: string;
+    role: string;
+    action: string;
+}
 
 interface Notification {
   id: string;
-  type: NotificationType;
   title: string;
   description: string;
-  timestamp: number;
   time: string;
 }
-
-const getNotificationIcon = (type: NotificationType) => {
-    switch (type) {
-        case 'PELANGGARAN': return <Siren className="h-5 w-5 text-destructive" />;
-        case 'PRESTASI': return <Award className="h-5 w-5 text-blue-500" />;
-        case 'ABSENSI_SISWA': return <UserX className="h-5 w-5 text-orange-500" />;
-        case 'ABSENSI_GURU': return <UserCheck className="h-5 w-5 text-teal-500" />;
-        default: return <Bell className="h-5 w-5 text-muted-foreground" />;
-    }
-};
 
 const formatTimeAgo = (timestamp: number) => {
     const now = new Date().getTime();
@@ -55,80 +49,27 @@ export default function NotifikasiPage() {
       const role = localStorage.getItem('userRole');
       setUserRole(role);
 
+      // This page is now relevant for roles that can see assignment updates.
+      // Primarily Wakasek Kesiswaan.
       if (role === 'wakasek_kesiswaan') {
         try {
-          const allNotifications: Notification[] = [];
-
-          // 1. Get Infractions
-          const riwayatPelanggaran = getSourceData('riwayatPelanggaran', []);
-          riwayatPelanggaran.forEach((item: any, index: number) => {
-              const timestamp = new Date(item.tanggal).getTime() + (riwayatPelanggaran.length - index) * 60000;
-              allNotifications.push({
-                  id: `pelanggaran-${item.id}`,
-                  type: 'PELANGGARAN',
-                  title: 'Pelanggaran Siswa',
-                  description: `Siswa **${item.namaSiswa} (${item.kelas})** tercatat melakukan pelanggaran: *${item.pelanggaran}*.`,
-                  timestamp: timestamp,
-                  time: formatTimeAgo(timestamp),
-              });
-          });
-
-          // 2. Get Achievements
-          const daftarPrestasi = getSourceData('prestasiData', []);
-          daftarPrestasi.forEach((item: any, index: number) => {
-              const timestamp = new Date(item.tanggal).getTime() + (daftarPrestasi.length - index) * 60000;
-              allNotifications.push({
-                  id: `prestasi-${item.id}`,
-                  type: 'PRESTASI',
-                  title: 'Prestasi Siswa',
-                  description: `Siswa **${item.namaSiswa} (${item.kelas})** meraih prestasi: *${item.deskripsi}*.`,
-                  timestamp: timestamp,
-                  time: formatTimeAgo(timestamp),
-              });
-          });
-
-          // 3. Get Student Absences (only non-hadir)
-          const kehadiranSiswa = getSourceData('kehadiranSiswa', []);
-          kehadiranSiswa.forEach((item: any, index: number) => {
-              if (item.status !== 'Hadir') {
-                  const timestamp = new Date(item.tanggal).getTime() + (kehadiranSiswa.length - index) * 60000;
-                  allNotifications.push({
-                      id: `absen-siswa-${item.id}`,
-                      type: 'ABSENSI_SISWA',
-                      title: `Absensi Siswa (${item.status})`,
-                      description: `Siswa **${item.nama} (${item.kelas})** tercatat **${item.status}** pada tanggal ${item.tanggal}.`,
-                      timestamp: timestamp,
-                      time: formatTimeAgo(timestamp),
-                  });
-              }
-          });
-
-          // 4. Get Teacher Absences (only non-hadir)
-          const teacherAttendance = getSourceData('teacherAttendanceData', []);
-          teacherAttendance.forEach((item: any, index: number) => {
-               if (item.status !== 'Hadir') {
-                  const timestamp = new Date(item.tanggal).getTime() + (teacherAttendance.length - index) * 60000;
-                  allNotifications.push({
-                      id: `absen-guru-${item.id}`,
-                      type: 'ABSENSI_GURU',
-                      title: `Kehadiran Guru (${item.status})`,
-                      description: `Guru **${item.namaGuru}** tercatat **${item.status}**. Keterangan: *${item.keterangan}*.`,
-                      timestamp: timestamp,
-                      time: formatTimeAgo(timestamp),
-                  });
-               }
-          });
+          const assignmentLogs: AssignmentLog[] = getSourceData('assignmentLogData', []);
           
-          allNotifications.sort((a, b) => b.timestamp - a.timestamp);
-          
-          setNotifications(allNotifications);
+          const formattedNotifications = assignmentLogs.map(log => ({
+              id: log.id,
+              title: `Pembaruan Tugas ${log.role}`,
+              description: `**${log.user}** ${log.action}`,
+              time: formatTimeAgo(log.timestamp),
+          }));
 
+          setNotifications(formattedNotifications);
         } catch (error) {
           console.error("Gagal memuat data notifikasi:", error);
         } finally {
           setIsLoading(false);
         }
       } else {
+          // Clear notifications for other roles as it's not relevant.
           setNotifications([]);
           setIsLoading(false);
       }
@@ -143,13 +84,10 @@ export default function NotifikasiPage() {
   }, []);
   
   const renderDescription = (description: string) => {
-    const parts = description.split(/\*\*(.*?)\*\*|\*(.*?)\*/g).filter(Boolean);
+    const parts = description.split(/\*\*(.*?)\*\*/g).filter(Boolean);
     return parts.map((part, index) => {
         if (description.includes(`**${part}**`)) {
             return <strong key={index} className="font-semibold text-primary">{part}</strong>;
-        }
-        if (description.includes(`*${part}*`)) {
-            return <em key={index} className="italic">{part}</em>;
         }
         return part;
     });
@@ -160,17 +98,17 @@ export default function NotifikasiPage() {
        <div>
             <h2 className="text-3xl font-bold tracking-tight">Notifikasi</h2>
             <p className="text-muted-foreground">
-                Lihat semua pembaruan penting terkait aktivitas kesiswaan.
+                Lihat log aktivitas pembaruan penugasan guru.
             </p>
        </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Aktivitas Terbaru</CardTitle>
+          <CardTitle>Aktivitas Penugasan Terbaru</CardTitle>
           <CardDescription>
             {userRole === 'wakasek_kesiswaan' 
-              ? "Rekapitulasi otomatis dari pelanggaran, prestasi, dan absensi."
-              : "Tidak ada notifikasi untuk peran Anda."
+              ? "Daftar ini menunjukkan guru yang telah memperbarui tugas mereka di Manajemen Guru."
+              : "Tidak ada notifikasi yang relevan untuk peran Anda."
             }
           </CardDescription>
         </CardHeader>
@@ -178,7 +116,6 @@ export default function NotifikasiPage() {
           {isLoading ? (
             <div className="flex justify-center items-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <p className="ml-4 text-muted-foreground">Memuat notifikasi...</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -186,7 +123,7 @@ export default function NotifikasiPage() {
                 notifications.map((notification) => (
                 <div key={notification.id} className="flex items-start gap-4">
                   <div className="mt-1">
-                    {getNotificationIcon(notification.type)}
+                    <UserCog className="h-5 w-5 text-muted-foreground"/>
                   </div>
                   <div className="grid gap-1 flex-1">
                     <div className="flex items-center justify-between">
@@ -207,7 +144,7 @@ export default function NotifikasiPage() {
                 <div className="text-center text-muted-foreground py-10">
                     <MessageSquareWarning className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-semibold">Belum Ada Aktivitas</h3>
-                    <p className="mt-1 text-sm">Tidak ada notifikasi baru untuk ditampilkan saat ini.</p>
+                    <p className="mt-1 text-sm">Tidak ada pembaruan penugasan guru yang tercatat.</p>
                 </div>
              )}
             </div>
@@ -217,3 +154,5 @@ export default function NotifikasiPage() {
     </div>
   );
 }
+
+    

@@ -69,6 +69,14 @@ interface Guru {
   siswaBinaan?: string[]; // Untuk Guru Pendamping (Siswa Binaan)
 }
 
+interface AssignmentLog {
+    id: string;
+    timestamp: number;
+    user: string;
+    role: string;
+    action: string;
+}
+
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
 
 const initialTeachersState: { [key in TeacherRole]: Guru[] } = {
@@ -105,6 +113,7 @@ export default function ManajemenGuruPage() {
   const [availableGrades, setAvailableGrades] = useState<string[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+  const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   
@@ -112,6 +121,7 @@ export default function ManajemenGuruPage() {
 
   const loadData = useCallback(() => {
     try {
+        setCurrentUser(getSourceData('currentUser', null));
         const teachersDataFromAdmin = getSourceData('teachersData', {});
         const { schoolInfo, ...roles } = teachersDataFromAdmin;
 
@@ -196,6 +206,19 @@ export default function ManajemenGuruPage() {
       setIsDialogOpen(true);
   };
 
+  const addAssignmentLog = (teacherName: string, roleName: string) => {
+    const logData = getSourceData('assignmentLogData', []);
+    const newLog: AssignmentLog = {
+        id: `log-${Date.now()}`,
+        timestamp: Date.now(),
+        user: teacherName,
+        role: roleName,
+        action: `memperbarui detail penugasan.`,
+    };
+    const updatedLog = [newLog, ...logData];
+    updateSourceData('assignmentLogData', updatedLog);
+  };
+
   const handleSaveDialog = () => {
       if (!editingTeacher) return;
       
@@ -224,6 +247,9 @@ export default function ManajemenGuruPage() {
 
       updateSourceData('teachersData', updatedData);
       
+      // Add log for notification
+      addAssignmentLog(editingTeacher.nama, getRoleName(activeTab));
+
       toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah berhasil disimpan.` });
       setIsDialogOpen(false);
   };
@@ -617,12 +643,12 @@ export default function ManajemenGuruPage() {
                         <Accordion type="multiple" className="w-full">
                             {kelasBinaanTerpilihUntukPendamping.map(namaKelas => {
                                 const siswaDiKelas = daftarSiswa.filter(s => s.kelas === namaKelas);
-                                const semuaSiswaDiKelasTerpilih = siswaDiKelas.every(s => (formData.siswaBinaan || []).includes(s.nama));
+                                const semuaSiswaDiKelasTerpilih = siswaDiKelas.length > 0 && siswaDiKelas.every(s => (formData.siswaBinaan || []).includes(s.nama));
                                 
                                 return (
                                     <AccordionItem value={namaKelas} key={namaKelas}>
                                         <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
-                                            <Checkbox
+                                             <Checkbox
                                                 id={`kelas-all-${namaKelas}`}
                                                 checked={semuaSiswaDiKelasTerpilih}
                                                 onCheckedChange={checked => handleSelectAllSiswaInClass(namaKelas, !!checked)}
@@ -824,3 +850,5 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
+
+    
