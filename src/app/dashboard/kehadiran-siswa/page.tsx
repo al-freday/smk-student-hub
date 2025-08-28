@@ -5,9 +5,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Save, Calendar as CalendarIcon, UserCheck, UserX, Thermometer, MailQuestion, UserMinus } from "lucide-react";
+import { Save, UserCheck, UserX, Thermometer, MailQuestion, UserMinus, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, getDay } from "date-fns";
+import { id } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,11 +19,13 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa' | 'Bolos';
 
 interface Kehadiran {
-  id: string; // Composite key: nis-tanggal
+  id: string; // Composite key: nis-tanggal-sesi
   nis: string;
   nama: string;
   kelas: string;
   tanggal: string;
+  sesi: string; // Jam Ke-
+  mataPelajaran: string;
   status: KehadiranStatus;
   guruPencatat: string;
 }
@@ -39,6 +42,15 @@ interface Kelas {
   nama: string;
 }
 
+interface Jadwal {
+  id: number;
+  hari: string;
+  sesi: string;
+  kelas: string;
+  mataPelajaran: string;
+  guru: string;
+}
+
 const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
     { value: 'Hadir', icon: UserCheck },
     { value: 'Sakit', icon: Thermometer },
@@ -47,24 +59,48 @@ const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
     { value: 'Bolos', icon: UserMinus },
 ];
 
+const daftarHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
 export default function KehadiranSiswaPage() {
   const { toast } = useToast();
   const [allRecords, setAllRecords] = useState<Kehadiran[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
+  const [jadwalPelajaran, setJadwalPelajaran] = useState<Jadwal[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
 
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [selectedKelas, setSelectedKelas] = useState<string>("");
+  const [selectedSesi, setSelectedSesi] = useState<string>("");
 
-  // Map<nis, status>
   const [attendanceState, setAttendanceState] = useState<Map<string, KehadiranStatus>>(new Map());
 
   const loadData = () => {
-    setAllRecords(getSourceData('kehadiranSiswa', []));
+    setAllRecords(getSourceData('kehadiranSiswaPerSesi', []));
     setDaftarSiswa(getSourceData('siswaData', []));
     setDaftarKelas(getSourceData('kelasData', []));
     setCurrentUser(getSourceData('currentUser', null));
+
+    const teachersData = getSourceData('teachersData', {});
+    const guruMapelList = teachersData.guru_mapel || [];
+    const generatedJadwal: Jadwal[] = [];
+    if (Array.isArray(guruMapelList)) {
+        guruMapelList.forEach((guru: any) => {
+            if (Array.isArray(guru.teachingAssignments)) {
+                guru.teachingAssignments.forEach((assignment: any) => {
+                    generatedJadwal.push({
+                        id: assignment.id,
+                        hari: assignment.day,
+                        sesi: assignment.session,
+                        kelas: assignment.className,
+                        mataPelajaran: assignment.subject,
+                        guru: guru.nama,
+                    });
+                });
+            }
+        });
+    }
+    setJadwalPelajaran(generatedJadwal);
   };
 
   useEffect(() => {
@@ -72,18 +108,29 @@ export default function KehadiranSiswaPage() {
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
+  
+  const jadwalHariIni = useMemo(() => {
+    if (!selectedKelas || !selectedDate) return [];
+    const hariTerpilih = daftarHari[getDay(new Date(selectedDate))];
+    return jadwalPelajaran.filter(j => j.kelas === selectedKelas && j.hari === hariTerpilih);
+  }, [selectedKelas, selectedDate, jadwalPelajaran]);
 
   useEffect(() => {
-    if (selectedKelas) {
+      setSelectedSesi("");
+  }, [selectedKelas, selectedDate]);
+  
+
+  useEffect(() => {
+    if (selectedKelas && selectedDate && selectedSesi) {
       const newAttendanceState = new Map<string, KehadiranStatus>();
       const studentsInClass = daftarSiswa.filter(s => s.kelas === selectedKelas);
       studentsInClass.forEach(siswa => {
-        const record = allRecords.find(r => r.nis === siswa.nis && r.tanggal === selectedDate);
+        const record = allRecords.find(r => r.nis === siswa.nis && r.tanggal === selectedDate && r.sesi === selectedSesi);
         newAttendanceState.set(siswa.nis, record ? record.status : 'Hadir');
       });
       setAttendanceState(newAttendanceState);
     }
-  }, [selectedKelas, selectedDate, daftarSiswa, allRecords]);
+  }, [selectedKelas, selectedDate, selectedSesi, daftarSiswa, allRecords]);
 
 
   const handleStatusChange = (nis: string, status: KehadiranStatus) => {
@@ -91,36 +138,43 @@ export default function KehadiranSiswaPage() {
   };
 
   const handleSaveAttendance = () => {
-    if (!selectedKelas) {
-        toast({ title: "Gagal", description: "Silakan pilih kelas terlebih dahulu.", variant: "destructive" });
+    if (!selectedKelas || !selectedSesi) {
+        toast({ title: "Gagal", description: "Silakan pilih kelas dan jam pelajaran.", variant: "destructive" });
+        return;
+    }
+    
+    const jadwalTerpilih = jadwalHariIni.find(j => j.sesi === selectedSesi);
+    if (!jadwalTerpilih) {
+        toast({ title: "Gagal", description: "Jadwal tidak valid.", variant: "destructive" });
         return;
     }
 
     const studentsInClass = daftarSiswa.filter(s => s.kelas === selectedKelas);
-    const newRecordsForClass: Kehadiran[] = [];
+    const newRecordsForSession: Kehadiran[] = [];
 
     studentsInClass.forEach(siswa => {
         const status = attendanceState.get(siswa.nis) || 'Hadir';
-        newRecordsForClass.push({
-            id: `${siswa.nis}-${selectedDate}`,
+        newRecordsForSession.push({
+            id: `${siswa.nis}-${selectedDate}-${selectedSesi}`,
             nis: siswa.nis,
             nama: siswa.nama,
             kelas: siswa.kelas,
             tanggal: selectedDate,
+            sesi: selectedSesi,
+            mataPelajaran: jadwalTerpilih.mataPelajaran,
             status: status,
             guruPencatat: currentUser?.nama || 'Guru',
         });
     });
 
-    // Hapus record lama untuk tanggal dan kelas yang sama, lalu tambahkan yang baru
-    const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === selectedKelas));
-    const updatedRecords = [...otherRecords, ...newRecordsForClass];
+    const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === selectedKelas && r.sesi === selectedSesi));
+    const updatedRecords = [...otherRecords, ...newRecordsForSession];
     
-    updateSourceData('kehadiranSiswa', updatedRecords);
+    updateSourceData('kehadiranSiswaPerSesi', updatedRecords);
 
     toast({
         title: "Kehadiran Disimpan",
-        description: `Data absensi untuk kelas ${selectedKelas} pada tanggal ${selectedDate} telah diperbarui.`,
+        description: `Absensi kelas ${selectedKelas} pada jam ke-${selectedSesi} telah diperbarui.`,
     });
   };
 
@@ -129,36 +183,20 @@ export default function KehadiranSiswaPage() {
     return daftarSiswa.filter(s => s.kelas === selectedKelas);
   }, [selectedKelas, daftarSiswa]);
 
-  const isRecorded = useMemo(() => {
-      return allRecords.some(r => r.kelas === selectedKelas && r.tanggal === selectedDate);
-  }, [selectedKelas, selectedDate, allRecords]);
-  
-  const getBadgeVariant = (status: KehadiranStatus) => {
-    switch(status) {
-        case 'Hadir': return 'default';
-        case 'Sakit': return 'secondary';
-        case 'Izin': return 'secondary';
-        case 'Alpa': return 'destructive';
-        case 'Bolos': return 'destructive';
-        default: return 'outline';
-    }
-  };
-
-
   return (
     <div className="flex-1 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Lembar Kehadiran Siswa</h2>
-        <p className="text-muted-foreground">Isi dan kelola data kehadiran harian siswa per kelas.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Lembar Kehadiran Siswa Per Sesi</h2>
+        <p className="text-muted-foreground">Isi dan kelola data kehadiran siswa berdasarkan jam pelajaran.</p>
       </div>
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
              <div>
-                <CardTitle>Pilih Kelas & Tanggal</CardTitle>
-                <CardDescription>Pilih kelas dan tanggal untuk mengisi atau melihat absensi.</CardDescription>
+                <CardTitle>Pilih Kelas, Tanggal & Sesi</CardTitle>
+                <CardDescription>Pilih detail sesi untuk mengisi atau melihat absensi.</CardDescription>
             </div>
-             <div className="flex items-end gap-4">
+             <div className="flex items-end gap-4 flex-wrap">
                 <div className="space-y-2">
                     <Label htmlFor="filter-kelas">Kelas</Label>
                     <Select value={selectedKelas} onValueChange={setSelectedKelas}>
@@ -180,6 +218,21 @@ export default function KehadiranSiswaPage() {
                         className="w-fit"
                     />
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="filter-sesi">Jam Pelajaran</Label>
+                    <Select value={selectedSesi} onValueChange={setSelectedSesi} disabled={jadwalHariIni.length === 0}>
+                        <SelectTrigger id="filter-sesi" className="w-[240px]">
+                            <SelectValue placeholder="Pilih Jam Pelajaran" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {jadwalHariIni.map(j => (
+                                <SelectItem key={j.id} value={j.sesi}>
+                                    Jam ke-{j.sesi} ({j.mataPelajaran})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Button onClick={handleSaveAttendance}>
                     <Save className="mr-2 h-4 w-4" /> Simpan
                 </Button>
@@ -187,7 +240,7 @@ export default function KehadiranSiswaPage() {
           </div>
         </CardHeader>
         <CardContent>
-            {selectedKelas ? (
+            {selectedKelas && selectedSesi ? (
                  <Table>
                     <TableHeader>
                         <TableRow>
@@ -204,24 +257,18 @@ export default function KehadiranSiswaPage() {
                             <TableCell>{siswa.nis}</TableCell>
                             <TableCell className="font-medium">{siswa.nama}</TableCell>
                             <TableCell className="text-center">
-                               {isRecorded ? (
-                                    <Badge variant={getBadgeVariant(attendanceState.get(siswa.nis) || 'Hadir')}>
-                                        {attendanceState.get(siswa.nis)}
-                                    </Badge>
-                               ) : (
-                                    <RadioGroup
-                                        value={attendanceState.get(siswa.nis) || 'Hadir'}
-                                        onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
-                                        className="flex justify-center space-x-4"
-                                    >
-                                        {statusOptions.map(status => (
-                                            <div key={status.value} className="flex items-center space-x-2">
-                                                <RadioGroupItem value={status.value} id={`${siswa.nis}-${status.value}`} />
-                                                <Label htmlFor={`${siswa.nis}-${status.value}`}>{status.value}</Label>
-                                            </div>
-                                        ))}
-                                    </RadioGroup>
-                               )}
+                                <RadioGroup
+                                    value={attendanceState.get(siswa.nis) || 'Hadir'}
+                                    onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
+                                    className="flex justify-center space-x-4"
+                                >
+                                    {statusOptions.map(status => (
+                                        <div key={status.value} className="flex items-center space-x-2">
+                                            <RadioGroupItem value={status.value} id={`${siswa.nis}-${status.value}`} />
+                                            <Label htmlFor={`${siswa.nis}-${status.value}`}>{status.value}</Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -229,7 +276,11 @@ export default function KehadiranSiswaPage() {
                 </Table>
             ) : (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Silakan pilih kelas dan tanggal untuk memulai absensi.</p>
+                    <BookOpen className="mx-auto h-12 w-12" />
+                    <p className="mt-4 font-semibold">Silakan pilih kelas, tanggal, dan jam pelajaran.</p>
+                    <p className="text-sm">
+                        {jadwalHariIni.length === 0 && selectedKelas && selectedDate ? `Tidak ada jadwal pelajaran untuk kelas ${selectedKelas} pada hari ini.` : 'Pilih sesi untuk memulai absensi.'}
+                    </p>
                 </div>
             )}
         </CardContent>
