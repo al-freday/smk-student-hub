@@ -230,12 +230,16 @@ export default function ManajemenGuruPage() {
   };
   
   const handleKelasBinaanChange = (namaKelas: string, checked: boolean) => {
-      const currentKelas = formData.kelas || [];
-      if (checked) {
-          setFormData({ ...formData, kelas: [...currentKelas, namaKelas] });
-      } else {
-          setFormData({ ...formData, kelas: currentKelas.filter(k => k !== namaKelas) });
-      }
+      setFormData(prev => {
+        const currentKelas = prev.kelas || [];
+        let newKelasBinaan: string[];
+        if (checked) {
+            newKelasBinaan = [...currentKelas, namaKelas];
+        } else {
+            newKelasBinaan = currentKelas.filter(k => k !== namaKelas);
+        }
+        return { ...prev, kelas: newKelasBinaan };
+      });
   };
 
   const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
