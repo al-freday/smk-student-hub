@@ -227,8 +227,8 @@ export default function ManajemenPelanggaranPage() {
                 </TableHeader>
                 <TableBody>
                     {filteredPelanggaran.length > 0 ? (
-                        filteredPelanggaran.map(catatan => (
-                            <TableRow key={catatan.id}>
+                        filteredPelanggaran.map((catatan, index) => (
+                            <TableRow key={`${catatan.id}-${index}`}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -368,3 +368,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
