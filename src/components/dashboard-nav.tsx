@@ -72,6 +72,7 @@ const navItemsByRole = {
     { href: "/dashboard/administrasi-wali-kelas", icon: FolderKanban, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_bk: [
     { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK" },
@@ -80,6 +81,7 @@ const navItemsByRole = {
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
     { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
     { href: "/dashboard/administrasi-bk", icon: Folders, label: "Administrasi BK" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -87,18 +89,21 @@ const navItemsByRole = {
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_piket: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Sekolah" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/bimbingan-siswa", icon: Contact, label: "Bimbingan Siswa" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
     { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Catat Prestasi" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
