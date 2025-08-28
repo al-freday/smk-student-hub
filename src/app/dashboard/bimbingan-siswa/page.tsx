@@ -81,11 +81,11 @@ export default function BimbinganSiswaPage() {
       const detailSiswaBinaan = siswaPendampingan.map(siswa => {
         const pelanggaranSiswa = pelanggaranData
           .filter(p => p.nis === siswa.nis)
-          .map(p => ({ id: p.id, tanggal: p.tanggal, deskripsi: p.pelanggaran, poin: p.poin }));
+          .map(p => ({ id: `pelanggaran-${p.id}`, tanggal: p.tanggal, deskripsi: p.pelanggaran, poin: p.poin }));
         
         const prestasiSiswa = prestasiData
           .filter(p => p.nis === siswa.nis)
-          .map(p => ({ id: p.id, tanggal: p.tanggal, deskripsi: p.deskripsi, tingkat: p.tingkat }));
+          .map(p => ({ id: `prestasi-${p.id}`, tanggal: p.tanggal, deskripsi: p.deskripsi, tingkat: p.tingkat }));
         
         const totalPoin = pelanggaranSiswa.reduce((sum, p) => sum + (p.poin || 0), 0);
         
@@ -299,5 +299,3 @@ export default function BimbinganSiswaPage() {
     </div>
   );
 }
-
-    
