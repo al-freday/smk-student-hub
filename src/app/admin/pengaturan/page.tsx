@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users, Palette } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette, Database } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,7 @@ export default function AdminPengaturanPage() {
   });
   
   const [totalUsers, setTotalUsers] = useState(0);
+  const [storageSize, setStorageSize] = useState("0 MB");
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -86,6 +87,20 @@ export default function AdminPengaturanPage() {
         loadedThemes[role.key] = theme ? JSON.parse(theme).key : 'default';
     });
     setSelectedThemes(loadedThemes);
+
+    // Calculate storage size
+    let total = 0;
+    for (let x in localStorage) {
+        if (!localStorage.hasOwnProperty(x)) {
+            continue;
+        }
+        let item = localStorage.getItem(x);
+        if (item) {
+            total += item.length;
+        }
+    }
+    const totalMB = (total / 1024 / 1024).toFixed(2);
+    setStorageSize(`${totalMB} MB`);
 
   }, [router]);
   
@@ -255,6 +270,24 @@ export default function AdminPengaturanPage() {
                          <Button onClick={() => router.push('/admin/pengaturan/pengguna')}>
                             Kelola Pengguna
                         </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Informasi Penyimpanan</CardTitle>
+                    <CardDescription>Ukuran data aplikasi yang tersimpan di browser Anda.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                        <div className="flex items-center gap-4">
+                            <Database className="h-8 w-8 text-primary"/>
+                            <div>
+                                <p className="text-2xl font-bold">{storageSize}</p>
+                                <p className="text-sm text-muted-foreground">Total Ukuran Data</p>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
