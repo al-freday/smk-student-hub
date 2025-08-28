@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import KonselingBkPage from "./konseling-bk/page";
 import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 import GuruPiketDashboard from "@/components/guru-piket-dashboard";
+import GuruPendampingDashboard from "@/components/guru-pendamping-dashboard";
 
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
@@ -137,6 +138,8 @@ const renderDashboardByRole = (role: string) => {
             return <GuruMapelDashboard />;
         case 'guru_piket':
             return <GuruPiketDashboard />;
+        case 'guru_pendamping':
+            return <GuruPendampingDashboard />;
         case 'admin':
             return <AdminDashboard />;
         default:

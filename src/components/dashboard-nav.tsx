@@ -84,6 +84,11 @@ const navItemsByRole = {
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Sekolah" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
   ],
+  guru_pendamping: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
+    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Catat Prestasi" },
+  ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   ],
