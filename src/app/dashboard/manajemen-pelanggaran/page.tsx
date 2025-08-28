@@ -34,6 +34,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { tataTertibData } from "@/lib/tata-tertib-data";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -44,10 +46,8 @@ interface Siswa {
 }
 
 interface TataTertib {
-  id: number;
   deskripsi: string;
   poin: number;
-  kategori: string;
 }
 
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
@@ -63,35 +63,31 @@ interface CatatanPelanggaran {
   guruPelapor: string;
   tindakanAwal: string;
   status: StatusLaporan;
-  tindakLanjutWaliKelas?: string;
 }
 
-const getSourceData = (key: string, defaultValue: any) => {
-    if (typeof window !== 'undefined') {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
-        } catch (error) {
-            console.error(`Gagal memuat data dari localStorage: ${key}`, error);
+const flattenTataTertib = (data: typeof tataTertibData) => {
+    let allRules: { id: number, deskripsi: string, poin: number }[] = [];
+    let idCounter = 1;
+    for (const kategori in data) {
+        for (const tingkat in data[kategori as keyof typeof data]) {
+            // @ts-ignore
+            data[kategori as keyof typeof data][tingkat].forEach(rule => {
+                allRules.push({ ...rule, id: idCounter++ });
+            });
         }
     }
-    return defaultValue;
+    return allRules;
 };
 
-const updateSourceData = (key: string, data: any) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(key, JSON.stringify(data));
-    }
-};
 
 export default function ManajemenPelanggaranPage() {
   const { toast } = useToast();
   
   // --- Data States ---
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
-  const [daftarTataTertib, setDaftarTataTertib] = useState<TataTertib[]>([]);
+  const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
-  const [currentUser, setCurrentUser] = useState({ nama: "Wakasek Kesiswaan" });
+  const [currentUser, setCurrentUser] = useState({ nama: "Wakasek Kesiswaan", role: "wakasek_kesiswaan" });
   
   // --- Filter State ---
   const [filter, setFilter] = useState("");
@@ -105,16 +101,17 @@ export default function ManajemenPelanggaranPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [tindakanAwal, setTindakanAwal] = useState("");
 
+  const loadData = () => {
+    setDaftarSiswa(getSourceData('siswaData', []));
+    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
+    setCurrentUser(getSourceData('currentUser', { nama: "Wakasek Kesiswaan", role: "wakasek_kesiswaan" }));
+    setDaftarTataTertib(flattenTataTertib(tataTertibData));
+  };
+  
   useEffect(() => {
-    const siswa = getSourceData('siswaData', []);
-    const tataTertibData = getSourceData('tataTertibData', { Kerajinan: [], Kerapian: [], Perilaku: [] });
-    const pelanggaran = getSourceData('riwayatPelanggaran', []);
-    const user = getSourceData('currentUser', { nama: "Wakasek Kesiswaan" });
-
-    setDaftarSiswa(siswa);
-    setDaftarTataTertib(Object.values(tataTertibData).flat());
-    setRiwayatPelanggaran(pelanggaran);
-    setCurrentUser(user);
+    loadData();
+    window.addEventListener('dataUpdated', loadData);
+    return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
 
   const filteredPelanggaran = useMemo(() => {
@@ -140,9 +137,10 @@ export default function ManajemenPelanggaranPage() {
       toast({ title: "Gagal Menyimpan", description: "Harap pilih siswa dan jenis pelanggaran.", variant: "destructive" });
       return;
     }
-
+    
+    const currentRiwayat = getSourceData('riwayatPelanggaran', []);
     const newCatatan: CatatanPelanggaran = {
-      id: riwayatPelanggaran.length > 0 ? Math.max(...riwayatPelanggaran.map(c => c.id)) + 1 : 1,
+      id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: CatatanPelanggaran) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
       nis: siswa.nis,
       namaSiswa: siswa.nama,
@@ -154,9 +152,7 @@ export default function ManajemenPelanggaranPage() {
       status: 'Dilaporkan',
     };
 
-    const updatedRiwayat = [...riwayatPelanggaran, newCatatan];
-    setRiwayatPelanggaran(updatedRiwayat);
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
     
     toast({ title: "Sukses", description: "Catatan pelanggaran berhasil disimpan." });
     setIsDialogOpen(false);
@@ -166,7 +162,6 @@ export default function ManajemenPelanggaranPage() {
     if (!catatanToDelete) return;
 
     const updatedRiwayat = riwayatPelanggaran.filter(c => c.id !== catatanToDelete.id);
-    setRiwayatPelanggaran(updatedRiwayat);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
@@ -177,7 +172,6 @@ export default function ManajemenPelanggaranPage() {
     const updatedRiwayat = riwayatPelanggaran.map(item => 
         item.id === id ? { ...item, status: status } : item
     );
-    setRiwayatPelanggaran(updatedRiwayat);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
   };

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { tataTertibData } from "@/lib/tata-tertib-data";
 
 type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa' | 'Bolos';
 
@@ -50,6 +51,20 @@ interface Jadwal {
   mataPelajaran: string;
   guru: string;
 }
+
+interface CatatanPelanggaran {
+  id: number;
+  tanggal: string;
+  nis: string;
+  namaSiswa: string;
+  kelas: string;
+  pelanggaran: string;
+  poin: number;
+  guruPelapor: string;
+  tindakanAwal: string;
+  status: 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
+}
+
 
 const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
     { value: 'Hadir', icon: UserCheck },
@@ -151,6 +166,8 @@ export default function KehadiranSiswaPage() {
 
     const studentsInClass = daftarSiswa.filter(s => s.kelas === selectedKelas);
     const newRecordsForSession: Kehadiran[] = [];
+    const newViolations: CatatanPelanggaran[] = [];
+    const riwayatPelanggaran = getSourceData('riwayatPelanggaran', []);
 
     studentsInClass.forEach(siswa => {
         const status = attendanceState.get(siswa.nis) || 'Hadir';
@@ -165,17 +182,49 @@ export default function KehadiranSiswaPage() {
             status: status,
             guruPencatat: currentUser?.nama || 'Guru',
         });
+        
+        // --- LOGIKA OTOMATISASI PELANGGARAN ---
+        if (status === 'Alpa' || status === 'Bolos') {
+            const ruleDescription = status === 'Alpa' 
+                ? "Tidak hadir tanpa keterangan (alpha) berulang." 
+                : "Bolos pelajaran.";
+            const rule = tataTertibData.kehadiran.sedang.find(r => r.deskripsi === ruleDescription) || tataTertibData.kehadiran.berat.find(r => r.deskripsi.includes("alpha"));
+
+            if(rule){
+                const newId = riwayatPelanggaran.length > 0 ? Math.max(...riwayatPelanggaran.map((p: CatatanPelanggaran) => p.id)) + 1 : 1;
+                newViolations.push({
+                    id: newId,
+                    tanggal: selectedDate,
+                    nis: siswa.nis,
+                    namaSiswa: siswa.nama,
+                    kelas: siswa.kelas,
+                    pelanggaran: rule.deskripsi,
+                    poin: rule.poin,
+                    guruPelapor: currentUser?.nama || 'Sistem Absensi',
+                    tindakanAwal: `Dicatat otomatis dari absensi mapel ${jadwalTerpilih.mataPelajaran}`,
+                    status: 'Dilaporkan'
+                });
+            }
+        }
     });
 
     const otherRecords = allRecords.filter(r => !(r.tanggal === selectedDate && r.kelas === selectedKelas && r.sesi === selectedSesi));
     const updatedRecords = [...otherRecords, ...newRecordsForSession];
-    
     updateSourceData('kehadiranSiswaPerSesi', updatedRecords);
 
-    toast({
-        title: "Kehadiran Disimpan",
-        description: `Absensi kelas ${selectedKelas} pada jam ke-${selectedSesi} telah diperbarui.`,
-    });
+    if(newViolations.length > 0){
+        const updatedViolations = [...riwayatPelanggaran, ...newViolations];
+        updateSourceData('riwayatPelanggaran', updatedViolations);
+        toast({
+            title: "Absensi & Pelanggaran Disimpan",
+            description: `${newViolations.length} pelanggaran absensi (Alpa/Bolos) telah dicatat secara otomatis.`,
+        });
+    } else {
+        toast({
+            title: "Kehadiran Disimpan",
+            description: `Absensi kelas ${selectedKelas} pada jam ke-${selectedSesi} telah diperbarui.`,
+        });
+    }
   };
 
   const studentsToDisplay = useMemo(() => {
