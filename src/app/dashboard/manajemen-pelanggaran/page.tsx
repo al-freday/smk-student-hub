@@ -48,6 +48,18 @@ interface CatatanPelanggaran {
   guruPelapor: string;
   tindakanAwal: string;
   status: StatusLaporan;
+  tipe: 'pelanggaran';
+}
+
+interface CatatanPrestasi {
+    id: number;
+    tanggal: string;
+    nis: string;
+    namaSiswa: string;
+    kelas: string;
+    deskripsi: string;
+    tipe: 'prestasi';
+    poin?: number;
 }
 
 const flattenTataTertib = (data: typeof tataTertibData) => {
@@ -95,7 +107,7 @@ export default function ManajemenPelanggaranPage() {
     setCurrentUser(user);
     setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
-    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
+    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []).map((p: any) => ({...p, tipe: 'pelanggaran'})));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
   }, []);
   
@@ -133,6 +145,7 @@ export default function ManajemenPelanggaranPage() {
       guruPelapor: currentUser?.nama || "Guru",
       tindakanAwal: tindakanAwal,
       status: 'Dilaporkan',
+      tipe: 'pelanggaran',
     };
 
     updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
@@ -264,7 +277,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={`pelanggaran-${catatan.id}`}>
+                            <TableRow key={`${catatan.tipe}-${catatan.id}`}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
