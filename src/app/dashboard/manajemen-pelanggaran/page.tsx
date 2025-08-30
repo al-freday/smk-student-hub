@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { tataTertibData } from "@/lib/tata-tertib-data";
+import { Loader2 } from "lucide-react";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -94,7 +95,7 @@ export default function ManajemenPelanggaranPage() {
     setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
     
-    const role = localStorage.getItem('userRole');
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     setUserRole(role);
 
     if (user && role) {
@@ -289,18 +290,17 @@ export default function ManajemenPelanggaranPage() {
   );
 
   const renderRoleSpecificView = () => {
-      const role = userRole;
       const allData = riwayatPelanggaran.filter(item => 
           item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
           item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
           item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
       ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
 
-      if (role === 'wali_kelas' || role === 'guru_bk') {
+      if (userRole === 'wali_kelas' || userRole === 'guru_bk') {
           let casesToHandle: CatatanPelanggaran[] = [];
           let processedCases: CatatanPelanggaran[] = [];
           
-          if (role === 'wali_kelas') {
+          if (userRole === 'wali_kelas') {
               const kelasBinaan = penugasan.kelasBinaan || [];
               casesToHandle = allData.filter(p => kelasBinaan.includes(p.kelas) && p.status === 'Dilaporkan');
               processedCases = allData.filter(p => kelasBinaan.includes(p.kelas) && p.status !== 'Dilaporkan');
@@ -318,7 +318,7 @@ export default function ManajemenPelanggaranPage() {
           );
       }
 
-      if (role === 'wakasek_kesiswaan') {
+      if (userRole === 'wakasek_kesiswaan') {
           return renderTable(allData, "Semua Catatan Pelanggaran", "Daftar lengkap semua pelanggaran yang tercatat di sekolah.", <ShieldAlert/>);
       }
 
@@ -326,6 +326,14 @@ export default function ManajemenPelanggaranPage() {
       const reportedByMe = allData.filter(p => p.guruPelapor === currentUser?.nama);
       return renderTable(reportedByMe, "Riwayat Laporan Saya", "Daftar pelanggaran yang telah Anda laporkan.", <History/>);
   };
+  
+  if (!userRole) {
+    return (
+      <div className="flex-1 space-y-6 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6">
@@ -443,5 +451,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
