@@ -75,7 +75,7 @@ const navItemsByRole = {
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_bk: [
-    { href: "/dashboard/konseling-bk", icon: HeartHandshake, label: "Dasbor BK" },
+    { href: "/dashboard", icon: HeartHandshake, label: "Dasbor BK" },
     { type: 'divider', label: 'Layanan BK' },
     { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
@@ -166,7 +166,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
             );
           }
           if ('href' in item) {
-             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard" && item.href !== "/dashboard/konseling-bk");
+             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard");
             return (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href}>

@@ -95,11 +95,12 @@ export default function ManajemenPelanggaranPage() {
 
     if (user) {
         const teachersData = getSourceData('teachersData', {});
-        if (user.role === 'wali_kelas') {
+        const role = localStorage.getItem('userRole');
+        if (role === 'wali_kelas') {
             const waliData = teachersData.wali_kelas?.find((w: any) => w.nama === user.nama);
             setPenugasan({ kelasBinaan: waliData?.kelas || [] });
         }
-        if (user.role === 'guru_bk') {
+        if (role === 'guru_bk') {
             const bkData = teachersData.guru_bk?.find((b: any) => b.nama === user.nama);
             setPenugasan({ tingkatBinaan: bkData?.tugasKelas || '' });
         }
@@ -183,7 +184,7 @@ export default function ManajemenPelanggaranPage() {
   const canDelete = currentUser?.role === 'wakasek_kesiswaan';
   
   const renderActionMenu = (catatan: CatatanPelanggaran) => {
-    const role = currentUser?.role;
+    const role = localStorage.getItem('userRole');
     const status = catatan.status;
 
     if (role === 'wali_kelas' && status === 'Dilaporkan') {
@@ -218,10 +219,10 @@ export default function ManajemenPelanggaranPage() {
     return null;
   };
   
-  const renderTable = (data: CatatanPelanggaran[], title: string, description: string) => (
+  const renderTable = (data: CatatanPelanggaran[], title: string, description: string, icon: React.ReactNode) => (
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">{title}</CardTitle>
+            <CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -285,7 +286,7 @@ export default function ManajemenPelanggaranPage() {
   );
 
   const renderRoleSpecificView = () => {
-      const role = currentUser?.role;
+      const role = localStorage.getItem('userRole');
       const allData = riwayatPelanggaran.filter(item => 
           item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
           item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
@@ -308,19 +309,19 @@ export default function ManajemenPelanggaranPage() {
 
           return (
               <div className="space-y-6">
-                  {renderTable(casesToHandle, "Kasus Masuk", "Daftar kasus yang memerlukan tindakan atau eskalasi dari Anda.")}
-                  {renderTable(processedCases, "Riwayat Tindakan", "Daftar kasus yang telah Anda proses atau diteruskan.")}
+                  {renderTable(casesToHandle, "Kasus Masuk", "Daftar kasus yang memerlukan tindakan atau eskalasi dari Anda.", <Inbox/>)}
+                  {renderTable(processedCases, "Riwayat Tindakan", "Daftar kasus yang telah Anda proses atau diteruskan.", <History/>)}
               </div>
           );
       }
 
       if (role === 'wakasek_kesiswaan') {
-          return renderTable(allData, "Semua Catatan Pelanggaran", "Daftar lengkap semua pelanggaran yang tercatat di sekolah.");
+          return renderTable(allData, "Semua Catatan Pelanggaran", "Daftar lengkap semua pelanggaran yang tercatat di sekolah.", <ShieldAlert/>);
       }
 
       // Default for guru mapel, piket, pendamping
       const reportedByMe = allData.filter(p => p.guruPelapor === currentUser?.nama);
-      return renderTable(reportedByMe, "Riwayat Laporan Saya", "Daftar pelanggaran yang telah Anda laporkan.");
+      return renderTable(reportedByMe, "Riwayat Laporan Saya", "Daftar pelanggaran yang telah Anda laporkan.", <History/>);
   };
 
   return (

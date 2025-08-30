@@ -96,7 +96,17 @@ export function LoginForm() {
     let userRoleKey = '';
     const emailToSearch = values.email.toLowerCase();
 
-    const { schoolInfo, ...roles } = teachersData;
+    const { schoolInfo, ...roles } = teachersData || {};
+
+    if (!roles) {
+        setIsLoading(false);
+        toast({
+          title: "Login Gagal",
+          description: "Data pengguna tidak valid. Silakan hubungi admin.",
+          variant: "destructive",
+        });
+        return;
+    }
 
     for (const role in roles) {
         if (!Array.isArray(roles[role])) continue;

@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Book, Edit, ClipboardList, BarChart, Settings, FileText, Calendar, Users, Folder, ShieldAlert, BarChart3, Briefcase, GraduationCap, CheckSquare, FileSignature, BookOpen } from "lucide-react";
+import { Book, Edit, Settings, CheckSquare, BarChart3, BookOpen } from "lucide-react";
 
 export default function AdministrasiGuruMapelPage() {
   
