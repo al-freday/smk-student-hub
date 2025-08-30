@@ -111,7 +111,7 @@ export default function ManajemenPelanggaranPage() {
     const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
     const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p: any) => ({
       ...p,
-      id: `pelanggaran-${p.id}`, // Create unique ID
+      id: `pelanggaran-${p.id}`,
       tipe: 'pelanggaran'
     }));
     
@@ -288,7 +288,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={catatan.id}>
+                            <TableRow key={`${catatan.tipe}-${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -430,5 +430,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
