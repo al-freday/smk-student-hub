@@ -81,6 +81,7 @@ const navItemsByRole = {
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
     { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
     { href: "/dashboard/administrasi-bk", icon: Folders, label: "Administrasi BK" },
+    { href: "/dashboard/lapor-pelanggaran", icon: ShieldAlert, label: "Lapor Pelanggaran" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   guru_mapel: [
