@@ -6,11 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users, Palette, Database } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette, Database, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 interface SchoolInfo {
   schoolName: string;
@@ -55,6 +66,22 @@ export default function AdminPengaturanPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [storageSize, setStorageSize] = useState("0 MB");
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+
+  const calculateStorage = () => {
+    let total = 0;
+    for (let x in localStorage) {
+        if (!localStorage.hasOwnProperty(x)) {
+            continue;
+        }
+        let item = localStorage.getItem(x);
+        if (item) {
+            total += item.length;
+        }
+    }
+    const totalMB = (total / 1024 / 1024).toFixed(2);
+    setStorageSize(`${totalMB} MB`);
+  };
 
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
@@ -88,19 +115,7 @@ export default function AdminPengaturanPage() {
     });
     setSelectedThemes(loadedThemes);
 
-    // Calculate storage size
-    let total = 0;
-    for (let x in localStorage) {
-        if (!localStorage.hasOwnProperty(x)) {
-            continue;
-        }
-        let item = localStorage.getItem(x);
-        if (item) {
-            total += item.length;
-        }
-    }
-    const totalMB = (total / 1024 / 1024).toFixed(2);
-    setStorageSize(`${totalMB} MB`);
+    calculateStorage();
 
   }, [router]);
   
@@ -158,6 +173,32 @@ export default function AdminPengaturanPage() {
     }
   };
 
+  const handleResetTransactionalData = () => {
+    const keysToRemove = [
+        'riwayatPelanggaran',
+        'prestasiData',
+        'kehadiranSiswaPerSesi',
+        'teacherAttendanceData',
+        'logBimbinganData',
+        'layananBimbinganData',
+        'rencanaIndividualData',
+        'assignmentLogData',
+        'waliKelasReportsStatus',
+    ];
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    toast({
+        title: "Data Transaksional Direset",
+        description: "Semua riwayat pelanggaran, kehadiran, dan log telah dihapus.",
+        variant: "destructive",
+    });
+
+    calculateStorage();
+    setIsResetDialogOpen(false);
+  };
+
+
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4">
@@ -165,7 +206,7 @@ export default function AdminPengaturanPage() {
             <ArrowLeft />
         </Button>
         <div>
-            <h2 className="text-3xl font-bold tracking-tight">Pengaturan Global</h2>
+            <h2 className="text-3xl font.bold tracking-tight">Pengaturan Global</h2>
             <p className="text-muted-foreground">
             Kelola informasi dan tampilan aplikasi untuk semua pengguna.
             </p>
@@ -263,7 +304,7 @@ export default function AdminPengaturanPage() {
                         <div className="flex items-center gap-4">
                             <Users className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{totalUsers}</p>
+                                <p className="text-2xl font.bold">{totalUsers}</p>
                                 <p className="text-sm text-muted-foreground">Pengguna Terdaftar</p>
                             </div>
                         </div>
@@ -273,13 +314,13 @@ export default function AdminPengaturanPage() {
                     </div>
                 </CardContent>
             </Card>
-
+            
             <Card>
                 <CardHeader>
-                    <CardTitle>Informasi Penyimpanan</CardTitle>
-                    <CardDescription>Ukuran data aplikasi yang tersimpan di browser Anda.</CardDescription>
+                    <CardTitle>Penyimpanan & Pemeliharaan</CardTitle>
+                    <CardDescription>Kelola data aplikasi yang tersimpan.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
                         <div className="flex items-center gap-4">
                             <Database className="h-8 w-8 text-primary"/>
@@ -289,10 +330,31 @@ export default function AdminPengaturanPage() {
                             </div>
                         </div>
                     </div>
+                    <Button variant="destructive" className="w-full" onClick={() => setIsResetDialogOpen(true)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Reset Data Transaksional
+                    </Button>
                 </CardContent>
             </Card>
           </div>
       </div>
+       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menghapus semua data transaksional seperti riwayat pelanggaran, kehadiran, prestasi, dan log bimbingan. 
+              <span className="font-semibold text-destructive"> Data pengguna, siswa, dan kelas tidak akan dihapus.</span> Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetTransactionalData} className="bg-destructive hover:bg-destructive/90">
+              Ya, Reset Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
