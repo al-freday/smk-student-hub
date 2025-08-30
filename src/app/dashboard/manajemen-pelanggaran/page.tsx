@@ -71,6 +71,7 @@ export default function ManajemenPelanggaranPage() {
   const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [penugasan, setPenugasan] = useState<{ kelasBinaan?: string[]; tingkatBinaan?: string }>({});
 
   // --- Filter State ---
@@ -92,10 +93,12 @@ export default function ManajemenPelanggaranPage() {
     setDaftarSiswa(getSourceData('siswaData', []));
     setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
+    
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
 
-    if (user) {
+    if (user && role) {
         const teachersData = getSourceData('teachersData', {});
-        const role = localStorage.getItem('userRole');
         if (role === 'wali_kelas') {
             const waliData = teachersData.wali_kelas?.find((w: any) => w.nama === user.nama);
             setPenugasan({ kelasBinaan: waliData?.kelas || [] });
@@ -180,11 +183,11 @@ export default function ManajemenPelanggaranPage() {
   };
   
   // --- RENDER LOGIC ---
-  const canRecord = ['wakasek_kesiswaan', 'wali_kelas', 'guru_mapel', 'guru_piket', 'guru_pendamping'].includes(currentUser?.role || '');
-  const canDelete = currentUser?.role === 'wakasek_kesiswaan';
+  const canRecord = ['wakasek_kesiswaan', 'wali_kelas', 'guru_mapel', 'guru_piket', 'guru_pendamping'].includes(userRole || '');
+  const canDelete = userRole === 'wakasek_kesiswaan';
   
   const renderActionMenu = (catatan: CatatanPelanggaran) => {
-    const role = localStorage.getItem('userRole');
+    const role = userRole;
     const status = catatan.status;
 
     if (role === 'wali_kelas' && status === 'Dilaporkan') {
@@ -286,7 +289,7 @@ export default function ManajemenPelanggaranPage() {
   );
 
   const renderRoleSpecificView = () => {
-      const role = localStorage.getItem('userRole');
+      const role = userRole;
       const allData = riwayatPelanggaran.filter(item => 
           item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
           item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
@@ -440,3 +443,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
