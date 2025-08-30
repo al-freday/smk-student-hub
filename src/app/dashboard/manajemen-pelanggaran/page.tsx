@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight, Inbox, History } from "lucide-react";
+import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -73,8 +73,7 @@ export default function ManajemenPelanggaranPage() {
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [penugasan, setPenugasan] = useState<{ kelasBinaan?: string[]; tingkatBinaan?: string }>({});
-
+  
   // --- Filter State ---
   const [filter, setFilter] = useState("");
 
@@ -91,26 +90,13 @@ export default function ManajemenPelanggaranPage() {
 
   const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
-    setCurrentUser(user);
+    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     
+    setCurrentUser(user);
+    setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
     setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
-    
-    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    setUserRole(role);
-
-    if (user && role) {
-        const teachersData = getSourceData('teachersData', {});
-        if (role === 'wali_kelas') {
-            const waliData = teachersData.wali_kelas?.find((w: any) => w.nama === user.nama);
-            setPenugasan({ kelasBinaan: waliData?.kelas || [] });
-        }
-        if (role === 'guru_bk') {
-            const bkData = teachersData.guru_bk?.find((b: any) => b.nama === user.nama);
-            setPenugasan({ tingkatBinaan: bkData?.tugasKelas || '' });
-        }
-    }
   }, []);
   
   useEffect(() => {
@@ -186,7 +172,6 @@ export default function ManajemenPelanggaranPage() {
   };
   
   // --- RENDER LOGIC ---
-  const canRecord = ['wakasek_kesiswaan', 'wali_kelas', 'guru_mapel', 'guru_piket', 'guru_pendamping'].includes(userRole || '');
   const canDelete = userRole === 'wakasek_kesiswaan';
   
   const renderActionMenu = (catatan: CatatanPelanggaran) => {
@@ -225,11 +210,45 @@ export default function ManajemenPelanggaranPage() {
     return null;
   };
   
-  const renderTable = (data: CatatanPelanggaran[], title: string, description: string, icon: React.ReactNode) => (
+  const filteredData = riwayatPelanggaran.filter(item => 
+      item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
+      item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
+      item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
+  ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  
+  if (!userRole) {
+    return (
+      <div className="flex-1 space-y-6 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Manajemen Pelanggaran Siswa</h2>
+            <p className="text-muted-foreground">Catat, pantau, dan kelola pelanggaran tata tertib siswa sesuai alur kerja.</p>
+          </div>
+          <div className="flex w-full sm:w-auto gap-2">
+              <Input 
+                  placeholder="Cari (nama, kelas, pelanggaran)..." 
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="w-full sm:w-64"
+              />
+              <Button onClick={handleOpenDialog} className="whitespace-nowrap">
+                  <PlusCircle className="mr-2 h-4 w-4"/>
+                  Catat Baru
+              </Button>
+          </div>
+      </div>
+
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">{icon}{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            <CardTitle className="flex items-center gap-2"><ShieldAlert />Semua Catatan Pelanggaran</CardTitle>
+            <CardDescription>Daftar lengkap semua pelanggaran yang tercatat di sekolah, diurutkan dari yang terbaru.</CardDescription>
         </CardHeader>
         <CardContent>
              <Table>
@@ -243,9 +262,9 @@ export default function ManajemenPelanggaranPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {data.length > 0 ? (
-                        data.map((catatan, index) => (
-                            <TableRow key={`${catatan.id}-${index}`}>
+                    {filteredData.length > 0 ? (
+                        filteredData.map((catatan) => (
+                            <TableRow key={catatan.id}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -281,7 +300,7 @@ export default function ManajemenPelanggaranPage() {
                     ) : (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center h-24">
-                                Tidak ada data untuk ditampilkan.
+                                Tidak ada data pelanggaran yang cocok dengan filter Anda.
                             </TableCell>
                         </TableRow>
                     )}
@@ -289,78 +308,6 @@ export default function ManajemenPelanggaranPage() {
             </Table>
         </CardContent>
       </Card>
-  );
-
-  const renderRoleSpecificView = () => {
-      const allData = riwayatPelanggaran.filter(item => 
-          item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
-          item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
-          item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
-      ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-
-      if (userRole === 'wali_kelas' || userRole === 'guru_bk') {
-          let casesToHandle: CatatanPelanggaran[] = [];
-          let processedCases: CatatanPelanggaran[] = [];
-          
-          if (userRole === 'wali_kelas') {
-              const kelasBinaan = penugasan.kelasBinaan || [];
-              casesToHandle = allData.filter(p => kelasBinaan.includes(p.kelas) && p.status === 'Dilaporkan');
-              processedCases = allData.filter(p => kelasBinaan.includes(p.kelas) && p.status !== 'Dilaporkan');
-          } else { // guru_bk
-              const gradePrefix = penugasan.tingkatBinaan ? penugasan.tingkatBinaan.split(' ')[1] : '';
-              casesToHandle = allData.filter(p => p.kelas.startsWith(gradePrefix) && p.status === 'Diteruskan ke BK');
-              processedCases = allData.filter(p => p.kelas.startsWith(gradePrefix) && p.status !== 'Diteruskan ke BK');
-          }
-
-          return (
-              <div className="space-y-6">
-                  {renderTable(casesToHandle, "Kasus Masuk", "Daftar kasus yang memerlukan tindakan atau eskalasi dari Anda.", <Inbox/>)}
-                  {renderTable(processedCases, "Riwayat Tindakan", "Daftar kasus yang telah Anda proses atau diteruskan.", <History/>)}
-              </div>
-          );
-      }
-
-      if (userRole === 'wakasek_kesiswaan') {
-          return renderTable(allData, "Semua Catatan Pelanggaran", "Daftar lengkap semua pelanggaran yang tercatat di sekolah.", <ShieldAlert/>);
-      }
-
-      // Default for guru mapel, piket, pendamping
-      const reportedByMe = allData.filter(p => p.guruPelapor === currentUser?.nama);
-      return renderTable(reportedByMe, "Riwayat Laporan Saya", "Daftar pelanggaran yang telah Anda laporkan.", <History/>);
-  };
-  
-  if (!userRole) {
-    return (
-      <div className="flex-1 space-y-6 flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Manajemen Pelanggaran Siswa</h2>
-            <p className="text-muted-foreground">Catat, pantau, dan kelola pelanggaran tata tertib siswa sesuai alur kerja.</p>
-          </div>
-          <div className="flex w-full sm:w-auto gap-2">
-              <Input 
-                  placeholder="Cari (nama, kelas, pelanggaran)..." 
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="w-full sm:w-64"
-              />
-              {canRecord && (
-                  <Button onClick={handleOpenDialog} className="whitespace-nowrap">
-                      <PlusCircle className="mr-2 h-4 w-4"/>
-                      Catat Baru
-                  </Button>
-              )}
-          </div>
-      </div>
-
-      {renderRoleSpecificView()}
       
       {/* Dialog Pencatatan Pelanggaran */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -459,5 +406,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
