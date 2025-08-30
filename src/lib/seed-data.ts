@@ -47,7 +47,7 @@ export const getAllSeedData = () => {
 
         // Data transaksional (kosong)
         riwayatPelanggaran: [],
-        prestasiData: [],
+        prestasiData: [], // Tetap ada untuk halaman Ekskul & Prestasi
         kehadiranSiswaPerSesi: [],
         teacherAttendanceData: [], 
         logBimbinganData: {},
@@ -59,3 +59,5 @@ export const getAllSeedData = () => {
 
     return cachedData;
 };
+
+    

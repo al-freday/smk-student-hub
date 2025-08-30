@@ -38,7 +38,7 @@ interface TataTertib {
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
 interface CatatanPelanggaran {
-  id: string; // Changed to string to ensure uniqueness
+  id: number;
   tanggal: string;
   nis: string;
   namaSiswa: string;
@@ -48,18 +48,6 @@ interface CatatanPelanggaran {
   guruPelapor: string;
   tindakanAwal: string;
   status: StatusLaporan;
-  tipe: 'pelanggaran';
-}
-
-interface CatatanPrestasi {
-    id: string; // Changed to string to ensure uniqueness
-    tanggal: string;
-    nis: string;
-    namaSiswa: string;
-    kelas: string;
-    deskripsi: string;
-    tipe: 'prestasi';
-    poin?: number;
 }
 
 const flattenTataTertib = (data: typeof tataTertibData) => {
@@ -85,6 +73,7 @@ export default function ManajemenPelanggaranPage() {
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [kelasBinaan, setKelasBinaan] = useState<string[]>([]);
   
   // --- Filter State ---
   const [filter, setFilter] = useState("");
@@ -107,16 +96,15 @@ export default function ManajemenPelanggaranPage() {
     setCurrentUser(user);
     setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
-    
-    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
-    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p: any) => ({
-      ...p,
-      id: `pelanggaran-${p.id}`,
-      tipe: 'pelanggaran'
-    }));
-    
-    setRiwayatPelanggaran(pelanggaranFormatted);
+    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
+
+    // Get assigned classes for Wali Kelas
+    if (role === 'wali_kelas' && user) {
+        const teachersData = getSourceData('teachersData', {});
+        const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === user.nama);
+        setKelasBinaan(waliKelasData?.kelas || []);
+    }
   }, []);
   
   useEffect(() => {
@@ -142,7 +130,7 @@ export default function ManajemenPelanggaranPage() {
     }
     
     const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
-    const newCatatan = {
+    const newCatatan: CatatanPelanggaran = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
       nis: siswa.nis,
@@ -153,7 +141,6 @@ export default function ManajemenPelanggaranPage() {
       guruPelapor: currentUser?.nama || "Guru",
       tindakanAwal: tindakanAwal,
       status: 'Dilaporkan',
-      tipe: 'pelanggaran',
     };
 
     updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
@@ -165,20 +152,17 @@ export default function ManajemenPelanggaranPage() {
   const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    // We need to extract the original numeric ID
-    const originalId = parseInt(catatanToDelete.id.split('-')[1]);
-    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== originalId);
+    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== catatanToDelete.id);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = (uniqueId: string, status: StatusLaporan) => {
-    const originalId = parseInt(uniqueId.split('-')[1]);
-    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = (id: number, status: StatusLaporan) => {
+    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
     const updatedRiwayat = allPelanggaran.map(item => 
-        item.id === originalId ? { ...item, status: status } : item
+        item.id === id ? { ...item, status: status } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
@@ -214,6 +198,7 @@ export default function ManajemenPelanggaranPage() {
     if (role === 'guru_bk' && status === 'Diteruskan ke BK') {
         return (
             <>
+                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><ArrowRight className="mr-2 h-4 w-4" /> Kembalikan ke Wali Kelas</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>
             </>
@@ -233,12 +218,33 @@ export default function ManajemenPelanggaranPage() {
 
     return null;
   };
-  
-  const filteredData = riwayatPelanggaran.filter(item => 
-      item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
-      item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
-      item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
-  ).sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+
+  const filteredData = useMemo(() => {
+    let data = riwayatPelanggaran;
+
+    // Role-based filtering logic
+    if (userRole && currentUser) {
+        if (['guru_mapel', 'guru_piket', 'guru_pendamping'].includes(userRole)) {
+            data = data.filter(item => item.guruPelapor === currentUser.nama);
+        } else if (userRole === 'wali_kelas') {
+            data = data.filter(item => kelasBinaan.includes(item.kelas));
+        } else if (userRole === 'guru_bk') {
+            data = data.filter(item => item.status === 'Diteruskan ke BK' || item.status === 'Diteruskan ke Wakasek' || item.status === 'Selesai');
+        }
+        // Wakasek sees all, so no filter needed for that role
+    }
+
+    // Search term filtering
+    if (filter) {
+        data = data.filter(item => 
+            item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
+            item.kelas.toLowerCase().includes(filter.toLowerCase()) ||
+            item.pelanggaran.toLowerCase().includes(filter.toLowerCase())
+        );
+    }
+
+    return data.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+  }, [riwayatPelanggaran, filter, userRole, currentUser, kelasBinaan]);
   
   if (!userRole) {
     return (
@@ -271,8 +277,8 @@ export default function ManajemenPelanggaranPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldAlert />Semua Catatan Pelanggaran</CardTitle>
-            <CardDescription>Daftar lengkap semua pelanggaran yang tercatat di sekolah, diurutkan dari yang terbaru.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><ShieldAlert />Daftar Pelanggaran</CardTitle>
+            <CardDescription>Daftar pelanggaran yang relevan untuk Anda, diurutkan dari yang terbaru.</CardDescription>
         </CardHeader>
         <CardContent>
              <Table>
@@ -288,7 +294,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={`${catatan.tipe}-${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
+                            <TableRow key={`${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -324,7 +330,7 @@ export default function ManajemenPelanggaranPage() {
                     ) : (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center h-24">
-                                Tidak ada data pelanggaran yang cocok dengan filter Anda.
+                                Tidak ada data pelanggaran untuk ditampilkan.
                             </TableCell>
                         </TableRow>
                     )}
@@ -430,3 +436,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
