@@ -17,15 +17,9 @@ import {
   Scale,
   ShieldAlert,
   Trophy,
-  BookOpen,
   FileBarChart,
   ClipboardList,
-  BookUser,
-  Activity,
-  Megaphone,
   BookMarked,
-  BookCopy,
-  FolderKanban,
   HeartHandshake,
   Contact,
   LineChart,
@@ -40,7 +34,6 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarContent,
-  SidebarGroup,
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
@@ -69,7 +62,7 @@ const navItemsByRole = {
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { type: 'divider', label: 'Manajemen Kelas' },
-    { href: "/dashboard/administrasi-wali-kelas", icon: FolderKanban, label: "Administrasi Kelas" },
+    { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
@@ -86,7 +79,7 @@ const navItemsByRole = {
   ],
   guru_mapel: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/dashboard/administrasi-guru-mapel", icon: FolderKanban, label: "Administrasi Mapel" },
+    { href: "/dashboard/administrasi-guru-mapel", icon: Folders, label: "Administrasi Mapel" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
@@ -140,7 +133,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const renderNavItems = () => {
     let navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
     
-    // Special case for admin to show link to admin panel
     if(userRole === 'admin') {
       return (
          <SidebarMenu>

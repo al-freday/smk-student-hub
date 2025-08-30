@@ -1,183 +1,233 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookCopy, CheckSquare, Briefcase } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Bell,
+  CalendarClock,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  FileText,
+  Users,
+  UserCog,
+  User,
+  UserCheck,
+  Scale,
+  ShieldAlert,
+  Trophy,
+  FileBarChart,
+  ClipboardList,
+  BookMarked,
+  HeartHandshake,
+  Contact,
+  LineChart,
+  ClipboardCheck,
+  Briefcase,
+  Folders,
+} from "lucide-react";
+import {
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarContent,
+  SidebarGroupLabel,
+} from "@/components/ui/sidebar";
+import { Icons } from "./icons";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-const kurikulumData = {
-  kelas_x: {
-    nama: "Kelas X SMK/MAK",
-    deskripsi: "Total JP per tahun: 1.728 (alokasi intrakurikuler dan projek)",
-    kelompok: [
-      {
-        nama: "A. Kelompok Mata Pelajaran Umum",
-        subjects: [
-          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu: Islam, Kristen, Katolik, Buddha, Hindu, atau Khonghucu" },
-          { nama: "Pendidikan Pancasila" },
-          { nama: "Bahasa Indonesia" },
-          { nama: "Pendidikan Jasmani, Olahraga, dan Kesehatan" },
-          { nama: "Sejarah" },
-          { nama: "Seni Budaya", catatan: "Minimal 1 jenis seni: Musik, Rupa, Teater, atau Tari" },
-          { nama: "Muatan Lokal Bahasa Jawa" },
-        ],
-      },
-      {
-        nama: "B. Kelompok Mata Pelajaran Kejuruan",
-        subjects: [
-          { nama: "Matematika" },
-          { nama: "Bahasa Inggris" },
-          { nama: "Informatika" },
-          { nama: "Projek Ilmu Pengetahuan Alam dan Sosial" },
-          { nama: "Dasar-dasar Program Keahlian" },
-        ],
-      },
-    ],
-  },
-  kelas_xi: {
-    nama: "Kelas XI SMK/MAK",
-    deskripsi: "Total JP per tahun: 1.728 (penekanan lebih pada kejuruan)",
-    kelompok: [
-      {
-        nama: "A. Kelompok Mata Pelajaran Umum",
-        subjects: [
-          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu sesuai agamanya" },
-          { nama: "Pendidikan Pancasila" },
-          { nama: "Bahasa Indonesia" },
-          { nama: "Pendidikan Jasmani, Olahraga, dan Kesehatan" },
-          { nama: "Sejarah" },
-          { nama: "Muatan Lokal Bahasa Jawa" },
-        ],
-      },
-      {
-        nama: "B. Kelompok Mata Pelajaran Kejuruan",
-        subjects: [
-          { nama: "Matematika" },
-          { nama: "Bahasa Inggris" },
-          { nama: "Mata Pelajaran Konsentrasi Keahlian", catatan: "Disesuaikan dengan program keahlian spesifik" },
-          { nama: "Projek Kreatif dan Kewirausahaan" },
-          { nama: "Mata Pelajaran Pilihan", catatan: "Siswa memilih mata pelajaran tambahan sesuai minat" },
-        ],
-      },
-    ],
-  },
-  kelas_xii: {
-    nama: "Kelas XII SMK/MAK",
-    deskripsi: "Fokus utama pada praktik kerja lapangan dan konsentrasi keahlian",
-    kelompok: [
-      {
-        nama: "A. Kelompok Mata Pelajaran Umum",
-        subjects: [
-          { nama: "Pendidikan Agama dan Budi Pekerti", catatan: "Siswa memilih salah satu, waktu disesuaikan" },
-          { nama: "Pendidikan Pancasila" },
-          { nama: "Bahasa Indonesia" },
-          { nama: "Muatan Lokal Bahasa Jawa" },
-        ],
-      },
-      {
-        nama: "B. Kelompok Mata Pelajaran Kejuruan",
-        subjects: [
-          { nama: "Matematika" },
-          { nama: "Bahasa Inggris" },
-          { nama: "Mata Pelajaran Konsentrasi Keahlian", catatan: "Disesuaikan dengan program keahlian" },
-          { nama: "Projek Kreatif dan Kewirausahaan" },
-          { nama: "Praktik Kerja Lapangan (PKL)", catatan: "Komponen utama dengan alokasi waktu tinggi" },
-          { nama: "Mata Pelajaran Pilihan", catatan: "Siswa memilih mata pelajaran tambahan" },
-        ],
-      },
-    ],
-  },
+const navItemsByRole = {
+  wakasek_kesiswaan: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { type: 'divider', label: 'Data Induk' },
+    { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
+    { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
+    { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
+    { href: "/dashboard/mata-pelajaran", icon: BookMarked, label: "Mata Pelajaran" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
+    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Ekskul & Prestasi" },
+    { type: 'divider', label: 'Aktivitas Harian' },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Kehadiran Siswa" },
+    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru"},
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { type: 'divider', label: 'Laporan & Notifikasi' },
+    { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
+    { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
+    { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
+  ],
+  wali_kelas: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { type: 'divider', label: 'Manajemen Kelas' },
+    { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  guru_bk: [
+    { href: "/dashboard", icon: HeartHandshake, label: "Dasbor BK" },
+    { type: 'divider', label: 'Layanan BK' },
+    { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
+    { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
+    { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
+    { href: "/dashboard/administrasi-bk", icon: Folders, label: "Administrasi BK" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  guru_mapel: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/administrasi-guru-mapel", icon: Folders, label: "Administrasi Mapel" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Mengajar" },
+    { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  guru_piket: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru" },
+    { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Sekolah" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  guru_pendamping: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/bimbingan-siswa", icon: Contact, label: "Bimbingan Siswa" },
+    { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Catat Prestasi" },
+    { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  admin: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  ],
 };
 
 
-type Subject = {
-  nama: string;
-  catatan?: string;
-};
+export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
+  const pathname = usePathname();
+  const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
+  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
+  
+  useEffect(() => {
+    const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek_kesiswaan';
+    setUserRole(role);
 
-type Kelompok = {
-  nama: string;
-  subjects: Subject[];
-};
+    const savedTeachers = localStorage.getItem('teachersData');
+    if (savedTeachers) {
+        const teachersData = JSON.parse(savedTeachers);
+        if (teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+        }
+    }
+  }, []);
 
-type Tingkatan = {
-  nama: string;
-  deskripsi: string;
-  kelompok: Kelompok[];
-};
-
-const renderSubjectList = (subjects: Subject[]) => (
-  <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
-    {subjects.map((subject, index) => (
-      <li key={index}>
-        <span>{subject.nama}</span>
-        {subject.catatan && (
-          <p className="text-xs italic text-primary/80 pl-2">- {subject.catatan}</p>
-        )}
-      </li>
-    ))}
-  </ul>
-);
-
-export default function MataPelajaranPage() {
-    
-  const handlePrint = () => {
-    window.print();
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUser');
   };
-    
-  return (
-    <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Struktur Kurikulum & Mata Pelajaran</h2>
-          <p className="text-muted-foreground">
-            Rincian alokasi mata pelajaran berdasarkan tingkatan kelas sesuai kurikulum yang berlaku.
-          </p>
-        </div>
-        <Button onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Cetak Halaman
-        </Button>
-      </div>
 
-      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="kelas_x">
-        {(Object.keys(kurikulumData) as Array<keyof typeof kurikulumData>).map((key) => {
-          const tingkatan: Tingkatan = kurikulumData[key];
-          return (
-            <AccordionItem value={key} key={key} className="border rounded-lg bg-card overflow-hidden">
-              <AccordionTrigger className="p-4 hover:no-underline bg-muted/50">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                        <BookCopy className="h-6 w-6"/>
-                    </div>
-                    <div className="text-left">
-                        <h3 className="font-semibold text-xl">{tingkatan.nama}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">{tingkatan.deskripsi}</p>
-                    </div>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="p-0">
-                <div className="border-t p-6 grid md:grid-cols-2 gap-6">
-                  {tingkatan.kelompok.map((kelompok, index) => (
-                    <div key={index}>
-                      <div className="flex items-center gap-2 mb-4">
-                        {kelompok.nama.includes("Umum") ? 
-                            <CheckSquare className="h-5 w-5 text-accent"/> : 
-                            <Briefcase className="h-5 w-5 text-accent"/>
-                        }
-                        <h4 className="font-semibold text-lg">{kelompok.nama}</h4>
-                      </div>
-                      {renderSubjectList(kelompok.subjects)}
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          );
+  const containerClass = isMobile ? "flex flex-col h-full" : "";
+  
+  const renderNavItems = () => {
+    let navItems = userRole ? (navItemsByRole[userRole as keyof typeof navItemsByRole] || []) : [];
+    
+    if(userRole === 'admin') {
+      return (
+         <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href="/admin/dashboard">
+                <SidebarMenuButton tooltip="Admin Panel" isActive={pathname.startsWith("/admin")}>
+                  <LayoutDashboard className="size-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+         </SidebarMenu>
+      )
+    }
+
+    return (
+      <SidebarMenu>
+        {navItems.map((item, index) => {
+           if (item.type === 'divider') {
+            return (
+              <SidebarGroupLabel key={index} className="!h-auto mt-2">
+                {item.label}
+              </SidebarGroupLabel>
+            );
+          }
+          if ('href' in item) {
+             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard");
+            return (
+              <SidebarMenuItem key={item.label}>
+                <Link href={item.href}>
+                  <SidebarMenuButton tooltip={item.label} isActive={isActive}>
+                      <item.icon className="size-4" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        {item.label}
+                      </span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            )
+          }
+          return null;
         })}
-      </Accordion>
+      </SidebarMenu>
+    );
+  };
+
+  return (
+    <div className={containerClass}>
+      <SidebarHeader className="hidden md:flex">
+         <Link href="/dashboard" className="flex items-center gap-2">
+           {schoolInfo.logo ? (
+             <Avatar className="h-8 w-8">
+                <AvatarImage src={schoolInfo.logo} alt="School Logo" />
+                <AvatarFallback>S</AvatarFallback>
+             </Avatar>
+           ) : (
+             <Icons.logo className="h-7 w-7 text-primary"/>
+           )}
+           <span className="text-lg font.semibold whitespace-nowrap group-data-[collapsible=icon]:hidden">
+            {schoolInfo.schoolName}
+           </span>
+         </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="p-2 flex-1">
+        {renderNavItems()}
+      </SidebarContent>
+
+      <SidebarFooter className="p-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+                <Link href="/dashboard/profil">
+                  <SidebarMenuButton tooltip="Profil" isActive={pathname.startsWith('/dashboard/profil')}>
+                    <User className="size-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Profil</span>
+                  </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <Link href="/dashboard/pengaturan">
+                  <SidebarMenuButton tooltip="Pengaturan" isActive={pathname.startsWith('/dashboard/pengaturan')}>
+                    <Settings className="size-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Pengaturan</span>
+                  </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/" onClick={handleLogout}>
+                <SidebarMenuButton tooltip="Logout">
+                  <LogOut className="size-4" />
+                  <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          </SidebarMenu>
+      </SidebarFooter>
     </div>
   );
 }
