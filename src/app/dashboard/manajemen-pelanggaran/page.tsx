@@ -97,7 +97,7 @@ export default function ManajemenPelanggaranPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [tindakanAwal, setTindakanAwal] = useState("");
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     
@@ -466,5 +466,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
