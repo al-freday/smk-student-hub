@@ -238,8 +238,8 @@ export default function ManajemenPelanggaranPage() {
                 </TableHeader>
                 <TableBody>
                     {data.length > 0 ? (
-                        data.map((catatan, index) => (
-                            <TableRow key={`${catatan.id}-${index}`}>
+                        data.map(catatan => (
+                            <TableRow key={catatan.id}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
