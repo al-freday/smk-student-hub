@@ -1,4 +1,3 @@
-
 // This file is intentionally left blank.
 // With the move to Firestore, seed data should be managed
 // directly in the Firebase console or through a separate seeding script.
