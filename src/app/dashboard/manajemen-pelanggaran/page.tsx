@@ -38,7 +38,7 @@ interface TataTertib {
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
 interface CatatanPelanggaran {
-  id: number;
+  id: string; // Changed to string to ensure uniqueness
   tanggal: string;
   nis: string;
   namaSiswa: string;
@@ -52,7 +52,7 @@ interface CatatanPelanggaran {
 }
 
 interface CatatanPrestasi {
-    id: number;
+    id: string; // Changed to string to ensure uniqueness
     tanggal: string;
     nis: string;
     namaSiswa: string;
@@ -107,7 +107,15 @@ export default function ManajemenPelanggaranPage() {
     setCurrentUser(user);
     setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
-    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []).map((p: any) => ({...p, tipe: 'pelanggaran'})));
+    
+    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
+    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p: any) => ({
+      ...p,
+      id: `pelanggaran-${p.id}`, // Create unique ID
+      tipe: 'pelanggaran'
+    }));
+    
+    setRiwayatPelanggaran(pelanggaranFormatted);
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
   }, []);
   
@@ -133,9 +141,9 @@ export default function ManajemenPelanggaranPage() {
       return;
     }
     
-    const currentRiwayat = getSourceData('riwayatPelanggaran', []);
-    const newCatatan: CatatanPelanggaran = {
-      id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: CatatanPelanggaran) => c.id)) + 1 : 1,
+    const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
+    const newCatatan = {
+      id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
       nis: siswa.nis,
       namaSiswa: siswa.nama,
@@ -157,17 +165,20 @@ export default function ManajemenPelanggaranPage() {
   const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    const updatedRiwayat = riwayatPelanggaran.filter(c => c.id !== catatanToDelete.id);
+    // We need to extract the original numeric ID
+    const originalId = parseInt(catatanToDelete.id.split('-')[1]);
+    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== originalId);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = (id: number, status: StatusLaporan) => {
-    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = (uniqueId: string, status: StatusLaporan) => {
+    const originalId = parseInt(uniqueId.split('-')[1]);
+    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
     const updatedRiwayat = allPelanggaran.map(item => 
-        item.id === id ? { ...item, status: status } : item
+        item.id === originalId ? { ...item, status: status } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
@@ -277,7 +288,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={`${catatan.tipe}-${catatan.id}`}>
+                            <TableRow key={catatan.id}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -419,3 +430,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
