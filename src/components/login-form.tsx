@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -70,31 +71,21 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
+    const emailToSearch = values.email.toLowerCase();
+
     // Hardcoded check for wakasek comes first
-    if ((values.email.toLowerCase() === 'wakasek@schoolemail.com' || values.email.toLowerCase() === 'wakasek@email.com') && values.password === 'password123') {
+    if (emailToSearch === 'wakasek@schoolemail.com' && values.password === 'password123') {
         setTimeout(() => {
             setIsLoading(false);
-            handleLoginSuccess('wakasek_kesiswaan', { nama: 'Wakasek Kesiswaan', email: values.email.toLowerCase() });
+            handleLoginSuccess('wakasek_kesiswaan', { nama: 'Wakasek Kesiswaan', email: emailToSearch });
         }, 1000);
         return;
     }
 
-    const savedTeachers = localStorage.getItem('teachersData');
-    if (!savedTeachers) {
-        setIsLoading(false);
-        toast({
-          title: "Login Gagal",
-          description: "Tidak ada data pengguna yang ditemukan. Harap login sebagai admin terlebih dahulu untuk membuat pengguna.",
-          variant: "destructive",
-        });
-        return;
-    }
-
-    const teachersData = JSON.parse(savedTeachers);
+    const teachersData = getSourceData('teachersData', {});
     
     let foundUser = null;
     let userRoleKey = '';
-    const emailToSearch = values.email.toLowerCase();
 
     const { schoolInfo, ...roles } = teachersData || {};
 
@@ -114,11 +105,15 @@ export function LoginForm() {
         const user = roles[role].find((u: any) => {
             if (!u.nama || typeof u.nama !== 'string' || u.id === undefined) return false;
             
+            // Generate email based on name and ID
             const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
             const idPart = String(u.id).split('-').pop();
             const expectedEmail = `${namePart}${idPart}@schoolemail.com`;
             
-            return expectedEmail === emailToSearch && u.password === values.password;
+            // Use provided password from seed data, fallback to a pattern if missing
+            const expectedPassword = u.password || `password${idPart}`;
+            
+            return expectedEmail === emailToSearch && values.password === expectedPassword;
         });
 
         if (user) {
@@ -181,3 +176,5 @@ export function LoginForm() {
     </div>
   );
 }
+
+    

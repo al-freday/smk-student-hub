@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Save, RefreshCw, Loader2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Upload, Users, Download, Building, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -117,10 +117,7 @@ export default function ManajemenSiswaPage() {
     loadData();
     
     const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if(customEvent.detail.key === 'siswaData' || customEvent.detail.key === 'kelasData'){
         loadData();
-      }
     };
     window.addEventListener('dataUpdated', handleDataChange);
     
@@ -152,7 +149,7 @@ export default function ManajemenSiswaPage() {
     resetKelasForm();
     if(kelasToEdit) {
         setEditingKelas(kelasToEdit);
-        setEditingKelas(kelasToEdit);
+        setKelasFormData(kelasToEdit);
     }
     setIsKelasDialogOpen(true);
   };
@@ -447,3 +444,5 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
+
+    

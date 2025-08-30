@@ -1,4 +1,6 @@
 
+import { getAllSeedData } from "./seed-data";
+
 /**
  * Mengambil data dari localStorage.
  * @param key Kunci untuk data di localStorage.
@@ -11,7 +13,18 @@ export const getSourceData = (key: string, defaultValue: any) => {
     }
     try {
         const item = window.localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
+        // If item doesn't exist, check if we should seed it.
+        if (item === null) {
+            const allData = getAllSeedData();
+            if (key in allData) {
+                const seedValue = allData[key as keyof typeof allData];
+                // Save the seed data to localStorage for next time
+                updateSourceData(key, seedValue);
+                return seedValue;
+            }
+            return defaultValue;
+        }
+        return JSON.parse(item);
     } catch (error) {
         console.warn(`Error saat membaca localStorage kunci "${key}":`, error);
         return defaultValue;
@@ -34,3 +47,5 @@ export const updateSourceData = (key: string, data: any) => {
         }
     }
 };
+
+    
