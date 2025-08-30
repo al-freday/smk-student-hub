@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { tataTertibData } from "@/lib/tata-tertib-data";
 import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -28,6 +29,11 @@ interface Siswa {
   nis: string;
   nama: string;
   kelas: string;
+}
+
+interface Kelas {
+    id: number;
+    nama: string;
 }
 
 interface TataTertib {
@@ -38,8 +44,8 @@ interface TataTertib {
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
 interface CatatanPelanggaran {
-  id: string; // Changed to string to accommodate prefixes
-  originalId: number; // Keep original ID for logic
+  id: string; 
+  originalId: number; 
   tanggal: string;
   nis: string;
   namaSiswa: string;
@@ -70,6 +76,7 @@ export default function ManajemenPelanggaranPage() {
   
   // --- Data States ---
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
@@ -85,6 +92,7 @@ export default function ManajemenPelanggaranPage() {
   const [openRulePopover, setOpenRulePopover] = useState(false);
   
   // --- Form Data States ---
+  const [selectedKelasForForm, setSelectedKelasForForm] = useState<string>("");
   const [selectedNis, setSelectedNis] = useState<string>("");
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [tindakanAwal, setTindakanAwal] = useState("");
@@ -96,13 +104,13 @@ export default function ManajemenPelanggaranPage() {
     setCurrentUser(user);
     setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
+    setDaftarKelas(getSourceData('kelasData', []));
     
     const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
     
-    // Ensure unique IDs by creating a composite key
     const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
         ...p,
-        id: `pelanggaran-${p.id}-${p.tanggal}-${index}`, // Guaranteed unique key
+        id: `pelanggaran-${p.id}-${p.tanggal}-${index}`,
         originalId: p.id,
     }));
 
@@ -118,6 +126,7 @@ export default function ManajemenPelanggaranPage() {
   }, [loadData]);
   
   const handleOpenDialog = () => {
+    setSelectedKelasForForm("");
     setSelectedNis("");
     setSelectedRuleId(null);
     setTindakanAwal("");
@@ -129,7 +138,7 @@ export default function ManajemenPelanggaranPage() {
     const aturan = daftarTataTertib.find(t => t.id === selectedRuleId);
 
     if (!siswa || !aturan) {
-      toast({ title: "Gagal Menyimpan", description: "Harap pilih siswa dan jenis pelanggaran.", variant: "destructive" });
+      toast({ title: "Gagal Menyimpan", description: "Harap pilih kelas, siswa, dan jenis pelanggaran.", variant: "destructive" });
       return;
     }
     
@@ -239,6 +248,11 @@ export default function ManajemenPelanggaranPage() {
     return data.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
   }, [riwayatPelanggaran, filter]);
   
+  const siswaDiKelasTerpilih = useMemo(() => {
+      if (!selectedKelasForForm) return [];
+      return daftarSiswa.filter(s => s.kelas === selectedKelasForForm);
+  }, [selectedKelasForForm, daftarSiswa]);
+
   if (!userRole) {
     return (
       <div className="flex-1 space-y-6 flex justify-center items-center">
@@ -340,11 +354,25 @@ export default function ManajemenPelanggaranPage() {
             </DialogHeader>
             <div className="grid gap-6 py-4">
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><User/>Pilih Siswa</Label>
+                    <Label>1. Pilih Kelas</Label>
+                    <Select value={selectedKelasForForm} onValueChange={(value) => { setSelectedKelasForForm(value); setSelectedNis(""); }}>
+                        <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
+                        <SelectContent>
+                            {daftarKelas.map(kelas => (
+                                <SelectItem key={kelas.id} value={kelas.nama}>{kelas.nama}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className={cn("flex items-center gap-2", !selectedKelasForForm && "text-muted-foreground")}>
+                        <User/>2. Pilih Siswa
+                    </Label>
                     <Popover open={openSiswaPopover} onOpenChange={setOpenSiswaPopover}>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between">
-                                {selectedNis ? daftarSiswa.find(s => s.nis === selectedNis)?.nama : "Cari dan pilih siswa..."}
+                            <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!selectedKelasForForm}>
+                                {selectedNis ? daftarSiswa.find(s => s.nis === selectedNis)?.nama : "Pilih siswa..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                             </Button>
                         </PopoverTrigger>
@@ -354,13 +382,13 @@ export default function ManajemenPelanggaranPage() {
                                 <CommandList>
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
-                                        {daftarSiswa.map(siswa => (
+                                        {siswaDiKelasTerpilih.map(siswa => (
                                             <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
                                                 setSelectedNis(siswa.nis || "");
                                                 setOpenSiswaPopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
-                                                {siswa.nama} ({siswa.kelas})
+                                                {siswa.nama}
                                             </CommandItem>
                                         ))}
                                     </CommandGroup>
@@ -369,8 +397,9 @@ export default function ManajemenPelanggaranPage() {
                         </PopoverContent>
                     </Popover>
                 </div>
+
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><ShieldAlert/>Pilih Jenis Pelanggaran</Label>
+                    <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Jenis Pelanggaran</Label>
                     <Popover open={openRulePopover} onOpenChange={setOpenRulePopover}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between h-auto text-left">
@@ -402,7 +431,7 @@ export default function ManajemenPelanggaranPage() {
                     </Popover>
                 </div>
                 <div className="space-y-2">
-                    <Label>Tindakan Awal yang Dilakukan (Opsional)</Label>
+                    <Label>4. Tindakan Awal yang Dilakukan (Opsional)</Label>
                     <Textarea value={tindakanAwal} onChange={e => setTindakanAwal(e.target.value)} placeholder="Contoh: Ditegur secara lisan di tempat."/>
                 </div>
             </div>
