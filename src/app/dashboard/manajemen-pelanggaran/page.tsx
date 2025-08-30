@@ -97,24 +97,28 @@ export default function ManajemenPelanggaranPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [tindakanAwal, setTindakanAwal] = useState("");
 
-  const loadData = useCallback(() => {
-    const user = getSourceData('currentUser', null);
+  const loadData = useCallback(async () => {
+    const user = await getSourceData('currentUser', null);
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     
     setCurrentUser(user);
     setUserRole(role);
-    setDaftarSiswa(getSourceData('siswaData', []));
-    setDaftarKelas(getSourceData('kelasData', []));
+    setDaftarSiswa(await getSourceData('siswaData', []));
+    setDaftarKelas(await getSourceData('kelasData', []));
     
-    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
+    const pelanggaranData: any[] = await getSourceData('riwayatPelanggaran', []);
     
-    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
-        ...p,
-        id: `pelanggaran-${p.id}-${p.tanggal}-${index}`,
-        originalId: p.id,
-    }));
+    if (Array.isArray(pelanggaranData)) {
+      const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
+          ...p,
+          id: `pelanggaran-${p.id}-${p.tanggal}-${index}`,
+          originalId: p.id,
+      }));
+      setRiwayatPelanggaran(pelanggaranFormatted);
+    } else {
+      setRiwayatPelanggaran([]);
+    }
 
-    setRiwayatPelanggaran(pelanggaranFormatted);
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
 
   }, []);
@@ -133,7 +137,7 @@ export default function ManajemenPelanggaranPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveCatatan = () => {
+  const handleSaveCatatan = async () => {
     const siswa = daftarSiswa.find(s => s.nis === selectedNis);
     const aturan = daftarTataTertib.find(t => t.id === selectedRuleId);
 
@@ -142,7 +146,7 @@ export default function ManajemenPelanggaranPage() {
       return;
     }
     
-    const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
+    const currentRiwayat: any[] = await getSourceData('riwayatPelanggaran', []);
     const newCatatan = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
@@ -156,31 +160,35 @@ export default function ManajemenPelanggaranPage() {
       status: 'Dilaporkan' as StatusLaporan,
     };
 
-    updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
+    await updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
     
     toast({ title: "Sukses", description: "Catatan pelanggaran berhasil disimpan." });
     setIsDialogOpen(false);
   };
 
-  const handleDeleteCatatan = () => {
+  const handleDeleteCatatan = async () => {
     if (!catatanToDelete) return;
 
-    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== catatanToDelete.originalId);
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    const currentRiwayat = await getSourceData('riwayatPelanggaran', [])
+    const updatedRiwayat = Array.isArray(currentRiwayat) 
+        ? currentRiwayat.filter((c: any) => c.id !== catatanToDelete.originalId)
+        : [];
+        
+    await updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = (id: string, newStatus: StatusLaporan) => {
-    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = async (id: string, newStatus: StatusLaporan) => {
+    const allPelanggaran: any[] = await getSourceData('riwayatPelanggaran', []);
     const recordToUpdate = riwayatPelanggaran.find(r => r.id === id);
     if (!recordToUpdate) return;
     
     const updatedRiwayat = allPelanggaran.map(item => 
         item.id === recordToUpdate.originalId ? { ...item, status: newStatus } : item
     );
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    await updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${newStatus}".` });
   };
   
