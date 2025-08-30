@@ -17,6 +17,40 @@ import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 import GuruPiketDashboard from "@/components/guru-piket-dashboard";
 import GuruPendampingDashboard from "@/components/guru-pendamping-dashboard";
 
+const getRoleDisplayName = (role: string) => {
+    const roles: { [key: string]: string } = {
+        wali_kelas: 'Wali Kelas',
+        guru_bk: 'Guru BK',
+        guru_mapel: 'Guru Mapel',
+        guru_piket: 'Guru Piket',
+        guru_pendamping: 'Guru Pendamping',
+        wakasek_kesiswaan: 'Wakasek Kesiswaan',
+        admin: 'Administrator'
+    };
+    return roles[role] || 'Pengguna';
+};
+
+const getWelcomeMessage = (role: string, name: string) => {
+    switch (role) {
+        case 'wakasek_kesiswaan':
+            return `Selamat datang, ${name}. Anda dapat memantau seluruh aktivitas kesiswaan di sini.`;
+        case 'wali_kelas':
+            return `Selamat datang, ${name}. Dasbor ini menampilkan ringkasan dan tugas untuk kelas binaan Anda.`;
+        case 'guru_bk':
+            return `Selamat datang, ${name}. Fokus pada layanan responsif dan pemantauan siswa binaan Anda.`;
+        case 'guru_mapel':
+            return `Selamat datang, ${name}. Berikut adalah jadwal mengajar dan akses cepat tugas harian Anda.`;
+        case 'guru_piket':
+            return `Selamat datang, ${name}. Pantau kehadiran guru dan kelancaran KBM hari ini.`;
+        case 'guru_pendamping':
+            return `Selamat datang, ${name}. Kelola dan catat perkembangan setiap siswa binaan Anda.`;
+        case 'admin':
+            return `Anda sedang login sebagai Administrator. Gunakan panel admin untuk mengelola sistem.`;
+        default:
+            return `Selamat datang, ${name}.`;
+    }
+};
+
 const WakasekDashboard = () => {
     const [stats, setStats] = useState({
         totalSiswa: 0,
@@ -108,12 +142,11 @@ const AdminDashboard = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Dasbor Admin</CardTitle>
-                <CardDescription>Selamat datang di panel kontrol administrator.</CardDescription>
+                <CardTitle>Panel Kontrol Administrator</CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground mb-4">
-                    Anda sedang login sebagai Admin. Anda dapat kembali ke panel utama admin untuk mengelola pengguna dan pengaturan global.
+                    Anda dapat kembali ke panel utama admin untuk mengelola pengguna dan pengaturan global.
                 </p>
                 <div className="flex gap-4">
                     <Button onClick={() => router.push('/admin/dashboard')}>
@@ -150,20 +183,32 @@ const renderDashboardByRole = (role: string) => {
 export default function DashboardPage() {
     const router = useRouter();
     const [userRole, setUserRole] = useState("");
+    const [userInfo, setUserInfo] = useState<{ name: string, role: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
         const role = localStorage.getItem('userRole');
-        if (!role) {
+        const user = localStorage.getItem('currentUser');
+
+        if (!role || !user) {
             router.replace('/');
             return;
         }
+        
+        try {
+            const parsedUser = JSON.parse(user);
+            setUserInfo({ name: parsedUser.nama, role: parsedUser.role });
+        } catch (e) {
+            // Fallback if user data is malformed
+            setUserInfo({ name: "Pengguna", role: getRoleDisplayName(role) });
+        }
+
         setUserRole(role);
         setIsLoading(false);
     }, [router]);
 
 
-    if (isLoading) {
+    if (isLoading || !userInfo) {
         return (
             <div className="flex-1 space-y-6 flex justify-center items-center h-[calc(100vh-8rem)]">
                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -175,10 +220,17 @@ export default function DashboardPage() {
         <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">
-                    {userRole === 'admin' ? 'Dasbor Admin' : 'Dasbor'}
+                    Dasbor
                 </h2>
             </div>
             
+            <Card>
+                <CardHeader>
+                    <CardTitle>Selamat Datang, {userInfo.name}!</CardTitle>
+                    <CardDescription>{getWelcomeMessage(userRole, userInfo.name)}</CardDescription>
+                </CardHeader>
+            </Card>
+
             {renderDashboardByRole(userRole)}
         </div>
     );
