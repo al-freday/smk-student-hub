@@ -176,7 +176,7 @@ export default function KehadiranGuruPage() {
     return <div className="flex-1 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
   
-  const canRecordAttendance = ['guru_piket', 'guru_pendamping', 'wakasek_kesiswaan'].includes(userRole || '');
+  const canRecordAttendance = ['guru_piket', 'wakasek_kesiswaan'].includes(userRole || '');
 
   return (
     <div className="flex-1 space-y-6">
@@ -205,7 +205,7 @@ export default function KehadiranGuruPage() {
           </div>
         </div>
 
-        {/* TAB PENCATATAN (UNTUK GURU PIKET, PENDAMPING, WAKASEK) */}
+        {/* TAB PENCATATAN (UNTUK GURU PIKET, WAKASEK) */}
         <TabsContent value="pencatatan">
           <Card>
             <CardHeader>
