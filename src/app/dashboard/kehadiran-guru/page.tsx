@@ -76,6 +76,10 @@ export default function KehadiranGuruPage() {
                             ...assignment,
                             guru: guru.nama,
                             guruId: guru.id,
+                            kelas: assignment.className,
+                            mataPelajaran: assignment.subject,
+                            hari: assignment.day,
+                            sesi: assignment.session,
                         });
                     });
                 }
@@ -107,7 +111,7 @@ export default function KehadiranGuruPage() {
   useEffect(() => {
     const newAttendanceState: { [key: string]: Partial<TeacherAttendanceRecord> } = {};
     jadwalHariIni.forEach(jadwal => {
-        const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}`;
+        const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}-${jadwal.kelas}`;
         const existingRecord = allRecords.find(r => r.id === recordId);
         newAttendanceState[recordId] = existingRecord || {
             status: 'Hadir',
@@ -131,7 +135,7 @@ export default function KehadiranGuruPage() {
     const newRecordsForDay: TeacherAttendanceRecord[] = [];
     
     jadwalHariIni.forEach(jadwal => {
-        const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}`;
+        const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}-${jadwal.kelas}`;
         const state = attendanceState[recordId];
 
         if (state) {
@@ -231,7 +235,7 @@ export default function KehadiranGuruPage() {
                 <TableBody>
                   {jadwalHariIni.length > 0 ? (
                     jadwalHariIni.map((jadwal) => {
-                       const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}`;
+                       const recordId = `${jadwal.guruId}-${selectedDate}-${jadwal.sesi}-${jadwal.kelas}`;
                        const state = attendanceState[recordId];
                        const isHadir = state?.status === 'Hadir';
 
@@ -323,3 +327,4 @@ export default function KehadiranGuruPage() {
     </div>
   );
 }
+
