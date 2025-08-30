@@ -98,15 +98,15 @@ export default function ManajemenPelanggaranPage() {
   const [tindakanAwal, setTindakanAwal] = useState("");
 
   const loadData = useCallback(async () => {
-    const user = await getSourceData('currentUser', null);
+    const user = getSourceData('currentUser', null);
     const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
     
     setCurrentUser(user);
     setUserRole(role);
-    setDaftarSiswa(await getSourceData('siswaData', []));
-    setDaftarKelas(await getSourceData('kelasData', []));
+    setDaftarSiswa(getSourceData('siswaData', []));
+    setDaftarKelas(getSourceData('kelasData', []));
     
-    const pelanggaranData: any[] = await getSourceData('riwayatPelanggaran', []);
+    const pelanggaranData = getSourceData('riwayatPelanggaran', []);
     
     if (Array.isArray(pelanggaranData)) {
       const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
@@ -137,7 +137,7 @@ export default function ManajemenPelanggaranPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveCatatan = async () => {
+  const handleSaveCatatan = () => {
     const siswa = daftarSiswa.find(s => s.nis === selectedNis);
     const aturan = daftarTataTertib.find(t => t.id === selectedRuleId);
 
@@ -146,7 +146,7 @@ export default function ManajemenPelanggaranPage() {
       return;
     }
     
-    const currentRiwayat: any[] = await getSourceData('riwayatPelanggaran', []);
+    const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
     const newCatatan = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
@@ -160,35 +160,35 @@ export default function ManajemenPelanggaranPage() {
       status: 'Dilaporkan' as StatusLaporan,
     };
 
-    await updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
+    updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
     
     toast({ title: "Sukses", description: "Catatan pelanggaran berhasil disimpan." });
     setIsDialogOpen(false);
   };
 
-  const handleDeleteCatatan = async () => {
+  const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    const currentRiwayat = await getSourceData('riwayatPelanggaran', [])
+    const currentRiwayat = getSourceData('riwayatPelanggaran', [])
     const updatedRiwayat = Array.isArray(currentRiwayat) 
         ? currentRiwayat.filter((c: any) => c.id !== catatanToDelete.originalId)
         : [];
         
-    await updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = async (id: string, newStatus: StatusLaporan) => {
-    const allPelanggaran: any[] = await getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = (id: string, newStatus: StatusLaporan) => {
+    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
     const recordToUpdate = riwayatPelanggaran.find(r => r.id === id);
     if (!recordToUpdate) return;
     
     const updatedRiwayat = allPelanggaran.map(item => 
         item.id === recordToUpdate.originalId ? { ...item, status: newStatus } : item
     );
-    await updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${newStatus}".` });
   };
   
@@ -391,8 +391,9 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {siswaDiKelasTerpilih.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
-                                                setSelectedNis(siswa.nis || "");
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={(currentValue) => {
+                                                const selected = siswaDiKelasTerpilih.find(s => s.nama.toLowerCase() === currentValue);
+                                                setSelectedNis(selected ? selected.nis : "");
                                                 setOpenSiswaPopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
