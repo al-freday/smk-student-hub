@@ -81,6 +81,8 @@ export default function ManajemenPelanggaranPage() {
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [catatanToDelete, setCatatanToDelete] = useState<CatatanPelanggaran | null>(null);
+  const [openSiswaPopover, setOpenSiswaPopover] = useState(false);
+  const [openRulePopover, setOpenRulePopover] = useState(false);
   
   // --- Form Data States ---
   const [selectedNis, setSelectedNis] = useState<string>("");
@@ -369,7 +371,7 @@ export default function ManajemenPelanggaranPage() {
             <div className="grid gap-6 py-4">
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2"><User/>Pilih Siswa</Label>
-                    <Popover>
+                    <Popover open={openSiswaPopover} onOpenChange={setOpenSiswaPopover}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between">
                                 {selectedNis ? daftarSiswa.find(s => s.nis === selectedNis)?.nama : "Cari dan pilih siswa..."}
@@ -383,7 +385,10 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarSiswa.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => setSelectedNis(siswa.nis)}>
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
+                                                setSelectedNis(siswa.nis);
+                                                setOpenSiswaPopover(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
                                                 {siswa.nama} ({siswa.kelas})
                                             </CommandItem>
@@ -396,7 +401,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2"><ShieldAlert/>Pilih Jenis Pelanggaran</Label>
-                    <Popover>
+                    <Popover open={openRulePopover} onOpenChange={setOpenRulePopover}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between h-auto text-left">
                                 <span className="flex-1 whitespace-normal">
@@ -412,7 +417,10 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Aturan tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarTataTertib.map(rule => (
-                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => setSelectedRuleId(rule.id)}>
+                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => {
+                                                setSelectedRuleId(rule.id);
+                                                setOpenRulePopover(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedRuleId === rule.id ? "opacity-100" : "opacity-0")}/>
                                                  {rule.deskripsi} <Badge variant="destructive" className="ml-auto">{rule.poin} Poin</Badge>
                                             </CommandItem>
@@ -451,3 +459,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
