@@ -391,9 +391,8 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {siswaDiKelasTerpilih.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={(currentValue) => {
-                                                const selected = siswaDiKelasTerpilih.find(s => s.nama.toLowerCase() === currentValue);
-                                                setSelectedNis(selected ? selected.nis : "");
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
+                                                setSelectedNis(siswa.nis);
                                                 setOpenSiswaPopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
@@ -426,7 +425,7 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandGroup>
                                         {daftarTataTertib.map(rule => (
                                             <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => {
-                                                setSelectedRuleId(rule.id || null);
+                                                setSelectedRuleId(rule.id);
                                                 setOpenRulePopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedRuleId === rule.id ? "opacity-100" : "opacity-0")}/>
@@ -467,3 +466,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
