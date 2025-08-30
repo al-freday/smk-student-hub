@@ -39,6 +39,7 @@ type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan k
 
 interface CatatanPelanggaran {
   id: string; // Changed to string to accommodate prefixes
+  originalId: number; // Keep original ID for logic
   tanggal: string;
   nis: string;
   namaSiswa: string;
@@ -73,7 +74,6 @@ export default function ManajemenPelanggaranPage() {
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [kelasBinaan, setKelasBinaan] = useState<string[]>([]);
   
   // --- Filter State ---
   const [filter, setFilter] = useState("");
@@ -99,20 +99,16 @@ export default function ManajemenPelanggaranPage() {
     
     const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
     
-    // Ensure unique IDs by prefixing
-    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map(p => ({
+    // Ensure unique IDs by creating a composite key
+    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
         ...p,
-        id: `pelanggaran-${p.id}`,
+        id: `pelanggaran-${p.id}-${p.tanggal}-${index}`, // Guaranteed unique key
+        originalId: p.id,
     }));
 
     setRiwayatPelanggaran(pelanggaranFormatted);
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
 
-    if (role === 'wali_kelas' && user) {
-        const teachersData = getSourceData('teachersData', {});
-        const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === user.nama);
-        setKelasBinaan(waliKelasData?.kelas || []);
-    }
   }, []);
   
   useEffect(() => {
@@ -138,7 +134,7 @@ export default function ManajemenPelanggaranPage() {
     }
     
     const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
-    const newCatatan: Omit<CatatanPelanggaran, 'id'> & { id: number } = {
+    const newCatatan = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
       nis: siswa.nis,
@@ -148,7 +144,7 @@ export default function ManajemenPelanggaranPage() {
       poin: aturan.poin,
       guruPelapor: currentUser?.nama || "Guru",
       tindakanAwal: tindakanAwal,
-      status: 'Dilaporkan',
+      status: 'Dilaporkan' as StatusLaporan,
     };
 
     updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
@@ -160,23 +156,23 @@ export default function ManajemenPelanggaranPage() {
   const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    const originalId = parseInt(catatanToDelete.id.replace('pelanggaran-', ''));
-
-    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== originalId);
+    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== catatanToDelete.originalId);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = (id: string, status: StatusLaporan) => {
-    const originalId = parseInt(id.replace('pelanggaran-', ''));
-    const allPelanggaran: (Omit<CatatanPelanggaran, 'id'> & { id: number })[] = getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = (id: string, newStatus: StatusLaporan) => {
+    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
+    const recordToUpdate = riwayatPelanggaran.find(r => r.id === id);
+    if (!recordToUpdate) return;
+    
     const updatedRiwayat = allPelanggaran.map(item => 
-        item.id === originalId ? { ...item, status: status } : item
+        item.id === recordToUpdate.originalId ? { ...item, status: newStatus } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
+    toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${newStatus}".` });
   };
   
   const getStatusBadgeVariant = (status: StatusLaporan) => {
@@ -359,9 +355,8 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarSiswa.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={(currentValue) => {
-                                                const selected = daftarSiswa.find(s => s.nama.toLowerCase() === currentValue);
-                                                setSelectedNis(selected?.nis || "");
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
+                                                setSelectedNis(siswa.nis || "");
                                                 setOpenSiswaPopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
@@ -392,9 +387,8 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Aturan tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarTataTertib.map(rule => (
-                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={(currentValue) => {
-                                                const selected = daftarTataTertib.find(r => r.deskripsi.toLowerCase() === currentValue);
-                                                setSelectedRuleId(selected?.id || null);
+                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => {
+                                                setSelectedRuleId(rule.id || null);
                                                 setOpenRulePopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedRuleId === rule.id ? "opacity-100" : "opacity-0")}/>
