@@ -38,7 +38,7 @@ interface TataTertib {
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
 interface CatatanPelanggaran {
-  id: number;
+  id: string; // Changed to string to accommodate prefixes
   tanggal: string;
   nis: string;
   namaSiswa: string;
@@ -96,7 +96,16 @@ export default function ManajemenPelanggaranPage() {
     setCurrentUser(user);
     setUserRole(role);
     setDaftarSiswa(getSourceData('siswaData', []));
-    setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
+    
+    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
+    
+    // Ensure unique IDs by prefixing
+    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map(p => ({
+        ...p,
+        id: `pelanggaran-${p.id}`,
+    }));
+
+    setRiwayatPelanggaran(pelanggaranFormatted);
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
 
     if (role === 'wali_kelas' && user) {
@@ -129,7 +138,7 @@ export default function ManajemenPelanggaranPage() {
     }
     
     const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
-    const newCatatan: CatatanPelanggaran = {
+    const newCatatan: Omit<CatatanPelanggaran, 'id'> & { id: number } = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
       nis: siswa.nis,
@@ -151,17 +160,20 @@ export default function ManajemenPelanggaranPage() {
   const handleDeleteCatatan = () => {
     if (!catatanToDelete) return;
 
-    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== catatanToDelete.id);
+    const originalId = parseInt(catatanToDelete.id.replace('pelanggaran-', ''));
+
+    const updatedRiwayat = getSourceData('riwayatPelanggaran', []).filter((c: any) => c.id !== originalId);
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     
     toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
     setCatatanToDelete(null);
   };
   
-  const handleStatusChange = (id: number, status: StatusLaporan) => {
-    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
+  const handleStatusChange = (id: string, status: StatusLaporan) => {
+    const originalId = parseInt(id.replace('pelanggaran-', ''));
+    const allPelanggaran: (Omit<CatatanPelanggaran, 'id'> & { id: number })[] = getSourceData('riwayatPelanggaran', []);
     const updatedRiwayat = allPelanggaran.map(item => 
-        item.id === id ? { ...item, status: status } : item
+        item.id === originalId ? { ...item, status: status } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
@@ -279,7 +291,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={`${catatan.tipe}-${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
+                            <TableRow key={catatan.id}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -347,8 +359,9 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarSiswa.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
-                                                setSelectedNis(siswa.nis);
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={(currentValue) => {
+                                                const selected = daftarSiswa.find(s => s.nama.toLowerCase() === currentValue);
+                                                setSelectedNis(selected?.nis || "");
                                                 setOpenSiswaPopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
@@ -379,8 +392,9 @@ export default function ManajemenPelanggaranPage() {
                                     <CommandEmpty>Aturan tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarTataTertib.map(rule => (
-                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => {
-                                                setSelectedRuleId(rule.id);
+                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={(currentValue) => {
+                                                const selected = daftarTataTertib.find(r => r.deskripsi.toLowerCase() === currentValue);
+                                                setSelectedRuleId(selected?.id || null);
                                                 setOpenRulePopover(false);
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", selectedRuleId === rule.id ? "opacity-100" : "opacity-0")}/>
