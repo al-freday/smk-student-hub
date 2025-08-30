@@ -236,7 +236,7 @@ export default function KehadiranGuruPage() {
                        const isHadir = state?.status === 'Hadir';
 
                        return (
-                          <TableRow key={jadwal.id}>
+                          <TableRow key={`${recordId}-${jadwal.id}`}>
                             <TableCell>
                                 <p className="font-medium">{jadwal.guru}</p>
                                 <p className="text-xs text-muted-foreground">
