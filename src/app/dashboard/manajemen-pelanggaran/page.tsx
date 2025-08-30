@@ -99,7 +99,6 @@ export default function ManajemenPelanggaranPage() {
     setRiwayatPelanggaran(getSourceData('riwayatPelanggaran', []));
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
 
-    // Get assigned classes for Wali Kelas
     if (role === 'wali_kelas' && user) {
         const teachersData = getSourceData('teachersData', {});
         const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === user.nama);
@@ -179,7 +178,6 @@ export default function ManajemenPelanggaranPage() {
     }
   };
   
-  // --- RENDER LOGIC ---
   const canDelete = userRole === 'wakasek_kesiswaan';
   
   const renderActionMenu = (catatan: CatatanPelanggaran) => {
@@ -221,20 +219,7 @@ export default function ManajemenPelanggaranPage() {
 
   const filteredData = useMemo(() => {
     let data = riwayatPelanggaran;
-
-    // Role-based filtering logic
-    if (userRole && currentUser) {
-        if (['guru_mapel', 'guru_piket', 'guru_pendamping'].includes(userRole)) {
-            data = data.filter(item => item.guruPelapor === currentUser.nama);
-        } else if (userRole === 'wali_kelas') {
-            data = data.filter(item => kelasBinaan.includes(item.kelas));
-        } else if (userRole === 'guru_bk') {
-            data = data.filter(item => item.status === 'Diteruskan ke BK' || item.status === 'Diteruskan ke Wakasek' || item.status === 'Selesai');
-        }
-        // Wakasek sees all, so no filter needed for that role
-    }
-
-    // Search term filtering
+    
     if (filter) {
         data = data.filter(item => 
             item.namaSiswa.toLowerCase().includes(filter.toLowerCase()) ||
@@ -244,7 +229,7 @@ export default function ManajemenPelanggaranPage() {
     }
 
     return data.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-  }, [riwayatPelanggaran, filter, userRole, currentUser, kelasBinaan]);
+  }, [riwayatPelanggaran, filter]);
   
   if (!userRole) {
     return (
@@ -278,7 +263,7 @@ export default function ManajemenPelanggaranPage() {
       <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><ShieldAlert />Daftar Pelanggaran</CardTitle>
-            <CardDescription>Daftar pelanggaran yang relevan untuk Anda, diurutkan dari yang terbaru.</CardDescription>
+            <CardDescription>Daftar semua pelanggaran yang tercatat di sekolah, diurutkan dari yang terbaru.</CardDescription>
         </CardHeader>
         <CardContent>
              <Table>
@@ -294,7 +279,7 @@ export default function ManajemenPelanggaranPage() {
                 <TableBody>
                     {filteredData.length > 0 ? (
                         filteredData.map((catatan) => (
-                            <TableRow key={`${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
+                            <TableRow key={`${catatan.tipe}-${catatan.id}-${catatan.nis}-${catatan.tanggal}`}>
                                 <TableCell>
                                     <p className="font-medium">{catatan.namaSiswa}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
@@ -436,5 +421,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-    
