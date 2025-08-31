@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, User, ShieldAlert, BookMarked, TrendingDown, School, AlertTriangle, Building } from "lucide-react";
+import { PlusCircle, User, ShieldAlert, BookMarked, TrendingDown, School, AlertTriangle, Building, FileWarning } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,8 @@ import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tataTertibData } from "@/lib/tata-tertib-data";
 import StatCard from "@/components/stat-card";
+import PelanggaranPieChart from "@/components/pelanggaran-pie-chart";
+import { Separator } from "@/components/ui/separator";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -197,19 +199,15 @@ export default function ManajemenPelanggaranPage() {
       return {
         kelasTerbanyak: "N/A",
         siswaTeratas: "N/A",
-        jenisTerbanyak: "N/A",
-        pelanggaranBulanIni: 0,
       };
     }
 
-    // Kelas terbanyak
     const pelanggaranPerKelas = riwayatPelanggaran.reduce((acc, p) => {
       acc[p.kelas] = (acc[p.kelas] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     const kelasTerbanyak = Object.keys(pelanggaranPerKelas).reduce((a, b) => pelanggaranPerKelas[a] > pelanggaranPerKelas[b] ? a : b, "N/A");
 
-    // Siswa poin tertinggi
     const poinPerSiswa = riwayatPelanggaran.reduce((acc, p) => {
       acc[p.namaSiswa] = (acc[p.namaSiswa] || 0) + p.poin;
       return acc;
@@ -217,20 +215,7 @@ export default function ManajemenPelanggaranPage() {
     const siswaTeratasNama = Object.keys(poinPerSiswa).reduce((a, b) => poinPerSiswa[a] > poinPerSiswa[b] ? a : b, "N/A");
     const siswaTeratas = `${siswaTeratasNama} (${poinPerSiswa[siswaTeratasNama]} poin)`;
 
-    // Jenis pelanggaran terbanyak
-    let ringan = 0, sedang = 0, berat = 0;
-    riwayatPelanggaran.forEach(p => {
-        if (p.poin <= 10) ringan++;
-        else if (p.poin <= 20) sedang++;
-        else berat++;
-    });
-    const jenisTerbanyak = Math.max(ringan, sedang, berat) === ringan ? "Ringan" : Math.max(ringan, sedang, berat) === sedang ? "Sedang" : "Berat";
-
-    // Pelanggaran bulan ini
-    const awalBulan = startOfMonth(new Date());
-    const pelanggaranBulanIni = riwayatPelanggaran.filter(p => isAfter(new Date(p.tanggal), awalBulan)).length;
-
-    return { kelasTerbanyak, siswaTeratas, jenisTerbanyak, pelanggaranBulanIni };
+    return { kelasTerbanyak, siswaTeratas };
   }, [riwayatPelanggaran]);
 
   if (!userRole) {
@@ -243,10 +228,11 @@ export default function ManajemenPelanggaranPage() {
 
   return (
     <div className="flex-1 space-y-6">
+      {/* --- SECTION 1: HEADER & AKSI UTAMA --- */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Dasbor Pelanggaran Siswa</h2>
-            <p className="text-muted-foreground">Analisis dan catat pelanggaran tata tertib siswa.</p>
+            <h2 className="text-3xl font-bold tracking-tight">Manajemen Pelanggaran Siswa</h2>
+            <p className="text-muted-foreground">Catat, pantau, dan analisis pelanggaran tata tertib siswa.</p>
           </div>
           <Button onClick={handleOpenDialog} className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4"/>
@@ -254,18 +240,60 @@ export default function ManajemenPelanggaranPage() {
           </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Pelanggaran Terbanyak" value={stats.kelasTerbanyak} icon={<Building/>} description="Kelas dengan rekor pelanggaran tertinggi." isLoading={false}/>
-        <StatCard title="Poin Tertinggi" value={stats.siswaTeratas} icon={<TrendingDown/>} description="Siswa dengan akumulasi poin tertinggi." isLoading={false}/>
-        <StatCard title="Jenis Dominan" value={stats.jenisTerbanyak} icon={<AlertTriangle/>} description="Tingkat pelanggaran yang paling sering terjadi." isLoading={false}/>
-        <StatCard title="Pelanggaran Bulan Ini" value={stats.pelanggaranBulanIni.toString()} icon={<ShieldAlert/>} description="Total catatan pelanggaran bulan ini." isLoading={false}/>
-      </div>
+      {/* --- SECTION 2: DASBOR STATISTIK UTAMA --- */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle>Dasbor Analisis Pelanggaran</CardTitle>
+          <CardDescription>Ringkasan data pelanggaran siswa secara keseluruhan.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Kolom Kiri: Statistik Utama */}
+            <div className="lg:col-span-1 space-y-4">
+                <div className="p-4 bg-secondary rounded-lg">
+                    <div className="flex items-center gap-3">
+                        <Building className="h-8 w-8 text-primary"/>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Kelas Pelanggaran Terbanyak</p>
+                            <p className="text-xl font-bold">{stats.kelasTerbanyak}</p>
+                        </div>
+                    </div>
+                </div>
+                 <div className="p-4 bg-secondary rounded-lg">
+                    <div className="flex items-center gap-3">
+                        <TrendingDown className="h-8 w-8 text-destructive"/>
+                        <div>
+                            <p className="text-sm text-muted-foreground">Siswa Poin Tertinggi</p>
+                            <p className="text-xl font-bold">{stats.siswaTeratas}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            {/* Kolom Kanan: Grafik Distribusi */}
+            <div className="lg:col-span-2">
+              <h4 className="font-semibold mb-2 text-center">Distribusi Tingkat Pelanggaran</h4>
+              <div className="h-64 flex items-center justify-center">
+                 {riwayatPelanggaran.length > 0 ? (
+                    <PelanggaranPieChart />
+                 ) : (
+                    <div className="text-center text-muted-foreground">
+                        <FileWarning className="mx-auto h-10 w-10" />
+                        <p>Data belum cukup untuk menampilkan grafik.</p>
+                    </div>
+                 )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* --- SECTION 3: RIWAYAT PELANGGARAN LENGKAP --- */}
       <Card>
         <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <CardTitle className="flex items-center gap-2">Riwayat Pelanggaran Terbaru</CardTitle>
+                    <CardTitle>Riwayat Pelanggaran Terbaru</CardTitle>
                     <CardDescription>Daftar semua pelanggaran yang tercatat, diurutkan dari yang terbaru.</CardDescription>
                 </div>
                  <Input 
@@ -283,7 +311,6 @@ export default function ManajemenPelanggaranPage() {
                         <TableHead>Siswa</TableHead>
                         <TableHead>Detail Pelanggaran</TableHead>
                         <TableHead>Pelapor & Tindakan Awal</TableHead>
-                        <TableHead className="text-center">Status</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -302,14 +329,11 @@ export default function ManajemenPelanggaranPage() {
                                     <p className="font-medium">{catatan.guruPelapor}</p>
                                     <p className="text-xs text-muted-foreground">{catatan.tindakanAwal || "-"}</p>
                                 </TableCell>
-                                <TableCell className="text-center">
-                                    <Badge variant='secondary'>{catatan.status}</Badge>
-                                </TableCell>
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={4} className="text-center h-24">
+                            <TableCell colSpan={3} className="text-center h-24">
                                 Tidak ada data pelanggaran untuk ditampilkan.
                             </TableCell>
                         </TableRow>
@@ -348,8 +372,8 @@ export default function ManajemenPelanggaranPage() {
                     </div>
                 </div>
                 
-                <div className="space-y-2">
-                     <Label className="font-semibold">2. Pilih Kategori Pelanggaran</Label>
+                 <div className="space-y-2">
+                    <Label className="font-semibold">2. Pilih Kategori Pelanggaran</Label>
                     <Select value={selectedKategori} onValueChange={(v) => { setSelectedKategori(v as KategoriKey); setSelectedRuleId(""); }}>
                         <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
                         <SelectContent>
@@ -361,7 +385,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                     <Label className="font-semibold">3. Pilih Deskripsi Pelanggaran</Label>
+                    <Label className="font-semibold">3. Pilih Deskripsi Pelanggaran</Label>
                     <Select value={selectedRuleId} onValueChange={setSelectedRuleId} disabled={!selectedKategori}>
                         <SelectTrigger><SelectValue placeholder="Pilih pelanggaran spesifik..." /></SelectTrigger>
                         <SelectContent className="max-h-60">
@@ -395,6 +419,3 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
-
-
-    
