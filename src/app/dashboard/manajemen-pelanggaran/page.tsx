@@ -85,7 +85,6 @@ export default function ManajemenPelanggaranPage() {
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [catatanToDelete, setCatatanToDelete] = useState<CatatanPelanggaran | null>(null);
-  const [openSiswaPopover, setOpenSiswaPopover] = useState(false);
   const [openRulePopover, setOpenRulePopover] = useState(false);
   
   // --- Form Data States ---
@@ -374,33 +373,18 @@ export default function ManajemenPelanggaranPage() {
                     <Label className={cn("flex items-center gap-2", !selectedKelasForForm && "text-muted-foreground")}>
                         <User/>2. Pilih Siswa
                     </Label>
-                    <Popover open={openSiswaPopover} onOpenChange={setOpenSiswaPopover}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!selectedKelasForForm}>
-                                {selectedNis ? daftarSiswa.find(s => s.nis === selectedNis)?.nama : "Pilih siswa..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[450px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Ketik nama siswa..."/>
-                                <CommandList>
-                                    <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
-                                    <CommandGroup>
-                                        {siswaDiKelasTerpilih.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
-                                                setSelectedNis(siswa.nis);
-                                                setOpenSiswaPopover(false);
-                                            }}>
-                                                <Check className={cn("mr-2 h-4 w-4", selectedNis === siswa.nis ? "opacity-100" : "opacity-0")}/>
-                                                {siswa.nama}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Select value={selectedNis} onValueChange={setSelectedNis} disabled={!selectedKelasForForm}>
+                         <SelectTrigger>
+                            <SelectValue placeholder="Pilih siswa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                             {siswaDiKelasTerpilih.map(siswa => (
+                                <SelectItem key={siswa.nis} value={siswa.nis}>
+                                    {siswa.nama}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div className="space-y-2">
