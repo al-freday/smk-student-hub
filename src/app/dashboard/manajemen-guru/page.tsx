@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Users, BookUser, Shield, Clock, Upload } from "lucide-react";
+import { Edit, Calendar as CalendarIcon, Download, Printer, PlusCircle, Trash2, Users, BookUser, Shield, Clock, Upload, ChevronsUpDown, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -38,6 +38,7 @@ import { Separator } from "@/components/ui/separator";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
 interface Kelas {
@@ -227,12 +228,6 @@ export default function ManajemenGuruPage() {
           dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
       }
       
-      if (activeTab === 'guru_pendamping') {
-          const kelasBinaan = dataToSave.kelas || [];
-          const siswaValid = daftarSiswa.filter(s => kelasBinaan.includes(s.kelas)).map(s => s.nama);
-          dataToSave.siswaBinaan = (dataToSave.siswaBinaan || []).filter(namaSiswa => siswaValid.includes(namaSiswa));
-      }
-
       const currentFullData = getSourceData('teachersData', {});
       const { schoolInfo, ...roles } = currentFullData;
 
@@ -257,42 +252,21 @@ export default function ManajemenGuruPage() {
   const handleKelasBinaanChange = (namaKelas: string, checked: boolean) => {
       setFormData(prev => {
         const currentKelas = prev.kelas || [];
-        let newKelasBinaan: string[];
         if (checked) {
-            newKelasBinaan = [...currentKelas, namaKelas];
+          return { ...prev, kelas: [...currentKelas, namaKelas] };
         } else {
-            newKelasBinaan = currentKelas.filter(k => k !== namaKelas);
+          return { ...prev, kelas: currentKelas.filter(k => k !== namaKelas) };
         }
-        
-        const siswaBinaanLama = prev.siswaBinaan || [];
-        const siswaValid = daftarSiswa
-            .filter(s => newKelasBinaan.includes(s.kelas))
-            .map(s => s.nama);
-        const siswaBinaanBaru = siswaBinaanLama.filter(s => siswaValid.includes(s));
-
-        return { ...prev, kelas: newKelasBinaan, siswaBinaan: siswaBinaanBaru };
       });
   };
 
-  const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
+  const handleSiswaBinaanChange = (siswaNama: string) => {
       setFormData(prev => {
           const currentSiswa = prev.siswaBinaan || [];
-          if (checked) {
-              return { ...prev, siswaBinaan: [...currentSiswa, siswaNama] };
-          } else {
+          if (currentSiswa.includes(siswaNama)) {
               return { ...prev, siswaBinaan: currentSiswa.filter(s => s !== siswaNama) };
-          }
-      });
-  };
-
-  const handleSelectAllSiswaInClass = (namaKelas: string, checked: boolean) => {
-      const siswaDiKelas = daftarSiswa.filter(s => s.kelas === namaKelas).map(s => s.nama);
-      setFormData(prev => {
-          const siswaLain = (prev.siswaBinaan || []).filter(s => !siswaDiKelas.includes(s));
-          if (checked) {
-              return { ...prev, siswaBinaan: [...siswaLain, ...siswaDiKelas] };
           } else {
-              return { ...prev, siswaBinaan: siswaLain };
+              return { ...prev, siswaBinaan: [...currentSiswa, siswaNama] };
           }
       });
   };
@@ -475,14 +449,6 @@ export default function ManajemenGuruPage() {
   const handlePrint = () => {
       window.print();
   };
-  
-  const kelasBinaanTerpilihUntukPendamping = useMemo(() => formData.kelas || [], [formData.kelas]);
-  
-  const siswaYangDisaring = useMemo(() => {
-    return daftarSiswa
-      .filter(siswa => kelasBinaanTerpilihUntukPendamping.includes(siswa.kelas))
-      .sort((a, b) => a.nama.localeCompare(b.nama));
-  }, [kelasBinaanTerpilihUntukPendamping, daftarSiswa]);
 
   const renderFormFields = () => (
     <>
@@ -616,72 +582,45 @@ export default function ManajemenGuruPage() {
         </div>
       )}
        {activeTab === 'guru_pendamping' && (
-        <div className="space-y-6">
-            <div className="space-y-2">
-                <Label className="font-semibold">1. Pilih Kelas Binaan</Label>
-                <ScrollArea className="h-32 rounded-md border p-4">
-                    <div className="space-y-2">
-                        {availableKelas.map((k) => (
-                            <div key={k.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                    id={`kelas-binaan-${k.id}`}
-                                    checked={(formData.kelas || []).includes(k.nama)}
-                                    onCheckedChange={(checked) => handleKelasBinaanChange(k.nama, !!checked)}
-                                />
-                                <label htmlFor={`kelas-binaan-${k.id}`} className="text-sm font-medium leading-none">
-                                    {k.nama}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-            </div>
-             <div className="space-y-2">
-                <Label className="font-semibold">2. Pilih Siswa Binaan</Label>
-                <ScrollArea className="h-52 rounded-md border p-2">
-                    {kelasBinaanTerpilihUntukPendamping.length > 0 ? (
-                        <Accordion type="multiple" className="w-full">
-                            {kelasBinaanTerpilihUntukPendamping.map(namaKelas => {
-                                const siswaDiKelas = daftarSiswa.filter(s => s.kelas === namaKelas);
-                                const semuaSiswaDiKelasTerpilih = siswaDiKelas.length > 0 && siswaDiKelas.every(s => (formData.siswaBinaan || []).includes(s.nama));
-                                
-                                return (
-                                    <AccordionItem value={namaKelas} key={namaKelas}>
-                                        <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded-md">
-                                             <Checkbox
-                                                id={`kelas-all-${namaKelas}`}
-                                                checked={semuaSiswaDiKelasTerpilih}
-                                                onCheckedChange={checked => handleSelectAllSiswaInClass(namaKelas, !!checked)}
-                                            />
-                                            <AccordionTrigger className="text-sm p-0 flex-1 hover:no-underline">
-                                                <label htmlFor={`kelas-all-${namaKelas}`} className="font-medium cursor-pointer">{namaKelas}</label>
-                                            </AccordionTrigger>
-                                        </div>
-                                        <AccordionContent className="p-2 pl-4">
-                                            {siswaDiKelas.map(siswa => (
-                                                <div key={siswa.id} className="flex items-center space-x-2 my-1">
-                                                    <Checkbox
-                                                        id={`siswa-${siswa.id}`}
-                                                        checked={(formData.siswaBinaan || []).includes(siswa.nama)}
-                                                        onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
-                                                    />
-                                                    <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-normal leading-none">
-                                                        {siswa.nama}
-                                                    </label>
-                                                </div>
-                                            ))}
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                );
-                            })}
-                        </Accordion>
-                    ) : (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            Pilih setidaknya satu kelas binaan untuk menampilkan daftar siswa.
-                        </div>
-                    )}
-                </ScrollArea>
-            </div>
+        <div className="space-y-2">
+            <Label className="font-semibold">Pilih Siswa Binaan</Label>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between h-auto">
+                        <span className="flex flex-wrap gap-1">
+                            {(formData.siswaBinaan || []).length > 0 
+                                ? formData.siswaBinaan!.map(namaSiswa => <Badge key={namaSiswa} variant="secondary">{namaSiswa}</Badge>) 
+                                : "Pilih satu atau lebih siswa..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder="Cari nama siswa..." />
+                        <CommandList>
+                            <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
+                            <CommandGroup>
+                                {daftarSiswa.sort((a,b) => a.nama.localeCompare(b.nama)).map(siswa => (
+                                    <CommandItem
+                                        key={siswa.id}
+                                        value={siswa.nama}
+                                        onSelect={() => handleSiswaBinaanChange(siswa.nama)}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                (formData.siswaBinaan || []).includes(siswa.nama) ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {siswa.nama} ({siswa.kelas})
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         </div>
       )}
     </>
@@ -850,5 +789,3 @@ export default function ManajemenGuruPage() {
     </div>
   );
 }
-
-    
