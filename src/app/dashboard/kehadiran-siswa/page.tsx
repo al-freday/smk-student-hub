@@ -3,19 +3,17 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Save, UserCheck, UserX, Thermometer, MailQuestion, UserMinus, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, getDay } from "date-fns";
-import { id } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { tataTertibData } from "@/lib/tata-tertib-data";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 type KehadiranStatus = 'Hadir' | 'Sakit' | 'Izin' | 'Alpa' | 'Bolos';
 
@@ -65,13 +63,12 @@ interface CatatanPelanggaran {
   status: 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
 }
 
-
-const statusOptions: { value: KehadiranStatus; icon: React.ElementType }[] = [
-    { value: 'Hadir', icon: UserCheck },
-    { value: 'Sakit', icon: Thermometer },
-    { value: 'Izin', icon: MailQuestion },
-    { value: 'Alpa', icon: UserX },
-    { value: 'Bolos', icon: UserMinus },
+const statusOptions: { value: KehadiranStatus; icon: React.ElementType; color: string }[] = [
+    { value: 'Hadir', icon: UserCheck, color: "border-green-500" },
+    { value: 'Sakit', icon: Thermometer, color: "border-yellow-500" },
+    { value: 'Izin', icon: MailQuestion, color: "border-yellow-500" },
+    { value: 'Alpa', icon: UserX, color: "border-red-500" },
+    { value: 'Bolos', icon: UserMinus, color: "border-red-500" },
 ];
 
 const daftarHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -183,7 +180,6 @@ export default function KehadiranSiswaPage() {
             guruPencatat: currentUser?.nama || 'Guru',
         });
         
-        // --- LOGIKA OTOMATISASI PELANGGARAN ---
         if (status === 'Alpa' || status === 'Bolos') {
             const ruleDescription = status === 'Alpa' 
                 ? "Tidak hadir tanpa keterangan (alpha) berulang." 
@@ -242,11 +238,11 @@ export default function KehadiranSiswaPage() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
              <div>
-                <CardTitle>Pilih Kelas, Tanggal & Sesi</CardTitle>
-                <CardDescription>Pilih detail sesi untuk mengisi atau melihat absensi.</CardDescription>
+                <CardTitle>Panel Kontrol Absensi</CardTitle>
+                <CardDescription>Pilih kelas, tanggal, dan sesi untuk memulai absensi.</CardDescription>
             </div>
              <div className="flex items-end gap-4 flex-wrap">
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <Label htmlFor="filter-kelas">Kelas</Label>
                     <Select value={selectedKelas} onValueChange={setSelectedKelas}>
                         <SelectTrigger id="filter-kelas" className="w-[180px]">
@@ -257,7 +253,7 @@ export default function KehadiranSiswaPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <Label htmlFor="filter-tanggal">Tanggal</Label>
                     <Input
                         id="filter-tanggal"
@@ -267,7 +263,7 @@ export default function KehadiranSiswaPage() {
                         className="w-fit"
                     />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <Label htmlFor="filter-sesi">Jam Pelajaran</Label>
                     <Select value={selectedSesi} onValueChange={setSelectedSesi} disabled={jadwalHariIni.length === 0}>
                         <SelectTrigger id="filter-sesi" className="w-[240px]">
@@ -283,57 +279,61 @@ export default function KehadiranSiswaPage() {
                     </Select>
                 </div>
                 <Button onClick={handleSaveAttendance}>
-                    <Save className="mr-2 h-4 w-4" /> Simpan
+                    <Save className="mr-2 h-4 w-4" /> Simpan Absensi
                 </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-            {selectedKelas && selectedSesi ? (
-                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50px]">No.</TableHead>
-                            <TableHead>NIS</TableHead>
-                            <TableHead>Nama Siswa</TableHead>
-                            <TableHead className="text-center">Status Kehadiran</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {studentsToDisplay.map((siswa, index) => (
-                          <TableRow key={siswa.id}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{siswa.nis}</TableCell>
-                            <TableCell className="font-medium">{siswa.nama}</TableCell>
-                            <TableCell className="text-center">
-                                <RadioGroup
-                                    value={attendanceState.get(siswa.nis) || 'Hadir'}
-                                    onValueChange={(value) => handleStatusChange(siswa.nis, value as KehadiranStatus)}
-                                    className="flex justify-center space-x-4"
-                                >
-                                    {statusOptions.map(status => (
-                                        <div key={status.value} className="flex items-center space-x-2">
-                                            <RadioGroupItem value={status.value} id={`${siswa.nis}-${status.value}`} />
-                                            <Label htmlFor={`${siswa.nis}-${status.value}`}>{status.value}</Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            ) : (
-                <div className="text-center text-muted-foreground py-10">
-                    <BookOpen className="mx-auto h-12 w-12" />
-                    <p className="mt-4 font-semibold">Silakan pilih kelas, tanggal, dan jam pelajaran.</p>
-                    <p className="text-sm">
-                        {jadwalHariIni.length === 0 && selectedKelas && selectedDate ? `Tidak ada jadwal pelajaran untuk kelas ${selectedKelas} pada hari ini.` : 'Pilih sesi untuk memulai absensi.'}
-                    </p>
-                </div>
-            )}
-        </CardContent>
       </Card>
+
+      {selectedKelas && selectedSesi ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {studentsToDisplay.map((siswa) => {
+            const status = attendanceState.get(siswa.nis) || 'Hadir';
+            const statusInfo = statusOptions.find(opt => opt.value === status);
+            return (
+              <Card key={siswa.id} className={cn("transition-all border-2", statusInfo?.color)}>
+                <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>{siswa.nama.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm leading-tight">{siswa.nama}</p>
+                    <p className="text-xs text-muted-foreground">{siswa.nis}</p>
+                  </div>
+                  <Select value={status} onValueChange={(value: KehadiranStatus) => handleStatusChange(siswa.nis, value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          <div className="flex items-center gap-2">
+                            <opt.icon className="h-4 w-4" />
+                            <span>{opt.value}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ) : (
+        <Card>
+            <CardContent className="p-10 text-center text-muted-foreground">
+                <BookOpen className="mx-auto h-12 w-12" />
+                <p className="mt-4 font-semibold">Silakan pilih kelas dan jam pelajaran untuk memulai.</p>
+                <p className="text-sm">
+                    {jadwalHariIni.length === 0 && selectedKelas && selectedDate ? `Tidak ada jadwal pelajaran untuk kelas ${selectedKelas} pada hari ini.` : 'Daftar siswa akan muncul di sini setelah Anda memilih sesi.'}
+                </p>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
+    
