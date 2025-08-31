@@ -19,6 +19,7 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tataTertibData } from "@/lib/tata-tertib-data";
+import { UserX, Shirt, Speech, GraduationCap, WifiOff, School, BookMarked } from "lucide-react";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -33,37 +34,32 @@ interface Kelas {
     nama: string;
 }
 
-const flattenTataTertib = (data: typeof tataTertibData) => {
-    const allRules: { id: number, deskripsi: string, poin: number, kategori: string }[] = [];
+type KategoriKey = keyof typeof tataTertibData;
+
+const kategoriInfo: { [key in KategoriKey]: { icon: React.ElementType, title: string } } = {
+  kehadiran: { icon: UserX, title: "Pelanggaran Kehadiran & Ketertiban" },
+  seragam: { icon: Shirt, title: "Pelanggaran Seragam & Penampilan" },
+  lingkungan: { icon: Trash2, title: "Pelanggaran Tata Tertib Kelas & Lingkungan" },
+  etika: { icon: Speech, title: "Pelanggaran Etika & Perilaku" },
+  akademik: { icon: GraduationCap, title: "Pelanggaran Akademik" },
+  teknologi: { icon: WifiOff, title: "Pelanggaran Teknologi & Media Sosial" },
+  kegiatan: { icon: School, title: "Pelanggaran Kegiatan Sekolah" },
+  hukum: { icon: ShieldAlert, title: "Pelanggaran Berat Terkait Hukum" },
+};
+
+const flattenTataTertib = () => {
+    const allRules: { id: number, deskripsi: string, poin: number, kategori: KategoriKey, tingkat: string }[] = [];
     let idCounter = 1;
-    for (const kategori in data) {
-        for (const tingkat in data[kategori as keyof typeof data]) {
+    for (const kategori in tataTertibData) {
+        for (const tingkat in tataTertibData[kategori as KategoriKey]) {
             // @ts-ignore
-            data[kategori as keyof typeof data][tingkat].forEach(rule => {
-                allRules.push({ ...rule, id: idCounter++, kategori: kategori });
+            tataTertibData[kategori as KategoriKey][tingkat].forEach(rule => {
+                allRules.push({ ...rule, id: idCounter++, kategori: kategori as KategoriKey, tingkat });
             });
         }
     }
     return allRules;
 };
-
-const groupedTataTertib = (data: typeof tataTertibData) => {
-    const grouped: { [key: string]: { deskripsi: string, poin: number, id: number }[] } = {};
-    let idCounter = 1;
-    Object.entries(data).forEach(([kategori, tingkat]) => {
-        const kategoriNama = kategori.charAt(0).toUpperCase() + kategori.slice(1);
-        if (!grouped[kategoriNama]) {
-            grouped[kategoriNama] = [];
-        }
-        Object.values(tingkat).forEach(aturan => {
-            aturan.forEach(rule => {
-                grouped[kategoriNama].push({ ...rule, id: idCounter++ });
-            });
-        });
-    });
-    return grouped;
-};
-
 
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
@@ -88,8 +84,7 @@ export default function ManajemenPelanggaranPage() {
   // --- Data States ---
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
-  const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
-  const [groupedRules, setGroupedRules] = useState<Record<string, { deskripsi: string; poin: number; id: number; }[]>>({});
+  const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number; deskripsi: string; poin: number; kategori: KategoriKey; tingkat: string; }[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -104,6 +99,7 @@ export default function ManajemenPelanggaranPage() {
   // --- Form Data States ---
   const [selectedKelasForForm, setSelectedKelasForForm] = useState<string>("");
   const [selectedNis, setSelectedNis] = useState<string>("");
+  const [selectedKategori, setSelectedKategori] = useState<KategoriKey | "">("");
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
   const [tindakanAwal, setTindakanAwal] = useState("");
 
@@ -129,8 +125,7 @@ export default function ManajemenPelanggaranPage() {
       setRiwayatPelanggaran([]);
     }
 
-    setDaftarTataTertib(flattenTataTertib(tataTertibData));
-    setGroupedRules(groupedTataTertib(tataTertibData));
+    setDaftarTataTertib(flattenTataTertib());
 
   }, []);
   
@@ -143,6 +138,7 @@ export default function ManajemenPelanggaranPage() {
   const handleOpenDialog = () => {
     setSelectedKelasForForm("");
     setSelectedNis("");
+    setSelectedKategori("");
     setSelectedRuleId("");
     setTindakanAwal("");
     setIsDialogOpen(true);
@@ -153,7 +149,7 @@ export default function ManajemenPelanggaranPage() {
     const aturan = daftarTataTertib.find(t => t.id.toString() === selectedRuleId);
 
     if (!siswa || !aturan) {
-      toast({ title: "Gagal Menyimpan", description: "Harap pilih kelas, siswa, dan jenis pelanggaran.", variant: "destructive" });
+      toast({ title: "Gagal Menyimpan", description: "Harap lengkapi semua pilihan formulir.", variant: "destructive" });
       return;
     }
     
@@ -272,6 +268,11 @@ export default function ManajemenPelanggaranPage() {
       return daftarSiswa.filter(s => s.kelas === selectedKelasForForm);
   }, [selectedKelasForForm, daftarSiswa]);
 
+  const pelanggaranDiKategori = useMemo(() => {
+      if (!selectedKategori) return [];
+      return daftarTataTertib.filter(p => p.kategori === selectedKategori);
+  }, [selectedKategori, daftarTataTertib]);
+
   if (!userRole) {
     return (
       <div className="flex-1 space-y-6 flex justify-center items-center">
@@ -385,17 +386,37 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                        <User/>2. Pilih Siswa
-                    </Label>
+                    <Label className="flex items-center gap-2"><User/>2. Pilih Siswa</Label>
                     <Select value={selectedNis} onValueChange={setSelectedNis} disabled={!selectedKelasForForm}>
-                         <SelectTrigger>
-                            <SelectValue placeholder="Pilih siswa..." />
-                        </SelectTrigger>
+                         <SelectTrigger><SelectValue placeholder="Pilih siswa..." /></SelectTrigger>
                         <SelectContent>
                              {siswaDiKelasTerpilih.map(siswa => (
-                                <SelectItem key={siswa.nis} value={siswa.nis}>
-                                    {siswa.nama}
+                                <SelectItem key={siswa.nis} value={siswa.nis}>{siswa.nama}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Kategori Pelanggaran</Label>
+                    <Select value={selectedKategori} onValueChange={(v: KategoriKey) => { setSelectedKategori(v); setSelectedRuleId(""); }}>
+                        <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
+                        <SelectContent>
+                            {Object.entries(kategoriInfo).map(([key, { title }]) => (
+                                <SelectItem key={key} value={key}>{title}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><BookMarked />4. Pilih Tingkat dan Deskripsi Pelanggaran</Label>
+                    <Select value={selectedRuleId} onValueChange={setSelectedRuleId} disabled={!selectedKategori}>
+                        <SelectTrigger><SelectValue placeholder="Pilih pelanggaran..." /></SelectTrigger>
+                        <SelectContent className="max-h-60">
+                            {pelanggaranDiKategori.map(rule => (
+                                <SelectItem key={rule.id} value={rule.id.toString()}>
+                                    ({rule.tingkat.charAt(0).toUpperCase() + rule.tingkat.slice(1)}) {rule.deskripsi} ({rule.poin} Poin)
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -403,27 +424,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Jenis Pelanggaran</Label>
-                    <Select value={selectedRuleId} onValueChange={setSelectedRuleId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Pilih jenis pelanggaran..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60">
-                            {Object.entries(groupedRules).map(([kategori, rules]) => (
-                                <SelectGroup key={kategori}>
-                                    <SelectLabel>{kategori}</SelectLabel>
-                                    {rules.map(rule => (
-                                        <SelectItem key={rule.id} value={rule.id.toString()}>
-                                            {rule.deskripsi} ({rule.poin} Poin)
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>4. Tindakan Awal yang Dilakukan (Opsional)</Label>
+                    <Label>5. Tindakan Awal yang Dilakukan (Opsional)</Label>
                     <Textarea value={tindakanAwal} onChange={e => setTindakanAwal(e.target.value)} placeholder="Contoh: Ditegur secara lisan di tempat."/>
                 </div>
             </div>
