@@ -45,9 +45,13 @@ export default function RootLayout({
     const loadSchoolInfo = () => {
       const savedData = localStorage.getItem('teachersData');
       if (savedData) {
-        const teachersData = JSON.parse(savedData);
-        if (teachersData.schoolInfo) {
-          setSchoolInfo(teachersData.schoolInfo);
+        try {
+          const teachersData = JSON.parse(savedData);
+          if (teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+          }
+        } catch (e) {
+            console.error("Failed to parse teachersData from localStorage", e);
         }
       }
     };
@@ -55,26 +59,31 @@ export default function RootLayout({
     loadSchoolInfo();
     applyTheme();
 
-    window.addEventListener('storage', () => {
-      loadSchoolInfo();
-      applyTheme();
-    });
+    const handleStorageUpdate = () => {
+        loadSchoolInfo();
+        applyTheme();
+    };
+
+    window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('roleChanged', applyTheme);
+    window.addEventListener('dataUpdated', loadSchoolInfo);
 
     return () => {
-      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('storage', handleStorageUpdate);
       window.removeEventListener('roleChanged', applyTheme);
+       window.removeEventListener('dataUpdated', loadSchoolInfo);
     };
   }, []);
 
   const pageTitle = schoolInfo.schoolName || "Sistem Manajemen Kesiswaan";
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${schoolInfo.schoolName}.`;
-  const imageUrl = schoolInfo.logo || "/placeholder-logo.png"; // Fallback image jika logo belum ada
+  const imageUrl = schoolInfo.logo || "/placeholder-logo.png";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
         <title>{pageTitle}</title>
+        {schoolInfo.logo && <link rel="icon" href={schoolInfo.logo} type="image/x-icon" />}
         <meta name="description" content={pageDescription} />
         
         {/* Open Graph / Facebook */}
