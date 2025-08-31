@@ -170,17 +170,6 @@ export default function EkskulPrestasiPage() {
     setEkskulToDelete(null);
   };
 
-  const handleSelectPembina = (namaGuru: string) => {
-    setEkskulFormData(prev => {
-        const currentPembina = prev.pembina || [];
-        if (currentPembina.includes(namaGuru)) {
-            return { ...prev, pembina: currentPembina.filter(p => p !== namaGuru) };
-        } else {
-            return { ...prev, pembina: [...currentPembina, namaGuru] };
-        }
-    });
-  };
-
   // --- Prestasi Handlers ---
   const handleOpenPrestasiDialog = (prestasi: Prestasi | null = null) => {
     setEditingPrestasi(prestasi);
@@ -356,7 +345,14 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.id}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    handleSelectPembina(guru.nama);
+                                                    setEkskulFormData(prev => {
+                                                        const currentPembina = prev.pembina || [];
+                                                        if (currentPembina.includes(guru.nama)) {
+                                                            return { ...prev, pembina: currentPembina.filter(p => p !== guru.nama) };
+                                                        } else {
+                                                            return { ...prev, pembina: [...currentPembina, guru.nama] };
+                                                        }
+                                                    });
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -445,13 +441,13 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul "{ekskulToDelete?.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data prestasi milik {prestasiToDelete?.namaSiswa}.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
