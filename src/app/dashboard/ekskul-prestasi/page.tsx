@@ -354,7 +354,13 @@ export default function EkskulPrestasiPage() {
                                     <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarGuru.map(guru => (
-                                            <CommandItem key={guru.uniqueId} value={guru.nama} onSelect={() => handleSelectPembina(guru.nama)}>
+                                            <CommandItem
+                                                key={guru.uniqueId}
+                                                value={guru.nama}
+                                                onSelect={(currentValue) => {
+                                                    handleSelectPembina(currentValue);
+                                                }}
+                                            >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
                                                 {guru.nama}
                                             </CommandItem>
@@ -454,5 +460,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
-    
