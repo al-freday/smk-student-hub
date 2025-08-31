@@ -210,13 +210,13 @@ export default function ManajemenTataTertibPage() {
               </AccordionTrigger>
               <AccordionContent className="p-0">
                 <div className="border-t p-4">
-                    {canEdit && 
+                    {canEdit && (
                         <div className="flex justify-end mb-4 print:hidden">
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleOpenDialog(kategori); }}>
+                            <Button size="sm" onClick={() => handleOpenDialog(kategori)}>
                                <PlusCircle className="mr-2 h-4 w-4"/> Tambah Aturan
                             </Button>
                         </div>
-                    }
+                    )}
                     <Table>
                         <TableHeader>
                             <TableRow>
