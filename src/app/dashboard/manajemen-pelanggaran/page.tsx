@@ -36,10 +36,20 @@ interface Kelas {
     nama: string;
 }
 
-interface TataTertib {
-  deskripsi: string;
-  poin: number;
-}
+const flattenTataTertib = (data: typeof tataTertibData) => {
+    let allRules: { id: number, deskripsi: string, poin: number }[] = [];
+    let idCounter = 1;
+    for (const kategori in data) {
+        for (const tingkat in data[kategori as keyof typeof data]) {
+            // @ts-ignore
+            data[kategori as keyof typeof data][tingkat].forEach(rule => {
+                allRules.push({ ...rule, id: idCounter++ });
+            });
+        }
+    }
+    return allRules;
+};
+
 
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diteruskan ke Wakasek' | 'Selesai';
 
@@ -57,19 +67,6 @@ interface CatatanPelanggaran {
   status: StatusLaporan;
 }
 
-const flattenTataTertib = (data: typeof tataTertibData) => {
-    let allRules: { id: number, deskripsi: string, poin: number }[] = [];
-    let idCounter = 1;
-    for (const kategori in data) {
-        for (const tingkat in data[kategori as keyof typeof data]) {
-            // @ts-ignore
-            data[kategori as keyof typeof data][tingkat].forEach(rule => {
-                allRules.push({ ...rule, id: idCounter++ });
-            });
-        }
-    }
-    return allRules;
-};
 
 export default function ManajemenPelanggaranPage() {
   const { toast } = useToast();
@@ -465,4 +462,5 @@ export default function ManajemenPelanggaranPage() {
       </AlertDialog>
     </div>
   );
-}
+
+    
