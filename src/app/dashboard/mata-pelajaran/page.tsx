@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { BookCopy, Edit, PlusCircle, Save, Trash2 } from "lucide-react";
+import { BookCopy, Edit, PlusCircle, Save, Trash2, Book } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { initialKurikulumData } from "@/lib/kurikulum-data";
 
@@ -71,7 +71,7 @@ export default function MataPelajaranPage() {
   useEffect(() => {
     // Load data from localStorage or initialize with default
     const savedData = getSourceData('kurikulumData', null);
-    if (savedData) {
+    if (savedData && Object.keys(savedData).length > 0) {
       setKurikulum(savedData);
     } else {
       setKurikulum(initialKurikulumData);
@@ -98,12 +98,12 @@ export default function MataPelajaranPage() {
     
     setKurikulum(prevKurikulum => {
       const newKurikulum = JSON.parse(JSON.stringify(prevKurikulum));
-      const targetKelompok = newKurikulum[formLocation.tingkat!].kelompok.find(k => k.nama === formLocation.kelompok);
+      const targetKelompok = newKurikulum[formLocation.tingkat!].kelompok.find((k: Kelompok) => k.nama === formLocation.kelompok);
 
       if (targetKelompok) {
         if (editingSubject) {
           // Update existing subject
-          const subjectIndex = targetKelompok.subjects.findIndex(s => s.id === editingSubject.id);
+          const subjectIndex = targetKelompok.subjects.findIndex((s: Subject) => s.id === editingSubject.id);
           if (subjectIndex > -1) {
             targetKelompok.subjects[subjectIndex] = { ...editingSubject, ...formData };
           }
@@ -126,9 +126,9 @@ export default function MataPelajaranPage() {
 
     setKurikulum(prevKurikulum => {
         const newKurikulum = JSON.parse(JSON.stringify(prevKurikulum));
-        const targetKelompok = newKurikulum[tingkat].kelompok.find(k => k.nama === kelompok);
+        const targetKelompok = newKurikulum[tingkat].kelompok.find((k: Kelompok) => k.nama === kelompok);
         if (targetKelompok) {
-            targetKelompok.subjects = targetKelompok.subjects.filter(s => s.id !== subject.id);
+            targetKelompok.subjects = targetKelompok.subjects.filter((s: Subject) => s.id !== subject.id);
         }
         return newKurikulum;
     });
@@ -172,29 +172,36 @@ export default function MataPelajaranPage() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-0">
-                <div className="border-t p-6 grid md:grid-cols-2 gap-x-6 gap-y-8">
+                <div className="border-t p-4 md:p-6 grid md:grid-cols-2 gap-6">
                   {tingkatan.kelompok.map((kelompok) => (
-                    <div key={kelompok.nama}>
-                      <h4 className="font-semibold text-lg mb-4">{kelompok.nama}</h4>
-                      <ul className="space-y-3">
-                        {kelompok.subjects.map((subject) => (
-                           <li key={subject.id} className="flex items-center justify-between group">
-                                <div>
-                                    <span className="text-muted-foreground">{subject.nama}</span>
-                                    {subject.catatan && <p className="text-xs italic text-primary/80 pl-2">- {subject.catatan}</p>}
-                                </div>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(subject, key as TingkatKey, kelompok.nama as KelompokKey)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => setSubjectToDelete({ subject, tingkat: key as TingkatKey, kelompok: kelompok.nama as KelompokKey })}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                           </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <Card key={kelompok.nama} className="shadow-md">
+                        <CardHeader>
+                            <CardTitle className="text-base">{kelompok.nama}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-3">
+                                {kelompok.subjects.map((subject) => (
+                                <li key={subject.id} className="flex items-center justify-between group p-2 -m-2 rounded-md hover:bg-secondary">
+                                    <div className="flex items-center gap-3">
+                                        <Book className="h-4 w-4 text-primary/70"/>
+                                        <div>
+                                            <p className="font-medium text-sm">{subject.nama}</p>
+                                            {subject.catatan && <p className="text-xs text-muted-foreground">{subject.catatan}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(subject, key as TingkatKey, kelompok.nama as KelompokKey)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSubjectToDelete({ subject, tingkat: key as TingkatKey, kelompok: kelompok.nama as KelompokKey })}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </Card>
                   ))}
                 </div>
               </AccordionContent>
@@ -222,7 +229,7 @@ export default function MataPelajaranPage() {
                            <Select value={formLocation.tingkat} onValueChange={(v) => setFormLocation({...formLocation, tingkat: v as TingkatKey})} disabled={!!editingSubject}>
                                <SelectTrigger id="tingkat"><SelectValue placeholder="Pilih Tingkat" /></SelectTrigger>
                                <SelectContent>
-                                   {Object.keys(kurikulum).map(key => <SelectItem key={key} value={key}>{kurikulum[key].nama}</SelectItem>)}
+                                   {Object.keys(kurikulum).map(key => <SelectItem key={key} value={key}>{kurikulum[key as TingkatKey].nama}</SelectItem>)}
                                </SelectContent>
                            </Select>
                         </div>
@@ -248,7 +255,7 @@ export default function MataPelajaranPage() {
       
       <AlertDialog open={!!subjectToDelete} onOpenChange={() => setSubjectToDelete(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus mata pelajaran "{subjectToDelete?.subject.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus mata pelajaran "{subjectToDelete?.subject.nama}" secara permanen setelah Anda menyimpan perubahan.</AlertDialogDescription></AlertDialogHeader>
             <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSubject}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
