@@ -358,7 +358,7 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.uniqueId}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    handleSelectPembina(currentValue);
+                                                    handleSelectPembina(guru.nama);
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
