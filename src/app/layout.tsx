@@ -36,35 +36,36 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMKN 2 Tana Toraja", logo: "" });
-  const [pageTitle, setPageTitle] = useState("Sistem Manajemen Kesiswaan");
-  const [faviconHref, setFaviconHref] = useState<string | null>(null);
-
+  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
+  
+  // This useEffect will run on the client to handle dynamic updates like theme and favicon
   useEffect(() => {
     const loadSchoolInfoAndTheme = () => {
+      let currentSchoolInfo = { schoolName: "SMK Student Hub", logo: "" };
       const savedData = localStorage.getItem('teachersData');
-      let currentSchoolInfo = { schoolName: "SMKN 2 Tana Toraja", logo: "" };
       if (savedData) {
         try {
           const teachersData = JSON.parse(savedData);
           if (teachersData.schoolInfo) {
             currentSchoolInfo = teachersData.schoolInfo;
             setSchoolInfo(currentSchoolInfo);
-            setPageTitle(currentSchoolInfo.schoolName || "Sistem Manajemen Kesiswaan");
-            if(currentSchoolInfo.logo){
-              setFaviconHref(currentSchoolInfo.logo);
-            }
           }
         } catch (e) {
             console.error("Failed to parse teachersData from localStorage", e);
         }
       }
+
+      // Dynamically set favicon on the client
+      const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
+      if (favicon && currentSchoolInfo.logo) {
+        favicon.href = currentSchoolInfo.logo;
+      }
+      
       applyTheme();
     };
     
     loadSchoolInfoAndTheme();
 
-    // Event listeners to react to changes from other tabs/components
     const handleStorageUpdate = () => {
         loadSchoolInfoAndTheme();
     };
@@ -80,24 +81,28 @@ export default function RootLayout({
     };
   }, []);
   
-  const pageDescription = `Sistem Manajemen Kesiswaan untuk ${schoolInfo.schoolName}.`;
-  const imageUrl = schoolInfo.logo || "/placeholder-logo.png";
+  const pageTitle = schoolInfo.schoolName || "SMK Student Hub";
+  const pageDescription = `Sistem Manajemen Kesiswaan untuk ${pageTitle}.`;
+  // Use a static, publicly accessible placeholder image for social media previews
+  const imageUrl = "https://picsum.photos/1200/630";
 
 
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
         <title>{pageTitle}</title>
-        {faviconHref && <link key="favicon" rel="icon" href={faviconHref} type="image/x-icon" />}
+        <link id="favicon" key="favicon" rel="icon" href="/favicon.ico" type="image/x-icon" />
         <meta name="description" content={pageDescription} />
         
-        {/* Open Graph / Facebook */}
+        {/* Open Graph / Facebook Meta Tags */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:image" content={imageUrl} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
 
-        {/* Twitter */}
+        {/* Twitter Card Meta Tags */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:title" content={pageTitle} />
         <meta property="twitter:description" content={pageDescription} />
