@@ -1,18 +1,17 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Save, UserCheck, UserX, Thermometer, MailQuestion, UserMinus, BookOpen, CalendarSearch, ListChecks } from "lucide-react";
+import { Save, UserCheck, UserX, Thermometer, MailQuestion, UserMinus, BookOpen, CalendarSearch, ListChecks, CalendarDays } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, getDay, getDaysInMonth, getYear, getMonth } from "date-fns";
+import { format, getDay, getDaysInMonth, getYear, getMonth, startOfWeek, addDays, subDays } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { tataTertibData } from "@/lib/tata-tertib-data";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -83,7 +82,8 @@ const statusOptions: { value: KehadiranStatus; icon: React.ElementType; color: s
     { value: 'Bolos', icon: UserMinus, color: "border-red-500" },
 ];
 
-const daftarHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const dayNameToIndex: { [key: string]: number } = { "Minggu": 0, "Senin": 1, "Selasa": 2, "Rabu": 3, "Kamis": 4, "Jumat": 5, "Sabtu": 6 };
+const daftarHari = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 const daftarBulan = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('id-ID', { month: 'long' }) }));
 const daftarTahun = [getYear(new Date()) - 1, getYear(new Date()), getYear(new Date()) + 1];
 
@@ -96,7 +96,8 @@ export default function KehadiranSiswaPage() {
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
 
   // --- State untuk Pencatatan Harian ---
-  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDayName, setSelectedDayName] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedKelas, setSelectedKelas] = useState<string>("");
   const [selectedSesi, setSelectedSesi] = useState<string>("");
   const [attendanceState, setAttendanceState] = useState<Map<string, KehadiranStatus>>(new Map());
@@ -141,15 +142,26 @@ export default function KehadiranSiswaPage() {
   }, []);
   
   const jadwalHariIni = useMemo(() => {
-    if (!selectedKelas || !selectedDate) return [];
-    const hariTerpilih = daftarHari[getDay(new Date(selectedDate))];
-    return jadwalPelajaran.filter(j => j.kelas === selectedKelas && j.hari === hariTerpilih);
-  }, [selectedKelas, selectedDate, jadwalPelajaran]);
-
-  useEffect(() => {
-      setSelectedSesi("");
-  }, [selectedKelas, selectedDate]);
+    if (!selectedKelas || !selectedDayName) return [];
+    return jadwalPelajaran.filter(j => j.kelas === selectedKelas && j.hari === selectedDayName);
+  }, [selectedKelas, selectedDayName, jadwalPelajaran]);
   
+  const handleDayChange = useCallback((dayName: string) => {
+    setSelectedDayName(dayName);
+    setSelectedSesi("");
+    
+    const today = new Date();
+    const todayDayIndex = getDay(today); // Minggu = 0, Senin = 1
+    const targetDayIndex = dayNameToIndex[dayName];
+    
+    // Hitung perbedaan hari dari hari ini ke hari target
+    const dayDifference = targetDayIndex - todayDayIndex;
+    
+    // Tambahkan atau kurangi hari dari tanggal hari ini
+    const targetDate = addDays(today, dayDifference);
+    
+    setSelectedDate(format(targetDate, "yyyy-MM-dd"));
+  }, []);
 
   useEffect(() => {
     if (selectedKelas && selectedDate && selectedSesi) {
@@ -302,7 +314,7 @@ export default function KehadiranSiswaPage() {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                      <div>
                         <CardTitle>Panel Kontrol Absensi</CardTitle>
-                        <CardDescription>Pilih kelas, tanggal, dan sesi untuk memulai absensi.</CardDescription>
+                        <CardDescription>Pilih kelas, hari, dan sesi untuk memulai absensi.</CardDescription>
                     </div>
                      <div className="flex items-end gap-4 flex-wrap">
                         <div className="space-y-1">
@@ -317,14 +329,15 @@ export default function KehadiranSiswaPage() {
                             </Select>
                         </div>
                         <div className="space-y-1">
-                            <Label htmlFor="filter-tanggal">Tanggal</Label>
-                            <Input
-                                id="filter-tanggal"
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="w-fit"
-                            />
+                            <Label htmlFor="filter-hari">Hari</Label>
+                            <Select value={selectedDayName} onValueChange={handleDayChange}>
+                                <SelectTrigger id="filter-hari" className="w-[150px]">
+                                    <SelectValue placeholder="Pilih Hari" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {daftarHari.map(hari => <SelectItem key={hari} value={hari}>{hari}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="filter-sesi">Jam Pelajaran</Label>
@@ -346,39 +359,37 @@ export default function KehadiranSiswaPage() {
                         </Button>
                     </div>
                   </div>
+                  {selectedDate && <p className="text-sm text-muted-foreground pt-2">Absensi untuk tanggal: <span className="font-semibold text-primary">{format(new Date(selectedDate), "EEEE, dd MMMM yyyy")}</span></p>}
                 </CardHeader>
             </Card>
 
             {selectedKelas && selectedSesi ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {studentsToDisplay.map((siswa) => {
                     const status = attendanceState.get(siswa.nis) || 'Hadir';
                     const statusInfo = statusOptions.find(opt => opt.value === status);
                     return (
                     <Card key={siswa.id} className={cn("transition-all border-2", statusInfo?.color)}>
-                        <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                        <Avatar>
-                            <AvatarFallback>{siswa.nama.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                            <p className="font-semibold text-sm leading-tight">{siswa.nama}</p>
-                            <p className="text-xs text-muted-foreground">{siswa.nis}</p>
-                        </div>
-                        <Select value={status} onValueChange={(value: KehadiranStatus) => handleStatusChange(siswa.nis, value)}>
-                            <SelectTrigger>
-                            <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {statusOptions.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                    <opt.icon className="h-4 w-4" />
-                                    <span>{opt.value}</span>
-                                </div>
-                                </SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
+                        <CardContent className="p-3 flex flex-col items-center text-center gap-3">
+                            <div className="flex-1">
+                                <p className="font-semibold text-sm leading-tight">{siswa.nama}</p>
+                                <p className="text-xs text-muted-foreground">{siswa.nis}</p>
+                            </div>
+                            <Select value={status} onValueChange={(value: KehadiranStatus) => handleStatusChange(siswa.nis, value)}>
+                                <SelectTrigger className="h-9">
+                                <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {statusOptions.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <div className="flex items-center gap-2">
+                                        <opt.icon className="h-4 w-4" />
+                                        <span>{opt.value}</span>
+                                    </div>
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
                         </CardContent>
                     </Card>
                     )
@@ -388,9 +399,9 @@ export default function KehadiranSiswaPage() {
                 <Card>
                     <CardContent className="p-10 text-center text-muted-foreground">
                         <BookOpen className="mx-auto h-12 w-12" />
-                        <p className="mt-4 font-semibold">Silakan pilih kelas dan jam pelajaran untuk memulai.</p>
+                        <p className="mt-4 font-semibold">Silakan pilih kelas, hari, dan jam pelajaran untuk memulai.</p>
                         <p className="text-sm">
-                            {jadwalHariIni.length === 0 && selectedKelas && selectedDate ? `Tidak ada jadwal pelajaran untuk kelas ${selectedKelas} pada hari ini.` : 'Daftar siswa akan muncul di sini setelah Anda memilih sesi.'}
+                            {jadwalHariIni.length === 0 && selectedKelas && selectedDayName ? `Tidak ada jadwal pelajaran untuk kelas ${selectedKelas} pada hari ${selectedDayName}.` : 'Daftar siswa akan muncul di sini setelah Anda memilih sesi.'}
                         </p>
                     </CardContent>
                 </Card>
@@ -473,3 +484,5 @@ export default function KehadiranSiswaPage() {
     </div>
   );
 }
+
+    
