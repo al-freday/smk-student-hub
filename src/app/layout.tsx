@@ -9,7 +9,6 @@ import Head from "next/head";
 
 const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
-    // Default ke 'wakasek_kesiswaan' jika tidak ada peran, atau ke tema aplikasi umum.
     const themeKey = `appTheme_${userRole || 'wakasek_kesiswaan'}`; 
     const savedTheme = localStorage.getItem(themeKey);
 
@@ -19,13 +18,11 @@ const applyTheme = () => {
     if (savedTheme) {
       try {
         themeToApply = JSON.parse(savedTheme).colors;
-      } catch (error)
- {
+      } catch (error) {
         console.error("Gagal mem-parse tema yang disimpan:", error);
       }
     } 
     
-    // Fallback to default if no theme is found
     const colorsToSet = themeToApply || defaultThemeColors;
     
     Object.entries(colorsToSet).forEach(([property, value]) => {
@@ -40,50 +37,58 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMKN 2 Tana Toraja", logo: "" });
+  const [pageTitle, setPageTitle] = useState("Sistem Manajemen Kesiswaan");
+  const [faviconHref, setFaviconHref] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadSchoolInfo = () => {
+    const loadSchoolInfoAndTheme = () => {
       const savedData = localStorage.getItem('teachersData');
+      let currentSchoolInfo = { schoolName: "SMKN 2 Tana Toraja", logo: "" };
       if (savedData) {
         try {
           const teachersData = JSON.parse(savedData);
           if (teachersData.schoolInfo) {
-            setSchoolInfo(teachersData.schoolInfo);
+            currentSchoolInfo = teachersData.schoolInfo;
+            setSchoolInfo(currentSchoolInfo);
+            setPageTitle(currentSchoolInfo.schoolName || "Sistem Manajemen Kesiswaan");
+            if(currentSchoolInfo.logo){
+              setFaviconHref(currentSchoolInfo.logo);
+            }
           }
         } catch (e) {
             console.error("Failed to parse teachersData from localStorage", e);
         }
       }
+      applyTheme();
     };
     
-    loadSchoolInfo();
-    applyTheme();
+    loadSchoolInfoAndTheme();
 
+    // Event listeners to react to changes from other tabs/components
     const handleStorageUpdate = () => {
-        loadSchoolInfo();
-        applyTheme();
+        loadSchoolInfoAndTheme();
     };
 
     window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('roleChanged', applyTheme);
-    window.addEventListener('dataUpdated', loadSchoolInfo);
+    window.addEventListener('dataUpdated', loadSchoolInfoAndTheme);
 
     return () => {
       window.removeEventListener('storage', handleStorageUpdate);
       window.removeEventListener('roleChanged', applyTheme);
-       window.removeEventListener('dataUpdated', loadSchoolInfo);
+      window.removeEventListener('dataUpdated', handleStorageUpdate);
     };
   }, []);
-
-  const pageTitle = schoolInfo.schoolName || "Sistem Manajemen Kesiswaan";
+  
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${schoolInfo.schoolName}.`;
   const imageUrl = schoolInfo.logo || "/placeholder-logo.png";
+
 
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
         <title>{pageTitle}</title>
-        {schoolInfo.logo && <link rel="icon" href={schoolInfo.logo} type="image/x-icon" />}
+        {faviconHref && <link key="favicon" rel="icon" href={faviconHref} type="image/x-icon" />}
         <meta name="description" content={pageDescription} />
         
         {/* Open Graph / Facebook */}
