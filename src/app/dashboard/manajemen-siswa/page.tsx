@@ -56,11 +56,6 @@ interface Kelas {
     nama: string;
 }
 
-interface WaliKelasInfo {
-    nama: string;
-    kelas: string[];
-}
-
 export default function ManajemenSiswaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,9 +63,6 @@ export default function ManajemenSiswaPage() {
   const [siswa, setSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [waliKelasInfo, setWaliKelasInfo] = useState<WaliKelasInfo | null>(null);
-
   // --- Dialog States ---
   const [isSiswaDialogOpen, setIsSiswaDialogOpen] = useState(false);
   const [editingSiswa, setEditingSiswa] = useState<Siswa | null>(null);
@@ -91,20 +83,6 @@ export default function ManajemenSiswaPage() {
         const savedKelas = getSourceData('kelasData', []);
         setSiswa(savedSiswa);
         setDaftarKelas(savedKelas);
-
-        const role = localStorage.getItem('userRole');
-        setUserRole(role);
-
-        if (role === 'wali_kelas') {
-            const currentUser = getSourceData('currentUser', null);
-            const teachersData = getSourceData('teachersData', {});
-            if(currentUser && teachersData) {
-                const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
-                if (waliKelasData) {
-                    setWaliKelasInfo({ nama: waliKelasData.nama, kelas: waliKelasData.kelas });
-                }
-            }
-        }
     } catch (error) {
         console.error("Gagal memuat data:", error);
         toast({ title: "Gagal Memuat Data", description: "Terjadi kesalahan saat memuat data.", variant: "destructive" });
@@ -116,7 +94,7 @@ export default function ManajemenSiswaPage() {
   useEffect(() => {
     loadData();
     
-    const handleDataChange = (event: Event) => {
+    const handleDataChange = () => {
         loadData();
     };
     window.addEventListener('dataUpdated', handleDataChange);
@@ -289,9 +267,6 @@ export default function ManajemenSiswaPage() {
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
   
-  const displayedKelas = userRole === 'wali_kelas' && waliKelasInfo
-    ? daftarKelas.filter(k => waliKelasInfo.kelas.includes(k.nama))
-    : daftarKelas;
 
   if (isLoading) {
     return (
@@ -360,8 +335,8 @@ export default function ManajemenSiswaPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                <Accordion type="single" collapsible className="w-full" defaultValue={waliKelasInfo?.kelas?.[0]}>
-                    {Array.isArray(displayedKelas) && displayedKelas.map((k) => {
+                <Accordion type="single" collapsible className="w-full">
+                    {Array.isArray(daftarKelas) && daftarKelas.map((k) => {
                     const siswaDiKelas = siswa.filter(s => s.kelas === k.nama);
                     return (
                         <AccordionItem value={k.nama} key={k.id}>
@@ -444,5 +419,3 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
-
-    
