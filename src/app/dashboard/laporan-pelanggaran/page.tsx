@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Download, User, TrendingDown, ShieldAlert, Trophy } from "lucide-react";
+import { Printer, Download, User, TrendingDown, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,14 +22,13 @@ interface Siswa {
   kelas: string;
 }
 
-interface CatatanSiswa {
+interface CatatanPelanggaran {
   id: number | string;
   tanggal: string;
-  tipe: 'pelanggaran' | 'prestasi';
   nis: string;
   siswa: string;
   kelas: string;
-  deskripsi: string;
+  pelanggaran: string;
   poin: number;
 }
 
@@ -39,7 +38,7 @@ export default function LaporanPelanggaranPage() {
   
   // --- Data States ---
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
-  const [riwayatCatatan, setRiwayatCatatan] = useState<CatatanSiswa[]>([]);
+  const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
   
   // --- Filter States ---
@@ -50,30 +49,15 @@ export default function LaporanPelanggaranPage() {
     const siswaData: Siswa[] = getSourceData('siswaData', []);
     
     const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
-    const pelanggaranFormatted: CatatanSiswa[] = pelanggaranData.map(p => ({
+    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map(p => ({
         ...p,
         id: `pelanggaran-${p.id}`,
-        tipe: 'pelanggaran',
         siswa: p.namaSiswa,
-        deskripsi: p.pelanggaran,
+        pelanggaran: p.pelanggaran,
     }));
-
-    const prestasiData: any[] = getSourceData('prestasiData', []);
-    const prestasiFormatted: CatatanSiswa[] = prestasiData.map(p => ({
-        ...p,
-        id: `prestasi-${p.id}`,
-        tipe: 'prestasi',
-        nis: p.nis,
-        siswa: p.namaSiswa,
-        kelas: p.kelas,
-        deskripsi: p.deskripsi,
-        poin: 0,
-    }));
-
-    const catatanData = [...pelanggaranFormatted, ...prestasiFormatted];
 
     setDaftarSiswa(siswaData);
-    setRiwayatCatatan(catatanData);
+    setRiwayatPelanggaran(pelanggaranFormatted);
     
     const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s) => s.kelas)))];
     setDaftarKelas(kelasUnik.sort());
@@ -92,29 +76,26 @@ export default function LaporanPelanggaranPage() {
 
   const siswaDenganPoin = useMemo(() => {
     return filteredSiswa.map(siswa => {
-      const catatanSiswa = riwayatCatatan.filter(c => c.nis === siswa.nis);
+      const catatanSiswa = riwayatPelanggaran.filter(c => c.nis === siswa.nis);
       const totalPoin = catatanSiswa
-        .filter(c => c.tipe === 'pelanggaran' && c.poin)
         .reduce((sum, c) => sum + c.poin!, 0);
-      const totalPelanggaran = catatanSiswa.filter(c => c.tipe === 'pelanggaran').length;
-      const totalPrestasi = catatanSiswa.filter(c => c.tipe === 'prestasi').length;
-      return { ...siswa, totalPoin, totalPelanggaran, totalPrestasi, catatanSiswa };
+      const totalPelanggaran = catatanSiswa.length;
+      return { ...siswa, totalPoin, totalPelanggaran, catatanSiswa };
     }).sort((a, b) => b.totalPoin - a.totalPoin);
-  }, [filteredSiswa, riwayatCatatan]);
+  }, [filteredSiswa, riwayatPelanggaran]);
 
   const summary = useMemo(() => {
-      const totalPelanggaran = riwayatCatatan.filter(c => c.tipe === 'pelanggaran').length;
-      const totalPrestasi = riwayatCatatan.filter(c => c.tipe === 'prestasi').length;
-      const siswaMelanggar = new Set(riwayatCatatan.filter(c => c.tipe === 'pelanggaran').map(c => c.nis)).size;
-      return { totalPelanggaran, totalPrestasi, siswaMelanggar };
-  }, [riwayatCatatan]);
+      const totalPelanggaran = riwayatPelanggaran.length;
+      const siswaMelanggar = new Set(riwayatPelanggaran.map(c => c.nis)).size;
+      return { totalPelanggaran, siswaMelanggar };
+  }, [riwayatPelanggaran]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleExport = () => {
-      const headers = ['NIS', 'Nama', 'Kelas', 'Total Poin', 'Jumlah Pelanggaran', 'Jumlah Prestasi'];
+      const headers = ['NIS', 'Nama', 'Kelas', 'Total Poin', 'Jumlah Pelanggaran'];
       const delimiter = ';';
 
       const formatCell = (value: any) => {
@@ -126,7 +107,7 @@ export default function LaporanPelanggaranPage() {
       };
       
       const csvRows = siswaDenganPoin.map(s => 
-          [s.nis, s.nama, s.kelas, s.totalPoin, s.totalPelanggaran, s.totalPrestasi]
+          [s.nis, s.nama, s.kelas, s.totalPoin, s.totalPelanggaran]
           .map(formatCell)
           .join(delimiter)
       );
@@ -141,7 +122,7 @@ export default function LaporanPelanggaranPage() {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.href = url;
-      link.setAttribute('download', `laporan_rekapitulasi_${selectedKelas}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.setAttribute('download', `laporan_pelanggaran_${selectedKelas}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -155,7 +136,7 @@ export default function LaporanPelanggaranPage() {
       <div className="flex items-center justify-between print:hidden">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Laporan Pelanggaran Siswa</h2>
-          <p className="text-muted-foreground">Analisis dan rekapitulasi data pelanggaran dan prestasi siswa untuk evaluasi.</p>
+          <p className="text-muted-foreground">Analisis dan rekapitulasi data pelanggaran siswa untuk evaluasi.</p>
         </div>
         <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" />Unduh CSV</Button>
@@ -163,7 +144,7 @@ export default function LaporanPelanggaranPage() {
         </div>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 print:hidden">
+      <div className="grid gap-4 md:grid-cols-3 print:hidden">
           <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Siswa</CardTitle><User/></CardHeader>
               <CardContent><div className="text-2xl font-bold">{daftarSiswa.length}</div></CardContent>
@@ -175,10 +156,6 @@ export default function LaporanPelanggaranPage() {
           <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Pelanggaran</CardTitle><ShieldAlert className="text-destructive"/></CardHeader>
               <CardContent><div className="text-2xl font-bold">{summary.totalPelanggaran}</div></CardContent>
-          </Card>
-          <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Prestasi</CardTitle><Trophy className="text-blue-500"/></CardHeader>
-              <CardContent><div className="text-2xl font-bold">{summary.totalPrestasi}</div></CardContent>
           </Card>
       </div>
 
@@ -220,7 +197,6 @@ export default function LaporanPelanggaranPage() {
                         <TableHead>Kelas</TableHead>
                         <TableHead className="text-center">Total Poin</TableHead>
                         <TableHead className="text-center">Jml. Pelanggaran</TableHead>
-                        <TableHead className="text-center">Jml. Prestasi</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -232,10 +208,9 @@ export default function LaporanPelanggaranPage() {
                             <TableCell>{s.kelas}</TableCell>
                             <TableCell className="text-center"><Badge variant={s.totalPoin > 0 ? "destructive" : "secondary"}>{s.totalPoin}</Badge></TableCell>
                             <TableCell className="text-center">{s.totalPelanggaran}</TableCell>
-                            <TableCell className="text-center">{s.totalPrestasi}</TableCell>
                         </TableRow>
                     )) : (
-                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Tidak ada data untuk ditampilkan sesuai filter.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="h-24 text-center">Tidak ada data untuk ditampilkan sesuai filter.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
