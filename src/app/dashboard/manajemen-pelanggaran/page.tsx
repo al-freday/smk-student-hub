@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, ShieldAlert, ChevronsUpDown, Check, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight } from "lucide-react";
+import { PlusCircle, Trash2, User, ShieldAlert, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -13,14 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Loader2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tataTertibData } from "@/lib/tata-tertib-data";
 
 // --- Interface Definitions ---
@@ -37,17 +34,34 @@ interface Kelas {
 }
 
 const flattenTataTertib = (data: typeof tataTertibData) => {
-    let allRules: { id: number, deskripsi: string, poin: number }[] = [];
+    const allRules: { id: number, deskripsi: string, poin: number, kategori: string }[] = [];
     let idCounter = 1;
     for (const kategori in data) {
         for (const tingkat in data[kategori as keyof typeof data]) {
             // @ts-ignore
             data[kategori as keyof typeof data][tingkat].forEach(rule => {
-                allRules.push({ ...rule, id: idCounter++ });
+                allRules.push({ ...rule, id: idCounter++, kategori: kategori });
             });
         }
     }
     return allRules;
+};
+
+const groupedTataTertib = (data: typeof tataTertibData) => {
+    const grouped: { [key: string]: { deskripsi: string, poin: number, id: number }[] } = {};
+    let idCounter = 1;
+    Object.entries(data).forEach(([kategori, tingkat]) => {
+        const kategoriNama = kategori.charAt(0).toUpperCase() + kategori.slice(1);
+        if (!grouped[kategoriNama]) {
+            grouped[kategoriNama] = [];
+        }
+        Object.values(tingkat).forEach(aturan => {
+            aturan.forEach(rule => {
+                grouped[kategoriNama].push({ ...rule, id: idCounter++ });
+            });
+        });
+    });
+    return grouped;
 };
 
 
@@ -75,6 +89,7 @@ export default function ManajemenPelanggaranPage() {
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number, deskripsi: string, poin: number }[]>([]);
+  const [groupedRules, setGroupedRules] = useState<Record<string, { deskripsi: string; poin: number; id: number; }[]>>({});
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string; role: string } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -85,12 +100,11 @@ export default function ManajemenPelanggaranPage() {
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [catatanToDelete, setCatatanToDelete] = useState<CatatanPelanggaran | null>(null);
-  const [openRulePopover, setOpenRulePopover] = useState(false);
   
   // --- Form Data States ---
   const [selectedKelasForForm, setSelectedKelasForForm] = useState<string>("");
   const [selectedNis, setSelectedNis] = useState<string>("");
-  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
+  const [selectedRuleId, setSelectedRuleId] = useState<string>("");
   const [tindakanAwal, setTindakanAwal] = useState("");
 
   const loadData = useCallback(() => {
@@ -116,6 +130,7 @@ export default function ManajemenPelanggaranPage() {
     }
 
     setDaftarTataTertib(flattenTataTertib(tataTertibData));
+    setGroupedRules(groupedTataTertib(tataTertibData));
 
   }, []);
   
@@ -128,14 +143,14 @@ export default function ManajemenPelanggaranPage() {
   const handleOpenDialog = () => {
     setSelectedKelasForForm("");
     setSelectedNis("");
-    setSelectedRuleId(null);
+    setSelectedRuleId("");
     setTindakanAwal("");
     setIsDialogOpen(true);
   };
 
   const handleSaveCatatan = () => {
     const siswa = daftarSiswa.find(s => s.nis === selectedNis);
-    const aturan = daftarTataTertib.find(t => t.id === selectedRuleId);
+    const aturan = daftarTataTertib.find(t => t.id.toString() === selectedRuleId);
 
     if (!siswa || !aturan) {
       toast({ title: "Gagal Menyimpan", description: "Harap pilih kelas, siswa, dan jenis pelanggaran.", variant: "destructive" });
@@ -370,7 +385,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className={cn("flex items-center gap-2", !selectedKelasForForm && "text-muted-foreground")}>
+                    <Label className="flex items-center gap-2">
                         <User/>2. Pilih Siswa
                     </Label>
                     <Select value={selectedNis} onValueChange={setSelectedNis} disabled={!selectedKelasForForm}>
@@ -389,35 +404,23 @@ export default function ManajemenPelanggaranPage() {
 
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Jenis Pelanggaran</Label>
-                    <Popover open={openRulePopover} onOpenChange={setOpenRulePopover}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between h-auto text-left">
-                                <span className="flex-1 whitespace-normal">
-                                    {selectedRuleId ? daftarTataTertib.find(r => r.id === selectedRuleId)?.deskripsi : "Cari dan pilih pelanggaran..."}
-                                </span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[450px] p-0">
-                             <Command>
-                                <CommandInput placeholder="Ketik deskripsi pelanggaran..."/>
-                                <CommandList>
-                                    <CommandEmpty>Aturan tidak ditemukan.</CommandEmpty>
-                                    <CommandGroup>
-                                        {daftarTataTertib.map(rule => (
-                                            <CommandItem key={rule.id} value={rule.deskripsi} onSelect={() => {
-                                                setSelectedRuleId(rule.id);
-                                                setOpenRulePopover(false);
-                                            }}>
-                                                <Check className={cn("mr-2 h-4 w-4", selectedRuleId === rule.id ? "opacity-100" : "opacity-0")}/>
-                                                 {rule.deskripsi} <Badge variant="destructive" className="ml-auto">{rule.poin} Poin</Badge>
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Select value={selectedRuleId} onValueChange={setSelectedRuleId}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Pilih jenis pelanggaran..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                            {Object.entries(groupedRules).map(([kategori, rules]) => (
+                                <SelectGroup key={kategori}>
+                                    <SelectLabel>{kategori}</SelectLabel>
+                                    {rules.map(rule => (
+                                        <SelectItem key={rule.id} value={rule.id.toString()}>
+                                            {rule.deskripsi} ({rule.poin} Poin)
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-2">
                     <Label>4. Tindakan Awal yang Dilakukan (Opsional)</Label>
