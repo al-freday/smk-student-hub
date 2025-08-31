@@ -212,6 +212,11 @@ export default function ManajemenPelanggaranPage() {
   
   const canDelete = userRole === 'wakasek_kesiswaan';
   
+  const canPerformActions = useMemo(() => {
+    if (!userRole) return false;
+    return ['wakasek_kesiswaan', 'wali_kelas', 'guru_bk'].includes(userRole);
+  }, [userRole]);
+
   const renderActionMenu = (catatan: CatatanPelanggaran) => {
     const role = userRole;
     const status = catatan.status;
@@ -315,7 +320,7 @@ export default function ManajemenPelanggaranPage() {
                         <TableHead>Detail Pelanggaran</TableHead>
                         <TableHead>Pelapor & Tindakan Awal</TableHead>
                         <TableHead className="text-center">Status</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
+                        {canPerformActions && <TableHead className="text-right">Aksi</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -337,26 +342,28 @@ export default function ManajemenPelanggaranPage() {
                                 <TableCell className="text-center">
                                     <Badge variant={getStatusBadgeVariant(catatan.status)}>{catatan.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            {renderActionMenu(catatan)}
-                                            {canDelete && (
-                                                <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
-                                                    <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                                </DropdownMenuItem>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
+                                {canPerformActions && (
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                {renderActionMenu(catatan)}
+                                                {canDelete && (
+                                                    <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24">
+                            <TableCell colSpan={canPerformActions ? 5 : 4} className="text-center h-24">
                                 Tidak ada data pelanggaran untuk ditampilkan.
                             </TableCell>
                         </TableRow>
@@ -414,11 +421,16 @@ export default function ManajemenPelanggaranPage() {
                     <Select value={selectedRuleId} onValueChange={setSelectedRuleId} disabled={!selectedKategori}>
                         <SelectTrigger><SelectValue placeholder="Pilih pelanggaran..." /></SelectTrigger>
                         <SelectContent className="max-h-60">
-                            {pelanggaranDiKategori.map(rule => (
-                                <SelectItem key={rule.id} value={rule.id.toString()}>
-                                    ({rule.tingkat.charAt(0).toUpperCase() + rule.tingkat.slice(1)}) {rule.deskripsi} ({rule.poin} Poin)
-                                </SelectItem>
-                            ))}
+                            {pelanggaranDiKategori.length > 0 && (
+                                <SelectGroup>
+                                    <SelectLabel>Pelanggaran Tersedia</SelectLabel>
+                                    {pelanggaranDiKategori.map(rule => (
+                                        <SelectItem key={rule.id} value={rule.id.toString()}>
+                                            ({rule.tingkat.charAt(0).toUpperCase() + rule.tingkat.slice(1)}) {rule.deskripsi} ({rule.poin} Poin)
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            )}
                         </SelectContent>
                     </Select>
                 </div>
@@ -451,3 +463,5 @@ export default function ManajemenPelanggaranPage() {
     </div>
   );
 }
+
+    
