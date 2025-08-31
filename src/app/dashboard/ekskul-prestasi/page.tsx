@@ -345,10 +345,11 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.id}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    setEkskulFormData(prev => {
+                                                    setEkskulFormData((prev) => {
                                                         const currentPembina = prev.pembina || [];
-                                                        if (currentPembina.includes(guru.nama)) {
-                                                            return { ...prev, pembina: currentPembina.filter(p => p !== guru.nama) };
+                                                        const isSelected = currentPembina.includes(guru.nama);
+                                                        if (isSelected) {
+                                                            return { ...prev, pembina: currentPembina.filter((p) => p !== guru.nama) };
                                                         } else {
                                                             return { ...prev, pembina: [...currentPembina, guru.nama] };
                                                         }
@@ -454,3 +455,5 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
+
+    
