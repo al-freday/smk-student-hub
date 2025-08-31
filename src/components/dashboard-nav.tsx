@@ -26,6 +26,7 @@ import {
   ClipboardCheck,
   Briefcase,
   Folders,
+  Award,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -56,6 +57,7 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { type: 'divider', label: 'Laporan & Notifikasi' },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
+    { href: "/dashboard/laporan-ekskul-prestasi", icon: Award, label: "Laporan Ekskul & Prestasi"},
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
