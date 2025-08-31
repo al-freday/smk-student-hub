@@ -589,16 +589,34 @@ export default function ManajemenGuruPage() {
              <div>
                 <h4 className="font-medium mb-2">Tambah Tanggal Piket Baru</h4>
                 <div className="space-y-4 rounded-md border p-4">
-                    <Calendar
-                        mode="single"
-                        selected={currentPiketDate}
-                        onSelect={setCurrentPiketDate}
-                        className="rounded-md"
-                    />
-                     <Button size="sm" onClick={handleAddPiketDate} className="w-full">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Tambahkan Tanggal
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 items-center">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full sm:w-[280px] justify-start text-left font-normal",
+                                        !currentPiketDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {currentPiketDate ? format(currentPiketDate, "PPP", { locale: id }) : <span>Pilih tanggal</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={currentPiketDate}
+                                    onSelect={setCurrentPiketDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <Button size="sm" onClick={handleAddPiketDate} className="w-full sm:w-auto">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Tambahkan
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
