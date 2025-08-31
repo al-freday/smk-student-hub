@@ -3,8 +3,9 @@
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import Head from "next/head";
 
 const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
@@ -38,15 +39,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMKN 2 Tana Toraja", logo: "" });
 
   useEffect(() => {
-    // Terapkan tema saat komponen pertama kali dimuat
+    const loadSchoolInfo = () => {
+      const savedData = localStorage.getItem('teachersData');
+      if (savedData) {
+        const teachersData = JSON.parse(savedData);
+        if (teachersData.schoolInfo) {
+          setSchoolInfo(teachersData.schoolInfo);
+        }
+      }
+    };
+    
+    loadSchoolInfo();
     applyTheme();
 
-    // Event listener untuk sinkronisasi antar tab
-    window.addEventListener('storage', applyTheme);
-
-    // Event listener kustom untuk perubahan peran di tab yang sama (dipicu saat login)
+    window.addEventListener('storage', () => {
+      loadSchoolInfo();
+      applyTheme();
+    });
     window.addEventListener('roleChanged', applyTheme);
 
     return () => {
@@ -55,15 +67,32 @@ export default function RootLayout({
     };
   }, []);
 
+  const pageTitle = schoolInfo.schoolName || "Sistem Manajemen Kesiswaan";
+  const pageDescription = `Sistem Manajemen Kesiswaan untuk ${schoolInfo.schoolName}.`;
+  const imageUrl = schoolInfo.logo || "/placeholder-logo.png"; // Fallback image jika logo belum ada
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-         <title>SMKN 2 Tana Toraja</title>
-        <meta name="description" content="Sistem Manajemen Kesiswaan SMKN 2 Tana Toraja" />
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={imageUrl} />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDescription} />
+        <meta property="twitter:image" content={imageUrl} />
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
+      </Head>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"
