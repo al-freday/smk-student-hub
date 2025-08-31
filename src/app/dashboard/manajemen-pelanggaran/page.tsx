@@ -5,10 +5,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Trash2, User, ShieldAlert, MoreHorizontal, MessageSquare, UserCheck, CheckCircle, ArrowRight } from "lucide-react";
+import { PlusCircle, User, ShieldAlert, BookMarked } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +16,7 @@ import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tataTertibData } from "@/lib/tata-tertib-data";
-import { UserX, Shirt, Speech, GraduationCap, WifiOff, School, BookMarked } from "lucide-react";
+import { UserX, Shirt, Trash2, Speech, GraduationCap, WifiOff, School } from "lucide-react";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -33,6 +30,198 @@ interface Kelas {
     id: number;
     nama: string;
 }
+
+// Data Tata Tertib (disalin lokal untuk isolasi)
+const tataTertibData = {
+  kehadiran: {
+    ringan: [
+      { deskripsi: "Datang terlambat tanpa alasan.", poin: 5 },
+      { deskripsi: "Tidur di kelas.", poin: 5 },
+      { deskripsi: "Tidak membawa buku sesuai jadwal.", poin: 5 },
+      { deskripsi: "Tidak membuat tugas sekolah.", poin: 5 },
+      { deskripsi: "Tidak mengikuti jam tambahan remedial.", poin: 5 },
+    ],
+    sedang: [
+      { deskripsi: "Pulang sebelum waktunya tanpa izin.", poin: 10 },
+      { deskripsi: "Tidak mengikuti upacara bendera.", poin: 10 },
+      { deskripsi: "Bolos pelajaran.", poin: 10 },
+      { deskripsi: "Menitip absen palsu.", poin: 10 },
+      { deskripsi: "Menggunakan alasan palsu untuk tidak masuk.", poin: 10 },
+      { deskripsi: "Menghilang saat jam istirahat.", poin: 10 },
+      { deskripsi: "Membuat keributan di kelas.", poin: 10 },
+      { deskripsi: "Tidak mengikuti jadwal piket kelas.", poin: 10 },
+      { deskripsi: "Membuat catatan kehadiran palsu.", poin: 10 },
+      { deskripsi: "Mengabaikan panggilan guru.", poin: 10 },
+    ],
+    berat: [
+      { deskripsi: "Tidak hadir tanpa keterangan (alpha) berulang.", poin: 20 },
+      { deskripsi: "Tidak hadir saat kegiatan ekstrakurikuler wajib.", poin: 20 },
+      { deskripsi: "Menolak hadir di kegiatan sekolah.", poin: 20 },
+      { deskripsi: "Membolos saat praktek industri (PKL).", poin: 20 },
+    ],
+  },
+  seragam: {
+    ringan: [
+      { deskripsi: "Tidak memakai seragam lengkap.", poin: 3 },
+      { deskripsi: "Seragam kotor atau tidak rapi.", poin: 3 },
+      { deskripsi: "Tidak memakai ikat pinggang sesuai ketentuan.", poin: 3 },
+      { deskripsi: "Kaos kaki tidak sesuai aturan.", poin: 3 },
+      { deskripsi: "Seragam tidak dimasukkan.", poin: 3 },
+      { deskripsi: "Tidak memakai name tag.", poin: 3 },
+    ],
+    sedang: [
+      { deskripsi: "Memakai atribut yang tidak sesuai.", poin: 10 },
+      { deskripsi: "Memakai sepatu tidak sesuai aturan.", poin: 10 },
+      { deskripsi: "Memakai jaket non-sekolah di kelas.", poin: 10 },
+      { deskripsi: "Rambut gondrong (untuk siswa).", poin: 10 },
+      { deskripsi: "Rambut dicat/bleaching.", poin: 10 },
+      { deskripsi: "Memakai aksesoris berlebihan.", poin: 10 },
+      { deskripsi: "Kuku panjang atau dicat.", poin: 10 },
+      { deskripsi: "Memakai seragam olahraga di luar jam olahraga.", poin: 10 },
+      { deskripsi: "Tidak memakai topi saat upacara (jika diwajibkan).", poin: 10 },
+      { deskripsi: "Seragam tidak sesuai hari.", poin: 10 },
+      { deskripsi: "Menggunakan make-up berlebihan.", poin: 10 },
+    ],
+    berat: [
+      { deskripsi: "Celana dipendekkan atau dimodifikasi.", poin: 15 },
+      { deskripsi: "Rok di atas lutut (untuk siswi).", poin: 15 },
+      { deskripsi: "Memakai lensa kontak warna.", poin: 15 },
+    ],
+  },
+  lingkungan: {
+    ringan: [
+      { deskripsi: "Membuang sampah sembarangan.", poin: 5 },
+      { deskripsi: "Tidak menjaga kebersihan kelas.", poin: 5 },
+      { deskripsi: "Mengotori kamar mandi.", poin: 5 },
+      { deskripsi: "Mengotori papan tulis.", poin: 5 },
+      { deskripsi: "Tidak mengikuti jadwal piket kelas/bengkel/lab.", poin: 5 },
+    ],
+    sedang: [
+      { deskripsi: "Mencorat-coret meja, kursi, atau dinding.", poin: 15 },
+      { deskripsi: "Membawa makanan/minuman ke dalam kelas.", poin: 15 },
+      { deskripsi: "Menyimpan barang berbau busuk.", poin: 15 },
+      { deskripsi: "Memindahkan peralatan kelas tanpa izin.", poin: 15 },
+      { deskripsi: "Mematikan listrik/kipas/AC sembarangan.", poin: 15 },
+      { deskripsi: "Tidak mengembalikan alat praktik ke tempatnya.", poin: 15 },
+    ],
+    berat: [
+      { deskripsi: "Merusak fasilitas kelas.", poin: 30 },
+      { deskripsi: "Merusak tanaman sekolah.", poin: 30 },
+      { deskripsi: "Mengambil barang milik sekolah tanpa izin.", poin: 30 },
+      { deskripsi: "Menggunakan peralatan bengkel tanpa izin.", poin: 30 },
+      { deskripsi: "Membawa hewan peliharaan ke sekolah.", poin: 30 },
+      { deskripsi: "Mengotori halaman sekolah dengan kendaraan.", poin: 30 },
+    ],
+  },
+  etika: {
+    ringan: [
+      { deskripsi: "Berbicara kasar pada teman.", poin: 10 },
+      { deskripsi: "Membuat keributan di perpustakaan.", poin: 10 },
+      { deskripsi: "Memanggil guru dengan nama panggilan tidak sopan.", poin: 10 },
+      { deskripsi: "Mengabaikan teguran guru.", poin: 10 },
+      { deskripsi: "Memaki di grup kelas.", poin: 10 },
+      { deskripsi: "Mencemooh prestasi teman.", poin: 10 },
+    ],
+    sedang: [
+      { deskripsi: "Membentak guru/petugas sekolah.", poin: 20 },
+      { deskripsi: "Menghina teman di depan umum.", poin: 20 },
+      { deskripsi: "Memfitnah teman/guru.", poin: 20 },
+      { deskripsi: "Memalak teman.", poin: 20 },
+      { deskripsi: "Meniru tanda tangan guru/orangtua.", poin: 20 },
+      { deskripsi: "Merokok di lingkungan sekolah.", poin: 20 },
+      { deskripsi: "Membawa rokok atau korek api ke sekolah.", poin: 20 },
+      { deskripsi: "Membuat hoaks terkait sekolah.", poin: 20 },
+      { deskripsi: "Menghina fisik teman/guru.", poin: 20 },
+      { deskripsi: "Membawa kendaraan tanpa SIM.", poin: 20 },
+    ],
+    berat: [
+      { deskripsi: "Berbicara kasar pada guru.", poin: 40 },
+      { deskripsi: "Bertengkar fisik di sekolah.", poin: 40 },
+      { deskripsi: "Mengancam guru atau teman.", poin: 40 },
+      { deskripsi: "Membawa senjata tajam tanpa izin.", poin: 40 },
+      { deskripsi: "Mengintimidasi adik kelas (bullying).", poin: 40 },
+      { deskripsi: "Berkelahi di luar sekolah membawa nama sekolah.", poin: 40 },
+      { deskripsi: "Menghina agama/suku tertentu.", poin: 40 },
+      { deskripsi: "Membawa minuman keras ke sekolah.", poin: 40 },
+      { deskripsi: "Menggunakan narkoba.", poin: 40 },
+    ],
+  },
+  akademik: {
+    ringan: [
+      { deskripsi: "Tidak mengumpulkan tugas.", poin: 5 },
+      { deskripsi: "Tidak mengikuti ujian tanpa keterangan.", poin: 5 },
+      { deskripsi: "Tidak memakai APD di bengkel/lab.", poin: 5 },
+    ],
+    sedang: [
+      { deskripsi: "Menyontek saat ujian.", poin: 15 },
+      { deskripsi: "Menggunakan HP saat ujian.", poin: 15 },
+      { deskripsi: "Menjiplak tugas teman.", poin: 15 },
+      { deskripsi: "Mengganggu jalannya ujian.", poin: 15 },
+      { deskripsi: "Tidak membuat laporan praktik.", poin: 15 },
+    ],
+    berat: [
+      { deskripsi: "Meminta atau membocorkan soal ujian.", poin: 20 },
+      { deskripsi: "Menyuruh orang lain mengerjakan tugas.", poin: 20 },
+      { deskripsi: "Memalsukan nilai atau tanda tangan.", poin: 20 },
+      { deskripsi: "Memanipulasi data PKL.", poin: 20 },
+      { deskripsi: "Menyalahgunakan alat bengkel/lab untuk pribadi.", poin: 20 },
+    ],
+  },
+  teknologi: {
+    ringan: [
+      { deskripsi: "Menggunakan HP saat pelajaran tanpa izin.", poin: 5 },
+      { deskripsi: "Bermain game di kelas.", poin: 5 },
+      { deskripsi: "Menggunakan Wi-Fi sekolah untuk hal pribadi berlebihan.", poin: 5 },
+    ],
+    sedang: [
+      { deskripsi: "Membuka situs terlarang di sekolah.", poin: 15 },
+      { deskripsi: "Memotret guru tanpa izin.", poin: 15 },
+      { deskripsi: "Membuat meme menghina guru.", poin: 15 },
+      { deskripsi: "Menyebar gosip bohong online.", poin: 15 },
+      { deskripsi: "Membajak akun media sosial teman.", poin: 15 },
+    ],
+    berat: [
+      { deskripsi: "Menggunakan akun media sosial untuk menjelekkan sekolah.", poin: 20 },
+      { deskripsi: "Membuat video bullying atau menyebar konten tidak pantas.", poin: 20 },
+      { deskripsi: "Menyebar foto kelas tanpa izin.", poin: 20 },
+      { deskripsi: "Mengirim pesan ancaman via grup.", poin: 20 },
+      { deskripsi: "Membawa alat elektronik terlarang.", poin: 20 },
+    ],
+  },
+  kegiatan: {
+    ringan: [
+      { deskripsi: "Tidak ikut kegiatan OSIS/Pramuka wajib.", poin: 10 },
+      { deskripsi: "Mengabaikan aturan apel pagi.", poin: 10 },
+      { deskripsi: "Tidak disiplin saat perkemahan/praktek luar.", poin: 10 },
+    ],
+    sedang: [
+      { deskripsi: "Mengabaikan instruksi pembina upacara.", poin: 15 },
+      { deskripsi: "Membuat gaduh saat acara resmi.", poin: 15 },
+      { deskripsi: "Tidak hadir saat pembekalan PKL.", poin: 15 },
+      { deskripsi: "Tidak mengembalikan perlengkapan kegiatan.", poin: 15 },
+    ],
+    berat: [
+      { deskripsi: "Tidak ikut kegiatan PKL tanpa alasan.", poin: 30 },
+      { deskripsi: "Membuat masalah saat study tour.", poin: 30 },
+      { deskripsi: "Membuat kerusuhan saat pertandingan sekolah.", poin: 30 },
+      { deskripsi: "Membawa senjata/bahan berbahaya saat kegiatan.", poin: 30 },
+    ],
+  },
+  hukum: {
+    berat: [
+      { deskripsi: "Mengedarkan narkoba.", poin: 40 },
+      { deskripsi: "Membawa senjata api.", poin: 40 },
+      { deskripsi: "Menganiaya guru/teman.", poin: 40 },
+      { deskripsi: "Mencuri barang di sekolah.", poin: 40 },
+      { deskripsi: "Ikut tawuran antar sekolah.", poin: 40 },
+      { deskripsi: "Merusak kendaraan guru/teman.", poin: 40 },
+      { deskripsi: "Membakar fasilitas sekolah.", poin: 40 },
+      { deskripsi: "Melakukan pelecehan seksual di sekolah.", poin: 40 },
+      { deskripsi: "Melakukan perjudian di sekolah.", poin: 40 },
+      { deskripsi: "Melakukan tindakan kriminal berat di luar sekolah membawa nama sekolah.", poin: 40 },
+    ],
+  },
+};
 
 type KategoriKey = keyof typeof tataTertibData;
 
@@ -94,7 +283,6 @@ export default function ManajemenPelanggaranPage() {
 
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [catatanToDelete, setCatatanToDelete] = useState<CatatanPelanggaran | null>(null);
   
   // --- Form Data States ---
   const [selectedKelasForForm, setSelectedKelasForForm] = useState<string>("");
@@ -173,32 +361,6 @@ export default function ManajemenPelanggaranPage() {
     setIsDialogOpen(false);
   };
 
-  const handleDeleteCatatan = () => {
-    if (!catatanToDelete) return;
-
-    const currentRiwayat = getSourceData('riwayatPelanggaran', [])
-    const updatedRiwayat = Array.isArray(currentRiwayat) 
-        ? currentRiwayat.filter((c: any) => c.id !== catatanToDelete.originalId)
-        : [];
-        
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    
-    toast({ title: "Catatan Dihapus", description: `Catatan untuk ${catatanToDelete.namaSiswa} telah dihapus.` });
-    setCatatanToDelete(null);
-  };
-  
-  const handleStatusChange = (id: string, newStatus: StatusLaporan) => {
-    const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
-    const recordToUpdate = riwayatPelanggaran.find(r => r.id === id);
-    if (!recordToUpdate) return;
-    
-    const updatedRiwayat = allPelanggaran.map(item => 
-        item.id === recordToUpdate.originalId ? { ...item, status: newStatus } : item
-    );
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${newStatus}".` });
-  };
-  
   const getStatusBadgeVariant = (status: StatusLaporan) => {
     switch (status) {
         case 'Dilaporkan': return 'destructive';
@@ -210,50 +372,6 @@ export default function ManajemenPelanggaranPage() {
     }
   };
   
-  const canDelete = userRole === 'wakasek_kesiswaan';
-  
-  const canPerformActions = useMemo(() => {
-    if (!userRole) return false;
-    return ['wakasek_kesiswaan', 'wali_kelas', 'guru_bk'].includes(userRole);
-  }, [userRole]);
-
-  const renderActionMenu = (catatan: CatatanPelanggaran) => {
-    const role = userRole;
-    const status = catatan.status;
-
-    if (role === 'wali_kelas' && status === 'Dilaporkan') {
-        return (
-            <>
-                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tandai ditindaklanjuti</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>
-            </>
-        );
-    }
-
-    if (role === 'guru_bk' && status === 'Diteruskan ke BK') {
-        return (
-            <>
-                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><ArrowRight className="mr-2 h-4 w-4" /> Kembalikan ke Wali Kelas</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>
-            </>
-        );
-    }
-    
-    if (role === 'wakasek_kesiswaan') {
-       return (
-            <>
-                {status !== 'Ditindaklanjuti Wali Kelas' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" /> Tindak lanjuti</DropdownMenuItem>}
-                {status !== 'Diteruskan ke BK' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" /> Teruskan ke BK</DropdownMenuItem>}
-                {status !== 'Diteruskan ke Wakasek' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Diteruskan ke Wakasek')}><ArrowRight className="mr-2 h-4 w-4" /> Teruskan ke Wakasek</DropdownMenuItem>}
-                {status !== 'Selesai' && <DropdownMenuItem onClick={() => handleStatusChange(catatan.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" /> Tandai Selesai</DropdownMenuItem>}
-            </>
-        );
-    }
-
-    return null;
-  };
-
   const filteredData = useMemo(() => {
     let data = riwayatPelanggaran;
     
@@ -291,7 +409,7 @@ export default function ManajemenPelanggaranPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Manajemen Pelanggaran Siswa</h2>
-            <p className="text-muted-foreground">Catat, pantau, dan kelola pelanggaran tata tertib siswa sesuai alur kerja.</p>
+            <p className="text-muted-foreground">Catat dan pantau pelanggaran tata tertib siswa.</p>
           </div>
           <div className="flex w-full sm:w-auto gap-2">
               <Input 
@@ -320,7 +438,6 @@ export default function ManajemenPelanggaranPage() {
                         <TableHead>Detail Pelanggaran</TableHead>
                         <TableHead>Pelapor & Tindakan Awal</TableHead>
                         <TableHead className="text-center">Status</TableHead>
-                        {canPerformActions && <TableHead className="text-right">Aksi</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -342,28 +459,11 @@ export default function ManajemenPelanggaranPage() {
                                 <TableCell className="text-center">
                                     <Badge variant={getStatusBadgeVariant(catatan.status)}>{catatan.status}</Badge>
                                 </TableCell>
-                                {canPerformActions && (
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                {renderActionMenu(catatan)}
-                                                {canDelete && (
-                                                    <DropdownMenuItem onSelect={e => e.preventDefault()} onClick={() => setCatatanToDelete(catatan)} className="text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                )}
                             </TableRow>
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={canPerformActions ? 5 : 4} className="text-center h-24">
+                            <TableCell colSpan={4} className="text-center h-24">
                                 Tidak ada data pelanggaran untuk ditampilkan.
                             </TableCell>
                         </TableRow>
@@ -381,7 +481,7 @@ export default function ManajemenPelanggaranPage() {
             </DialogHeader>
             <div className="grid gap-6 py-4">
                 <div className="space-y-2">
-                    <Label>1. Pilih Kelas</Label>
+                    <Label className="flex items-center gap-2"><span className="font-bold">1.</span>Pilih Kelas</Label>
                     <Select value={selectedKelasForForm} onValueChange={(value) => { setSelectedKelasForForm(value); setSelectedNis(""); }}>
                         <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
                         <SelectContent>
@@ -393,7 +493,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><User/>2. Pilih Siswa</Label>
+                    <Label className="flex items-center gap-2"><span className="font-bold">2.</span>Pilih Siswa</Label>
                     <Select value={selectedNis} onValueChange={setSelectedNis} disabled={!selectedKelasForForm}>
                          <SelectTrigger><SelectValue placeholder="Pilih siswa..." /></SelectTrigger>
                         <SelectContent>
@@ -405,7 +505,7 @@ export default function ManajemenPelanggaranPage() {
                 </div>
                 
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Kategori Pelanggaran</Label>
+                     <Label className="flex items-center gap-2"><span className="font-bold">3.</span>Pilih Jenis Pelanggaran</Label>
                     <Select value={selectedKategori} onValueChange={(v: KategoriKey) => { setSelectedKategori(v); setSelectedRuleId(""); }}>
                         <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
                         <SelectContent>
@@ -417,51 +517,38 @@ export default function ManajemenPelanggaranPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><BookMarked />4. Pilih Tingkat dan Deskripsi Pelanggaran</Label>
+                     <Label className="flex items-center gap-2"><span className="font-bold">4.</span>Pilih Tingkat dan Deskripsi Pelanggaran</Label>
                     <Select value={selectedRuleId} onValueChange={setSelectedRuleId} disabled={!selectedKategori}>
                         <SelectTrigger><SelectValue placeholder="Pilih pelanggaran..." /></SelectTrigger>
                         <SelectContent className="max-h-60">
-                            {pelanggaranDiKategori.length > 0 && (
-                                <SelectGroup>
-                                    <SelectLabel>Pelanggaran Tersedia</SelectLabel>
-                                    {pelanggaranDiKategori.map(rule => (
-                                        <SelectItem key={rule.id} value={rule.id.toString()}>
-                                            ({rule.tingkat.charAt(0).toUpperCase() + rule.tingkat.slice(1)}) {rule.deskripsi} ({rule.poin} Poin)
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            )}
+                           <SelectGroup>
+                              <SelectLabel>Pelanggaran Tersedia</SelectLabel>
+                              {pelanggaranDiKategori.map(rule => (
+                                  <SelectItem key={rule.id} value={rule.id.toString()}>
+                                      ({rule.tingkat.charAt(0).toUpperCase() + rule.tingkat.slice(1)}) {rule.deskripsi} - ({rule.poin} Poin)
+                                  </SelectItem>
+                              ))}
+                           </SelectGroup>
                         </SelectContent>
                     </Select>
                 </div>
-
+                
                 <div className="space-y-2">
-                    <Label>5. Tindakan Awal yang Dilakukan (Opsional)</Label>
-                    <Textarea value={tindakanAwal} onChange={e => setTindakanAwal(e.target.value)} placeholder="Contoh: Ditegur secara lisan di tempat."/>
+                    <Label htmlFor="tindakan-awal">5. Tindakan Awal yang Dilakukan (Opsional)</Label>
+                    <Textarea 
+                        id="tindakan-awal" 
+                        placeholder="Contoh: Diberi teguran lisan, diminta push-up, dll."
+                        value={tindakanAwal}
+                        onChange={(e) => setTindakanAwal(e.target.value)}
+                    />
                 </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                <Button onClick={handleSaveCatatan}>Simpan Laporan</Button>
+                <Button onClick={handleSaveCatatan}>Simpan Catatan</Button>
             </DialogFooter>
           </DialogContent>
       </Dialog>
-      
-      {/* Alert Dialog Hapus */}
-       <AlertDialog open={!!catatanToDelete} onOpenChange={() => setCatatanToDelete(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                  <AlertDialogDescription>Tindakan ini akan menghapus catatan pelanggaran secara permanen dari riwayat.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteCatatan}>Hapus</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
-
-    
