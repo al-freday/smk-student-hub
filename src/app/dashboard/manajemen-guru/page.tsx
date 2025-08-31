@@ -260,13 +260,13 @@ export default function ManajemenGuruPage() {
       });
   };
 
-  const handleSiswaBinaanChange = (siswaNama: string) => {
+  const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
       setFormData(prev => {
           const currentSiswa = prev.siswaBinaan || [];
-          if (currentSiswa.includes(siswaNama)) {
-              return { ...prev, siswaBinaan: currentSiswa.filter(s => s !== siswaNama) };
-          } else {
+          if (checked) {
               return { ...prev, siswaBinaan: [...currentSiswa, siswaNama] };
+          } else {
+              return { ...prev, siswaBinaan: currentSiswa.filter(s => s !== siswaNama) };
           }
       });
   };
@@ -584,43 +584,34 @@ export default function ManajemenGuruPage() {
        {activeTab === 'guru_pendamping' && (
         <div className="space-y-2">
             <Label className="font-semibold">Pilih Siswa Binaan</Label>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between h-auto">
-                        <span className="flex flex-wrap gap-1">
-                            {(formData.siswaBinaan || []).length > 0 
-                                ? formData.siswaBinaan!.map(namaSiswa => <Badge key={namaSiswa} variant="secondary">{namaSiswa}</Badge>) 
-                                : "Pilih satu atau lebih siswa..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
-                        <CommandInput placeholder="Cari nama siswa..." />
-                        <CommandList>
-                            <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
-                            <CommandGroup>
-                                {daftarSiswa.sort((a,b) => a.nama.localeCompare(b.nama)).map(siswa => (
-                                    <CommandItem
-                                        key={siswa.id}
-                                        value={siswa.nama}
-                                        onSelect={() => handleSiswaBinaanChange(siswa.nama)}
-                                    >
-                                        <Check
-                                            className={cn(
-                                                "mr-2 h-4 w-4",
-                                                (formData.siswaBinaan || []).includes(siswa.nama) ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        {siswa.nama} ({siswa.kelas})
-                                    </CommandItem>
-                                ))}
-                            </CommandGroup>
-                        </CommandList>
-                    </Command>
-                </PopoverContent>
-            </Popover>
+            <ScrollArea className="h-72 rounded-md border">
+                 <Accordion type="multiple" className="w-full">
+                    {availableKelas.map(kelas => {
+                        const siswaDiKelas = daftarSiswa.filter(s => s.kelas === kelas.nama);
+                        return (
+                            <AccordionItem value={kelas.nama} key={kelas.id}>
+                                <AccordionTrigger className="px-4">{kelas.nama}</AccordionTrigger>
+                                <AccordionContent className="px-4">
+                                    <div className="space-y-2">
+                                        {siswaDiKelas.map(siswa => (
+                                            <div key={siswa.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`siswa-${siswa.id}`}
+                                                    checked={(formData.siswaBinaan || []).includes(siswa.nama)}
+                                                    onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
+                                                />
+                                                <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
+                                                    {siswa.nama}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        )
+                    })}
+                 </Accordion>
+            </ScrollArea>
         </div>
       )}
     </>
