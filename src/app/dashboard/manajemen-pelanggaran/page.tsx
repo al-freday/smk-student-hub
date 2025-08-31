@@ -374,7 +374,7 @@ export default function ManajemenPelanggaranPage() {
                     <Label className={cn("flex items-center gap-2", !selectedKelasForForm && "text-muted-foreground")}>
                         <User/>2. Pilih Siswa
                     </Label>
-                    <Popover open={openSiswaPopover} onOpenChange={setOpenSiswaPopover}>
+                    <Popover modal={true} open={openSiswaPopover} onOpenChange={setOpenSiswaPopover}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!selectedKelasForForm}>
                                 {selectedNis ? daftarSiswa.find(s => s.nis === selectedNis)?.nama : "Pilih siswa..."}
@@ -405,7 +405,7 @@ export default function ManajemenPelanggaranPage() {
 
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2"><ShieldAlert/>3. Pilih Jenis Pelanggaran</Label>
-                    <Popover open={openRulePopover} onOpenChange={setOpenRulePopover}>
+                    <Popover modal={true} open={openRulePopover} onOpenChange={setOpenRulePopover}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between h-auto text-left">
                                 <span className="flex-1 whitespace-normal">
@@ -462,3 +462,4 @@ export default function ManajemenPelanggaranPage() {
       </AlertDialog>
     </div>
   );
+}
