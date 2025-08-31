@@ -64,10 +64,10 @@ interface Guru {
   id: number | string;
   nama: string;
   teachingAssignments?: TeachingAssignment[];
-  kelas?: string[]; // Untuk Wali Kelas & Guru Pendamping (Kelas Binaan)
+  kelas?: string[]; // Untuk Wali Kelas
   tanggalPiket?: string[];
   tugasKelas?: string; 
-  siswaBinaan?: string[]; // Untuk Guru Pendamping (Siswa Binaan)
+  siswaBinaan?: string[]; 
 }
 
 interface AssignmentLog {
@@ -116,9 +116,11 @@ export default function ManajemenGuruPage() {
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  
+  // States for forms
   const [currentAssignment, setCurrentAssignment] = useState<Partial<TeachingAssignment>>({});
+  const [currentPiketDate, setCurrentPiketDate] = useState<Date | undefined>(undefined);
+  const [currentBinaan, setCurrentBinaan] = useState({ kelas: '', siswa: '' });
+
 
   const loadData = useCallback(() => {
     try {
@@ -198,12 +200,6 @@ export default function ManajemenGuruPage() {
   const handleOpenDialog = (guru: Guru) => {
       setEditingTeacher(guru);
       setFormData(guru);
-      
-      if (guru.tanggalPiket) {
-          setSelectedDates(guru.tanggalPiket.map(d => new Date(d)));
-      } else {
-          setSelectedDates([]);
-      }
       setIsDialogOpen(true);
   };
 
@@ -223,16 +219,11 @@ export default function ManajemenGuruPage() {
   const handleSaveDialog = () => {
       if (!editingTeacher) return;
       
-      let dataToSave = { ...formData };
-      if (activeTab === 'guru_piket') {
-          dataToSave.tanggalPiket = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
-      }
-      
       const currentFullData = getSourceData('teachersData', {});
       const { schoolInfo, ...roles } = currentFullData;
 
       const updatedRoleList = (roles[activeTab] || []).map((t: Guru) =>
-        t.id === editingTeacher.id ? { ...t, ...dataToSave } : t
+        t.id === editingTeacher.id ? { ...t, ...formData } : t
       );
       
       const updatedData = {
@@ -242,7 +233,6 @@ export default function ManajemenGuruPage() {
 
       updateSourceData('teachersData', updatedData);
       
-      // Add log for notification
       addAssignmentLog(editingTeacher.nama, getRoleName(activeTab));
 
       toast({ title: "Tugas Diperbarui", description: `Tugas untuk ${editingTeacher.nama} telah berhasil disimpan.` });
@@ -260,17 +250,7 @@ export default function ManajemenGuruPage() {
       });
   };
 
-  const handleSiswaBinaanChange = (siswaNama: string, checked: boolean) => {
-      setFormData(prev => {
-          const currentSiswa = prev.siswaBinaan || [];
-          if (checked) {
-              return { ...prev, siswaBinaan: [...currentSiswa, siswaNama] };
-          } else {
-              return { ...prev, siswaBinaan: currentSiswa.filter(s => s !== siswaNama) };
-          }
-      });
-  };
-  
+  // --- Handlers for Guru Mapel ---
   const handleAddAssignment = () => {
     if (!currentAssignment.subject || !currentAssignment.className || !currentAssignment.day || !currentAssignment.session) {
         toast({ title: "Gagal", description: "Harap lengkapi semua detail tugas mengajar.", variant: "destructive" });
@@ -287,6 +267,49 @@ export default function ManajemenGuruPage() {
     setFormData({ ...formData, teachingAssignments: updatedAssignments });
   };
   
+  // --- Handlers for Guru Piket ---
+  const handleAddPiketDate = () => {
+      if (!currentPiketDate) {
+          toast({ title: "Gagal", description: "Silakan pilih tanggal piket.", variant: "destructive" });
+          return;
+      }
+      const dateString = format(currentPiketDate, 'yyyy-MM-dd');
+      const existingDates = formData.tanggalPiket || [];
+      if (existingDates.includes(dateString)) {
+          toast({ title: "Gagal", description: "Tanggal ini sudah ada dalam daftar.", variant: "destructive" });
+          return;
+      }
+      setFormData({ ...formData, tanggalPiket: [...existingDates, dateString].sort() });
+      setCurrentPiketDate(undefined);
+  };
+
+  const handleDeletePiketDate = (dateString: string) => {
+      const updatedDates = formData.tanggalPiket?.filter(d => d !== dateString);
+      setFormData({ ...formData, tanggalPiket: updatedDates });
+  };
+  
+  // --- Handlers for Guru Pendamping ---
+  const handleAddSiswaBinaan = () => {
+      if (!currentBinaan.siswa) {
+          toast({ title: "Gagal", description: "Silakan pilih siswa.", variant: "destructive" });
+          return;
+      }
+      const existingBinaan = formData.siswaBinaan || [];
+      if (existingBinaan.includes(currentBinaan.siswa)) {
+           toast({ title: "Gagal", description: "Siswa ini sudah ada dalam daftar binaan.", variant: "destructive" });
+           return;
+      }
+      setFormData({ ...formData, siswaBinaan: [...existingBinaan, currentBinaan.siswa].sort() });
+      setCurrentBinaan({ kelas: '', siswa: '' });
+  };
+  
+  const handleDeleteSiswaBinaan = (namaSiswa: string) => {
+      const updatedBinaan = formData.siswaBinaan?.filter(s => s !== namaSiswa);
+      setFormData({ ...formData, siswaBinaan: updatedBinaan });
+  };
+
+
+  // --- Export/Import Handlers (Unchanged) ---
   const handleExportData = (role: TeacherRole) => {
     const usersInRole = teachers[role] || [];
     if (usersInRole.length === 0) {
@@ -544,31 +567,39 @@ export default function ManajemenGuruPage() {
         </div>
       )}
       {activeTab === 'guru_piket' && (
-        <div className="grid grid-cols-4 items-start gap-4">
-            <Label className="text-right pt-2">Pilih Tanggal</Label>
-            <div className="col-span-3 space-y-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full font-normal justify-start text-left", !selectedDates?.length && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDates.length > 0 ? `${selectedDates.length} tanggal dipilih` : "Buka kalender"}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="multiple" selected={selectedDates} onSelect={(dates) => setSelectedDates(dates || [])} />
-                    </PopoverContent>
-                </Popover>
-                {selectedDates.length > 0 && (
-                    <ScrollArea className="h-32 w-full rounded-md border p-2">
-                        <div className="flex flex-col gap-1">
-                            {selectedDates.sort((a,b) => a.getTime() - b.getTime()).map((date, index) => (
-                                <div key={index} className="text-sm p-1 rounded-sm bg-muted">
-                                    {format(date, "EEEE, dd MMMM yyyy", { locale: id })}
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                )}
+        <div className="space-y-6">
+            <div>
+                <Label>Daftar Tanggal Piket</Label>
+                <ScrollArea className="h-40 mt-2 rounded-md border p-2">
+                    {(formData.tanggalPiket && formData.tanggalPiket.length > 0) ? (
+                        formData.tanggalPiket.map(d => (
+                            <div key={d} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted">
+                                <p className="font-medium">{format(new Date(d), "EEEE, dd MMMM yyyy", { locale: id })}</p>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeletePiketDate(d)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-sm text-muted-foreground pt-4">Belum ada tanggal piket yang ditugaskan.</p>
+                    )}
+                </ScrollArea>
+            </div>
+            <Separator />
+             <div>
+                <h4 className="font-medium mb-2">Tambah Tanggal Piket Baru</h4>
+                <div className="space-y-4 rounded-md border p-4">
+                    <Calendar
+                        mode="single"
+                        selected={currentPiketDate}
+                        onSelect={setCurrentPiketDate}
+                        className="rounded-md"
+                    />
+                     <Button size="sm" onClick={handleAddPiketDate} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambahkan Tanggal
+                    </Button>
+                </div>
             </div>
         </div>
       )}
@@ -582,36 +613,50 @@ export default function ManajemenGuruPage() {
         </div>
       )}
        {activeTab === 'guru_pendamping' && (
-        <div className="space-y-2">
-            <Label className="font-semibold">Pilih Siswa Binaan</Label>
-            <ScrollArea className="h-72 rounded-md border">
-                 <Accordion type="multiple" className="w-full">
-                    {availableKelas.map(kelas => {
-                        const siswaDiKelas = daftarSiswa.filter(s => s.kelas === kelas.nama);
-                        return (
-                            <AccordionItem value={kelas.nama} key={kelas.id}>
-                                <AccordionTrigger className="px-4">{kelas.nama}</AccordionTrigger>
-                                <AccordionContent className="px-4">
-                                    <div className="space-y-2">
-                                        {siswaDiKelas.map(siswa => (
-                                            <div key={siswa.id} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id={`siswa-${siswa.id}`}
-                                                    checked={(formData.siswaBinaan || []).includes(siswa.nama)}
-                                                    onCheckedChange={(checked) => handleSiswaBinaanChange(siswa.nama, !!checked)}
-                                                />
-                                                <label htmlFor={`siswa-${siswa.id}`} className="text-sm font-medium leading-none">
-                                                    {siswa.nama}
-                                                </label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        )
-                    })}
-                 </Accordion>
-            </ScrollArea>
+        <div className="space-y-6">
+            <div>
+                <Label>Daftar Siswa Binaan</Label>
+                <ScrollArea className="h-40 mt-2 rounded-md border p-2">
+                    {(formData.siswaBinaan && formData.siswaBinaan.length > 0) ? (
+                        formData.siswaBinaan.map(namaSiswa => (
+                            <div key={namaSiswa} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted">
+                                <p className="font-medium">{namaSiswa}</p>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteSiswaBinaan(namaSiswa)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center text-sm text-muted-foreground pt-4">Belum ada siswa binaan yang ditugaskan.</p>
+                    )}
+                </ScrollArea>
+            </div>
+            <Separator />
+            <div>
+                <h4 className="font-medium mb-2">Tambah Siswa Binaan Baru</h4>
+                <div className="space-y-4 rounded-md border p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="binaan-kelas">Kelas</Label>
+                             <Select value={currentBinaan.kelas} onValueChange={value => setCurrentBinaan({ kelas: value, siswa: '' })}>
+                                <SelectTrigger id="binaan-kelas"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
+                                <SelectContent>{availableKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}</SelectContent>
+                             </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="binaan-siswa">Siswa</Label>
+                             <Select value={currentBinaan.siswa} onValueChange={value => setCurrentBinaan({...currentBinaan, siswa: value})} disabled={!currentBinaan.kelas}>
+                                <SelectTrigger id="binaan-siswa"><SelectValue placeholder="Pilih Siswa" /></SelectTrigger>
+                                <SelectContent>{daftarSiswa.filter(s => s.kelas === currentBinaan.kelas).map(s => <SelectItem key={s.id} value={s.nama}>{s.nama}</SelectItem>)}</SelectContent>
+                             </Select>
+                        </div>
+                    </div>
+                     <Button size="sm" onClick={handleAddSiswaBinaan} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambahkan Siswa
+                    </Button>
+                </div>
+            </div>
         </div>
       )}
     </>
@@ -761,7 +806,7 @@ export default function ManajemenGuruPage() {
       </Card>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className={activeTab === 'guru_mapel' || activeTab === 'guru_pendamping' ? "sm:max-w-2xl" : "sm:max-w-md"}>
+          <DialogContent className={activeTab === 'guru_mapel' || activeTab === 'guru_pendamping' || activeTab === 'guru_piket' ? "sm:max-w-2xl" : "sm:max-w-md"}>
               <DialogHeader>
                   <DialogTitle>Atur Penugasan Guru</DialogTitle>
                   <DialogDescription>
