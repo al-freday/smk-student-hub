@@ -21,52 +21,7 @@ import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-// --- Local Tata Tertib Data ---
-const localTataTertibData = {
-  kehadiran: {
-    ringan: [ { deskripsi: "Datang terlambat tanpa alasan.", poin: 5 } ],
-    sedang: [ { deskripsi: "Bolos pelajaran.", poin: 10 } ],
-    berat: [ { deskripsi: "Tidak hadir tanpa keterangan (alpha) berulang.", poin: 20 } ],
-  },
-  seragam: {
-    ringan: [ { deskripsi: "Tidak memakai seragam lengkap.", poin: 3 } ],
-    sedang: [ { deskripsi: "Rambut gondrong (untuk siswa).", poin: 10 } ],
-    berat: [ { deskripsi: "Celana dipendekkan atau dimodifikasi.", poin: 15 } ],
-  },
-  lingkungan: {
-    ringan: [ { deskripsi: "Membuang sampah sembarangan.", poin: 5 } ],
-    sedang: [ { deskripsi: "Mencorat-coret meja, kursi, atau dinding.", poin: 15 } ],
-    berat: [ { deskripsi: "Merusak fasilitas kelas.", poin: 30 } ],
-  },
-  etika: {
-    ringan: [ { deskripsi: "Berbicara kasar pada teman.", poin: 10 } ],
-    sedang: [ { deskripsi: "Merokok di lingkungan sekolah.", poin: 20 } ],
-    berat: [ { deskripsi: "Bertengkar fisik di sekolah.", poin: 40 } ],
-  },
-  akademik: {
-    ringan: [ { deskripsi: "Tidak mengumpulkan tugas.", poin: 5 } ],
-    sedang: [ { deskripsi: "Menyontek saat ujian.", poin: 15 } ],
-    berat: [ { deskripsi: "Memalsukan nilai atau tanda tangan.", poin: 20 } ],
-  },
-  teknologi: {
-    ringan: [ { deskripsi: "Menggunakan HP saat pelajaran tanpa izin.", poin: 5 } ],
-    sedang: [ { deskripsi: "Membuka situs terlarang di sekolah.", poin: 15 } ],
-    berat: [ { deskripsi: "Membuat video bullying atau menyebar konten tidak pantas.", poin: 20 } ],
-  },
-  kegiatan: {
-    ringan: [ { deskripsi: "Tidak ikut kegiatan OSIS/Pramuka wajib.", poin: 10 } ],
-    sedang: [ { deskripsi: "Membuat gaduh saat acara resmi.", poin: 15 } ],
-    berat: [ { deskripsi: "Tidak ikut kegiatan PKL tanpa alasan.", poin: 30 } ],
-  },
-  hukum: {
-    berat: [
-      { deskripsi: "Mengedarkan narkoba.", poin: 40 },
-      { deskripsi: "Mencuri barang di sekolah.", poin: 40 },
-      { deskripsi: "Ikut tawuran antar sekolah.", poin: 40 },
-    ],
-  },
-};
+import { tataTertibData } from "@/lib/tata-tertib-data";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -102,7 +57,7 @@ interface CatatanPelanggaran {
   status: StatusLaporan;
 }
 
-const flattenTataTertib = (data: typeof localTataTertibData) => {
+const flattenTataTertib = (data: typeof tataTertibData) => {
     let allRules: { id: number, deskripsi: string, poin: number }[] = [];
     let idCounter = 1;
     for (const kategori in data) {
@@ -164,7 +119,7 @@ export default function ManajemenPelanggaranPage() {
       setRiwayatPelanggaran([]);
     }
 
-    setDaftarTataTertib(flattenTataTertib(localTataTertibData));
+    setDaftarTataTertib(flattenTataTertib(tataTertibData));
 
   }, []);
   
