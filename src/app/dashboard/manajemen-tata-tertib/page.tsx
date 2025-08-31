@@ -198,25 +198,25 @@ export default function ManajemenTataTertibPage() {
           return (
             <AccordionItem value={kategori} key={kategori} className="border rounded-lg bg-card">
               <AccordionTrigger className="p-4 hover:no-underline">
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-4">
-                        <div className="p-2 bg-secondary rounded-md text-primary">
-                            <Icon className="h-6 w-6"/>
-                        </div>
-                        <div className="text-left">
-                            <h3 className="font-semibold text-lg">{info.title}</h3>
-                            <p className="text-sm text-muted-foreground">{info.poin}</p>
-                        </div>
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-secondary rounded-md text-primary">
+                        <Icon className="h-6 w-6"/>
                     </div>
-                    {canEdit && 
-                        <Button size="sm" onClick={(e) => { e.stopPropagation(); handleOpenDialog(kategori); }} className="mr-4 print:hidden">
-                           <PlusCircle className="mr-2 h-4 w-4"/> Tambah Aturan
-                        </Button>
-                    }
+                    <div className="text-left">
+                        <h3 className="font-semibold text-lg">{info.title}</h3>
+                        <p className="text-sm text-muted-foreground">{info.poin}</p>
+                    </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="p-0">
-                <div className="border-t">
+                <div className="border-t p-4">
+                    {canEdit && 
+                        <div className="flex justify-end mb-4 print:hidden">
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleOpenDialog(kategori); }}>
+                               <PlusCircle className="mr-2 h-4 w-4"/> Tambah Aturan
+                            </Button>
+                        </div>
+                    }
                     <Table>
                         <TableHeader>
                             <TableRow>
