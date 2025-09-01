@@ -345,15 +345,18 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.id}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    setEkskulFormData((prev) => {
-                                                        const currentPembina = prev.pembina || [];
-                                                        const isSelected = currentPembina.includes(guru.nama);
-                                                        if (isSelected) {
-                                                            return { ...prev, pembina: currentPembina.filter((p) => p !== guru.nama) };
-                                                        } else {
-                                                            return { ...prev, pembina: [...currentPembina, guru.nama] };
-                                                        }
-                                                    });
+                                                    const isSelected = ekskulFormData.pembina?.includes(guru.nama);
+                                                    if (isSelected) {
+                                                        setEkskulFormData(prev => ({
+                                                            ...prev,
+                                                            pembina: prev.pembina?.filter(p => p !== guru.nama)
+                                                        }));
+                                                    } else {
+                                                        setEkskulFormData(prev => ({
+                                                            ...prev,
+                                                            pembina: [...(prev.pembina || []), guru.nama]
+                                                        }));
+                                                    }
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -455,5 +458,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
-    
