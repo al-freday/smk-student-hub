@@ -227,7 +227,7 @@ export default function EkskulPrestasiPage() {
     updateSourceData('prestasiData', updatedData);
     toast({ title: "Dihapus", description: `Prestasi ${prestasiToDelete.namaSiswa} telah dihapus.` });
     setPrestasiToDelete(null);
-  }
+  };
 
   const siswaDiKelas = useMemo(() => {
     if (!selectedKelasAnggota) return [];
