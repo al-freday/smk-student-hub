@@ -110,6 +110,7 @@ export default function EkskulPrestasiPage() {
   const [editingPrestasi, setEditingPrestasi] = useState<Prestasi | null>(null);
   const [prestasiToDelete, setPrestasiToDelete] = useState<Prestasi | null>(null);
   const [prestasiFormData, setPrestasiFormData] = useState<Partial<Prestasi>>({});
+  const [isPembinaPopoverOpen, setIsPembinaPopoverOpen] = useState(false);
 
   const loadData = useCallback(() => {
     let ekskulData = getSourceData('ekskulData', null);
@@ -359,7 +360,7 @@ export default function EkskulPrestasiPage() {
                 </div>
                 <div className="space-y-2">
                     <Label>Pilih Pembina</Label>
-                    <Popover>
+                    <Popover open={isPembinaPopoverOpen} onOpenChange={setIsPembinaPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
                                 <span className="flex flex-wrap gap-1">
@@ -369,7 +370,7 @@ export default function EkskulPrestasiPage() {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0">
-                            <Command onSelect={() => {}}>
+                            <Command>
                                 <CommandInput placeholder="Cari nama guru..."/>
                                 <CommandList>
                                     <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
@@ -388,6 +389,7 @@ export default function EkskulPrestasiPage() {
                                                             return { ...prev, pembina: [...prevPembina, guru.nama] };
                                                         }
                                                     });
+                                                    setIsPembinaPopoverOpen(false);
                                                   }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -419,7 +421,7 @@ export default function EkskulPrestasiPage() {
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-full p-0">
-                                <Command onSelect={() => {}}>
+                                <Command>
                                     <CommandInput placeholder="Cari nama siswa..."/>
                                     <CommandList>
                                         <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
@@ -549,5 +551,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
-    
