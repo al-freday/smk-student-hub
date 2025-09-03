@@ -380,15 +380,16 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.id}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    const isSelected = ekskulFormData.pembina?.includes(currentValue);
+                                                    const isSelected = ekskulFormData.pembina?.includes(guru.nama);
                                                     setEkskulFormData(prev => {
                                                         const prevPembina = prev.pembina || [];
                                                         if (isSelected) {
-                                                            return { ...prev, pembina: prevPembina.filter(p => p !== currentValue) };
+                                                            return { ...prev, pembina: prevPembina.filter(p => p !== guru.nama) };
                                                         } else {
-                                                            return { ...prev, pembina: [...prevPembina, currentValue] };
+                                                            return { ...prev, pembina: [...prevPembina, guru.nama] };
                                                         }
                                                     });
+                                                    setIsPembinaPopoverOpen(false);
                                                   }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -550,3 +551,5 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
+
+    
