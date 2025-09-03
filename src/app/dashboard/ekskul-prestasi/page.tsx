@@ -345,18 +345,15 @@ export default function EkskulPrestasiPage() {
                                                 key={guru.id}
                                                 value={guru.nama}
                                                 onSelect={(currentValue) => {
-                                                    const isSelected = ekskulFormData.pembina?.includes(guru.nama);
-                                                    if (isSelected) {
-                                                        setEkskulFormData(prev => ({
-                                                            ...prev,
-                                                            pembina: prev.pembina?.filter(p => p !== guru.nama)
-                                                        }));
-                                                    } else {
-                                                        setEkskulFormData(prev => ({
-                                                            ...prev,
-                                                            pembina: [...(prev.pembina || []), guru.nama]
-                                                        }));
-                                                    }
+                                                    setEkskulFormData(prev => {
+                                                      const pembina = prev.pembina || [];
+                                                      const isSelected = pembina.includes(guru.nama);
+                                                      if (isSelected) {
+                                                        return { ...prev, pembina: pembina.filter(p => p !== guru.nama) };
+                                                      } else {
+                                                        return { ...prev, pembina: [...pembina, guru.nama] };
+                                                      }
+                                                    });
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -445,13 +442,13 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul "{ekskulToDelete?.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data prestasi milik {prestasiToDelete?.namaSiswa}.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
