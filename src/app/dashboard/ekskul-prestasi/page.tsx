@@ -379,7 +379,7 @@ export default function EkskulPrestasiPage() {
                                             <CommandItem
                                                 key={guru.id}
                                                 value={guru.nama}
-                                                onSelect={(currentValue) => {
+                                                onSelect={() => {
                                                     const isSelected = ekskulFormData.pembina?.includes(guru.nama);
                                                     setEkskulFormData(prev => {
                                                         const prevPembina = prev.pembina || [];
@@ -390,7 +390,7 @@ export default function EkskulPrestasiPage() {
                                                         }
                                                     });
                                                     setIsPembinaPopoverOpen(false);
-                                                  }}
+                                                }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
                                                 {guru.nama}
@@ -538,18 +538,16 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul "{ekskulToDelete?.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data prestasi milik {prestasiToDelete?.namaSiswa}.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
     </div>
   );
 }
-
-    
