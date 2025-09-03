@@ -226,7 +226,7 @@ export default function EkskulPrestasiPage() {
     updateSourceData('prestasiData', updatedData);
     toast({ title: "Dihapus", description: `Prestasi ${prestasiToDelete.namaSiswa} telah dihapus.` });
     setPrestasiToDelete(null);
-  };
+  }
   
   const siswaDiKelas = useMemo(() => {
     if (!selectedKelasAnggota) return [];
@@ -536,7 +536,7 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul "{ekskulToDelete?.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
@@ -549,3 +549,5 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
+
+    
