@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { initialEkskulData } from "@/lib/ekskul-data";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // --- Interface Definitions ---
 interface Siswa {
@@ -56,6 +57,7 @@ interface Ekstrakurikuler {
   nama: string;
   kategori: string;
   pembina: string[];
+  anggota: string[]; // NIS siswa
 }
 
 interface Prestasi {
@@ -67,6 +69,7 @@ interface Prestasi {
   deskripsi: string;
   tingkat: 'Sekolah' | 'Kabupaten' | 'Provinsi' | 'Nasional' | 'Internasional';
   jenis: 'Akademik' | 'Non-Akademik';
+  guruPendamping?: string;
 }
 
 const kategoriEkskul = [
@@ -94,7 +97,7 @@ export default function EkskulPrestasiPage() {
   const [isEkskulDialogOpen, setIsEkskulDialogOpen] = useState(false);
   const [editingEkskul, setEditingEkskul] = useState<Ekstrakurikuler | null>(null);
   const [ekskulToDelete, setEkskulToDelete] = useState<Ekstrakurikuler | null>(null);
-  const [ekskulFormData, setEkskulFormData] = useState<Partial<Ekstrakurikuler>>({ pembina: [] });
+  const [ekskulFormData, setEkskulFormData] = useState<Partial<Ekstrakurikuler>>({ pembina: [], anggota: [] });
   
   const [isPrestasiDialogOpen, setIsPrestasiDialogOpen] = useState(false);
   const [editingPrestasi, setEditingPrestasi] = useState<Prestasi | null>(null);
@@ -104,11 +107,11 @@ export default function EkskulPrestasiPage() {
   const loadData = useCallback(() => {
     let ekskulData = getSourceData('ekskulData', null);
     
-    if (!ekskulData || !Array.isArray(ekskulData) || ekskulData.some(e => typeof e.id === 'undefined')) {
+    if (!ekskulData || !Array.isArray(ekskulData) || ekskulData.some((e: any) => typeof e.id === 'undefined')) {
         ekskulData = initialEkskulData;
         updateSourceData('ekskulData', ekskulData);
     }
-    setDaftarEkskul(ekskulData);
+    setDaftarEkskul(ekskulData.map((e: any) => ({ ...e, anggota: e.anggota || [] }))); // Ensure anggota array exists
     
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
@@ -140,7 +143,7 @@ export default function EkskulPrestasiPage() {
   // --- Ekskul Handlers ---
   const handleOpenEkskulDialog = (ekskul: Ekstrakurikuler | null = null) => {
     setEditingEkskul(ekskul);
-    setEkskulFormData(ekskul || { nama: "", kategori: "", pembina: [] });
+    setEkskulFormData(ekskul || { nama: "", kategori: "", pembina: [], anggota: [] });
     setIsEkskulDialogOpen(true);
   };
 
@@ -155,7 +158,7 @@ export default function EkskulPrestasiPage() {
       updatedData = currentData.map((e: Ekstrakurikuler) => e.id === editingEkskul.id ? { ...e, ...ekskulFormData } : e);
     } else {
       const newId = currentData.length > 0 ? Math.max(...currentData.map((e: Ekstrakurikuler) => e.id)) + 1 : Date.now();
-      updatedData = [...currentData, { ...ekskulFormData, id: newId }];
+      updatedData = [...currentData, { ...ekskulFormData, id: newId, anggota: ekskulFormData.anggota || [] }];
     }
     updateSourceData('ekskulData', updatedData);
     toast({ title: "Sukses", description: "Data ekstrakurikuler berhasil disimpan." });
@@ -234,31 +237,43 @@ export default function EkskulPrestasiPage() {
             <Button onClick={() => handleOpenEkskulDialog()}><PlusCircle className="mr-2 h-4 w-4"/> Tambah</Button>
           </CardHeader>
           <CardContent>
-            <Table>
-                <TableHeader><TableRow><TableHead>Nama Ekskul</TableHead><TableHead>Pembina</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {daftarEkskul.length > 0 ? daftarEkskul.map(e => (
-                        <TableRow key={e.id}>
-                            <TableCell>
-                                <p className="font-medium">{e.nama}</p>
-                                <p className="text-xs text-muted-foreground">{e.kategori}</p>
-                            </TableCell>
-                            <TableCell>{Array.isArray(e.pembina) ? e.pembina.join(', ') : ''}</TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleOpenEkskulDialog(e)}><Edit className="mr-2 h-4 w-4"/>Edit</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setEkskulToDelete(e)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>
-                                </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
-                    )) : (
-                        <TableRow key="no-data-ekskul"><TableCell colSpan={3} className="text-center h-24">Belum ada data ekskul.</TableCell></TableRow>
-                    )}
-                </TableBody>
-            </Table>
+            {daftarEkskul.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full">
+                    {daftarEkskul.map(e => (
+                        <AccordionItem value={String(e.id)} key={e.id} className="border-b">
+                            <AccordionTrigger className="hover:no-underline">
+                                <div className="flex-1 text-left">
+                                    <p className="font-medium">{e.nama}</p>
+                                    <p className="text-xs text-muted-foreground">{e.kategori}</p>
+                                </div>
+                                <div className="flex items-center gap-4 pr-4">
+                                     <Badge variant="secondary">{Array.isArray(e.pembina) ? e.pembina.length : 0} Pembina</Badge>
+                                    <Badge variant="outline">{Array.isArray(e.anggota) ? e.anggota.length : 0} Anggota</Badge>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={(event) => { event.stopPropagation(); handleOpenEkskulDialog(e); }}><Edit className="mr-2 h-4 w-4"/>Edit</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={(event) => { event.stopPropagation(); setEkskulToDelete(e); }} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-2 pt-2">
+                                    <h4 className="font-semibold text-sm">Pembina:</h4>
+                                    <p className="text-sm text-muted-foreground">{(e.pembina && e.pembina.length > 0) ? e.pembina.join(', ') : 'Belum ada pembina'}</p>
+                                    <h4 className="font-semibold text-sm mt-2">Anggota:</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {(e.anggota && e.anggota.length > 0) ? e.anggota.map(nis => daftarSiswa.find(s => s.nis === nis)?.nama || 'Siswa tidak ditemukan').join(', ') : 'Belum ada anggota'}
+                                    </p>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            ) : (
+                <div className="text-center h-24 flex items-center justify-center">Belum ada data ekskul.</div>
+            )}
           </CardContent>
         </Card>
 
@@ -283,9 +298,10 @@ export default function EkskulPrestasiPage() {
                             </TableCell>
                             <TableCell>
                                 <p>{p.deskripsi}</p>
-                                <div className="flex gap-1 mt-1">
+                                <div className="flex gap-1 mt-1 flex-wrap">
                                     <Badge variant="secondary">{p.jenis}</Badge>
                                     <Badge>{p.tingkat}</Badge>
+                                    {p.guruPendamping && <Badge variant="outline">{p.guruPendamping}</Badge>}
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -309,7 +325,7 @@ export default function EkskulPrestasiPage() {
 
       {/* Dialog Ekskul */}
       <Dialog open={isEkskulDialogOpen} onOpenChange={setIsEkskulDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
             <DialogHeader><DialogTitle>{editingEkskul ? 'Edit' : 'Tambah'} Ekstrakurikuler</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="space-y-2">
@@ -323,48 +339,87 @@ export default function EkskulPrestasiPage() {
                         <SelectContent>{kategoriEkskul.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
-                 <div className="space-y-2">
-                    <Label>Pilih Pembina</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between h-auto">
-                                <span className="flex flex-wrap gap-1">
-                                    {ekskulFormData.pembina?.length ? ekskulFormData.pembina.map(p => <Badge key={p}>{p}</Badge>) : "Pilih satu atau lebih pembina..."}
-                                </span>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[450px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Cari nama guru..."/>
-                                <CommandList>
-                                    <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
-                                    <CommandGroup>
-                                        {daftarGuru.map(guru => (
-                                            <CommandItem
-                                                key={guru.id}
-                                                value={guru.nama}
-                                                onSelect={(currentValue) => {
-                                                    setEkskulFormData(prev => {
-                                                      const pembina = prev.pembina || [];
-                                                      const isSelected = pembina.includes(guru.nama);
-                                                      if (isSelected) {
-                                                        return { ...prev, pembina: pembina.filter(p => p !== guru.nama) };
-                                                      } else {
-                                                        return { ...prev, pembina: [...pembina, guru.nama] };
-                                                      }
-                                                    });
-                                                }}
-                                            >
-                                                <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
-                                                {guru.nama}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label>Pilih Pembina</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                    <span className="flex flex-wrap gap-1">
+                                        {ekskulFormData.pembina?.length ? ekskulFormData.pembina.map(p => <Badge key={p}>{p}</Badge>) : "Pilih pembina..."}
+                                    </span>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                    <CommandInput placeholder="Cari nama guru..."/>
+                                    <CommandList>
+                                        <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
+                                        <CommandGroup>
+                                            {daftarGuru.map(guru => (
+                                                <CommandItem
+                                                    key={guru.id}
+                                                    value={guru.nama}
+                                                    onSelect={(currentValue) => {
+                                                        const isSelected = ekskulFormData.pembina?.includes(guru.nama);
+                                                        if (isSelected) {
+                                                          setEkskulFormData(prev => ({ ...prev, pembina: (prev.pembina || []).filter(p => p !== guru.nama) }));
+                                                        } else {
+                                                          setEkskulFormData(prev => ({ ...prev, pembina: [...(prev.pembina || []), guru.nama] }));
+                                                        }
+                                                      }}
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
+                                                    {guru.nama}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Pilih Anggota Siswa</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                    <span className="flex flex-wrap gap-1">
+                                        {ekskulFormData.anggota?.length ? `${ekskulFormData.anggota.length} siswa terpilih` : "Pilih anggota..."}
+                                    </span>
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                    <CommandInput placeholder="Cari nama siswa..."/>
+                                    <CommandList>
+                                        <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
+                                        <CommandGroup>
+                                            {daftarSiswa.map(siswa => (
+                                                <CommandItem
+                                                    key={siswa.nis}
+                                                    value={siswa.nama}
+                                                    onSelect={() => {
+                                                        const isSelected = ekskulFormData.anggota?.includes(siswa.nis);
+                                                        if (isSelected) {
+                                                            setEkskulFormData(prev => ({ ...prev, anggota: (prev.anggota || []).filter(nis => nis !== siswa.nis) }));
+                                                        } else {
+                                                            setEkskulFormData(prev => ({ ...prev, anggota: [...(prev.anggota || []), siswa.nis] }));
+                                                        }
+                                                    }}
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", ekskulFormData.anggota?.includes(siswa.nis) ? "opacity-100" : "opacity-0")}/>
+                                                    {siswa.nama} ({siswa.kelas})
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
             </div>
             <DialogFooter>
@@ -426,9 +481,18 @@ export default function EkskulPrestasiPage() {
                         </Select>
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="tanggal-prestasi">Tanggal Pencapaian</Label>
-                    <Input id="tanggal-prestasi" type="date" value={prestasiFormData.tanggal || ''} onChange={e => setPrestasiFormData({...prestasiFormData, tanggal: e.target.value})} />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="tanggal-prestasi">Tanggal Pencapaian</Label>
+                        <Input id="tanggal-prestasi" type="date" value={prestasiFormData.tanggal || ''} onChange={e => setPrestasiFormData({...prestasiFormData, tanggal: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="guru-pendamping">Guru Pendamping (Opsional)</Label>
+                        <Select value={prestasiFormData.guruPendamping} onValueChange={(v) => setPrestasiFormData({...prestasiFormData, guruPendamping: v})}>
+                            <SelectTrigger id="guru-pendamping"><SelectValue placeholder="Pilih Guru"/></SelectTrigger>
+                            <SelectContent>{daftarGuru.map(g => <SelectItem key={g.id} value={g.nama}>{g.nama}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
             <DialogFooter>
