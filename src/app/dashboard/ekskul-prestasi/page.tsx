@@ -52,6 +52,11 @@ interface Guru {
   nama: string;
 }
 
+interface Kelas {
+  id: number;
+  nama: string;
+}
+
 interface Ekstrakurikuler {
   id: number;
   nama: string;
@@ -92,12 +97,14 @@ export default function EkskulPrestasiPage() {
   const [daftarPrestasi, setDaftarPrestasi] = useState<Prestasi[]>([]);
   const [daftarGuru, setDaftarGuru] = useState<Guru[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
 
   // --- Dialog & Form States ---
   const [isEkskulDialogOpen, setIsEkskulDialogOpen] = useState(false);
   const [editingEkskul, setEditingEkskul] = useState<Ekstrakurikuler | null>(null);
   const [ekskulToDelete, setEkskulToDelete] = useState<Ekstrakurikuler | null>(null);
   const [ekskulFormData, setEkskulFormData] = useState<Partial<Ekstrakurikuler>>({ pembina: [], anggota: [] });
+  const [selectedKelasAnggota, setSelectedKelasAnggota] = useState<string>("");
   
   const [isPrestasiDialogOpen, setIsPrestasiDialogOpen] = useState(false);
   const [editingPrestasi, setEditingPrestasi] = useState<Prestasi | null>(null);
@@ -115,6 +122,7 @@ export default function EkskulPrestasiPage() {
     
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
+    setDaftarKelas(getSourceData('kelasData', []));
     
     const teachersData = getSourceData('teachersData', {});
     const allGurus: Guru[] = [];
@@ -144,6 +152,7 @@ export default function EkskulPrestasiPage() {
   const handleOpenEkskulDialog = (ekskul: Ekstrakurikuler | null = null) => {
     setEditingEkskul(ekskul);
     setEkskulFormData(ekskul || { nama: "", kategori: "", pembina: [], anggota: [] });
+    setSelectedKelasAnggota("");
     setIsEkskulDialogOpen(true);
   };
 
@@ -218,6 +227,11 @@ export default function EkskulPrestasiPage() {
     toast({ title: "Dihapus", description: `Prestasi ${prestasiToDelete.namaSiswa} telah dihapus.` });
     setPrestasiToDelete(null);
   };
+  
+  const siswaDiKelas = useMemo(() => {
+    if (!selectedKelasAnggota) return [];
+    return daftarSiswa.filter(s => s.kelas === selectedKelasAnggota);
+  }, [selectedKelasAnggota, daftarSiswa]);
 
   return (
     <div className="flex-1 space-y-6">
@@ -343,55 +357,61 @@ export default function EkskulPrestasiPage() {
                         <SelectContent>{kategoriEkskul.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label>Pilih Pembina</Label>
+                <div className="space-y-2">
+                    <Label>Pilih Pembina</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                <span className="flex flex-wrap gap-1">
+                                    {ekskulFormData.pembina?.length ? ekskulFormData.pembina.map(p => <Badge key={p}>{p}</Badge>) : "Pilih pembina..."}
+                                </span>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                            <Command>
+                                <CommandInput placeholder="Cari nama guru..."/>
+                                <CommandList>
+                                    <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
+                                    <CommandGroup>
+                                        {daftarGuru.map(guru => (
+                                            <CommandItem
+                                                key={guru.id}
+                                                value={guru.nama}
+                                                onSelect={(currentValue) => {
+                                                    const isSelected = ekskulFormData.pembina?.includes(guru.nama);
+                                                    setEkskulFormData(prev => {
+                                                        const prevPembina = prev.pembina || [];
+                                                        if (isSelected) {
+                                                            return { ...prev, pembina: prevPembina.filter(p => p !== guru.nama) };
+                                                        } else {
+                                                            return { ...prev, pembina: [...prevPembina, guru.nama] };
+                                                        }
+                                                    });
+                                                  }}
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
+                                                {guru.nama}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <div className="space-y-2">
+                    <Label>Pilih Anggota Siswa</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Select value={selectedKelasAnggota} onValueChange={setSelectedKelasAnggota}>
+                            <SelectTrigger><SelectValue placeholder="Pilih Kelas Dulu"/></SelectTrigger>
+                            <SelectContent>
+                                {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
-                                    <span className="flex flex-wrap gap-1">
-                                        {ekskulFormData.pembina?.length ? ekskulFormData.pembina.map(p => <Badge key={p}>{p}</Badge>) : "Pilih pembina..."}
-                                    </span>
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                                <Command>
-                                    <CommandInput placeholder="Cari nama guru..."/>
-                                    <CommandList>
-                                        <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
-                                        <CommandGroup>
-                                            {daftarGuru.map(guru => (
-                                                <CommandItem
-                                                    key={guru.id}
-                                                    value={guru.nama}
-                                                    onSelect={(currentValue) => {
-                                                        const isSelected = ekskulFormData.pembina?.includes(guru.nama);
-                                                        setEkskulFormData(prev => {
-                                                            const prevPembina = prev.pembina || [];
-                                                            if (isSelected) {
-                                                                return { ...prev, pembina: prevPembina.filter(p => p !== guru.nama) };
-                                                            } else {
-                                                                return { ...prev, pembina: [...prevPembina, guru.nama] };
-                                                            }
-                                                        });
-                                                      }}
-                                                >
-                                                    <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
-                                                    {guru.nama}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Pilih Anggota Siswa</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10">
+                                <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10" disabled={!selectedKelasAnggota}>
                                     <span className="flex flex-wrap gap-1">
                                         {ekskulFormData.anggota?.length ? `${ekskulFormData.anggota.length} siswa terpilih` : "Pilih anggota..."}
                                     </span>
@@ -404,7 +424,7 @@ export default function EkskulPrestasiPage() {
                                     <CommandList>
                                         <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                         <CommandGroup>
-                                            {daftarSiswa.map(siswa => (
+                                            {siswaDiKelas.map(siswa => (
                                                 <CommandItem
                                                     key={siswa.nis}
                                                     value={siswa.nama}
@@ -421,7 +441,7 @@ export default function EkskulPrestasiPage() {
                                                     }}
                                                 >
                                                     <Check className={cn("mr-2 h-4 w-4", ekskulFormData.anggota?.includes(siswa.nis) ? "opacity-100" : "opacity-0")}/>
-                                                    {siswa.nama} ({siswa.kelas})
+                                                    {siswa.nama}
                                                 </CommandItem>
                                             ))}
                                         </CommandGroup>
