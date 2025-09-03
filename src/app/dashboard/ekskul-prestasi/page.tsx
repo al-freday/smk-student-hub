@@ -378,7 +378,7 @@ export default function EkskulPrestasiPage() {
                                             <CommandItem
                                                 key={guru.id}
                                                 value={guru.nama}
-                                                onSelect={(currentValue) => {
+                                                onSelect={() => {
                                                     const isSelected = ekskulFormData.pembina?.includes(guru.nama);
                                                     setEkskulFormData(prev => {
                                                         const prevPembina = prev.pembina || [];
@@ -536,7 +536,7 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus ekskul "{ekskulToDelete?.nama}" secara permanen.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
