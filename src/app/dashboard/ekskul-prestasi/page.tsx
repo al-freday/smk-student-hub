@@ -379,17 +379,16 @@ export default function EkskulPrestasiPage() {
                                             <CommandItem
                                                 key={guru.id}
                                                 value={guru.nama}
-                                                onSelect={() => {
-                                                    const isSelected = ekskulFormData.pembina?.includes(guru.nama);
+                                                onSelect={(currentValue) => {
+                                                    const isSelected = ekskulFormData.pembina?.includes(currentValue);
                                                     setEkskulFormData(prev => {
                                                         const prevPembina = prev.pembina || [];
                                                         if (isSelected) {
-                                                            return { ...prev, pembina: prevPembina.filter(p => p !== guru.nama) };
+                                                            return { ...prev, pembina: prevPembina.filter(p => p !== currentValue) };
                                                         } else {
-                                                            return { ...prev, pembina: [...prevPembina, guru.nama] };
+                                                            return { ...prev, pembina: [...prevPembina, currentValue] };
                                                         }
                                                     });
-                                                    setIsPembinaPopoverOpen(false);
                                                   }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
