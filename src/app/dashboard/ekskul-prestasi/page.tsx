@@ -241,23 +241,27 @@ export default function EkskulPrestasiPage() {
                 <Accordion type="single" collapsible className="w-full">
                     {daftarEkskul.map(e => (
                         <AccordionItem value={String(e.id)} key={e.id} className="border-b">
-                            <AccordionTrigger className="hover:no-underline">
-                                <div className="flex-1 text-left">
-                                    <p className="font-medium">{e.nama}</p>
-                                    <p className="text-xs text-muted-foreground">{e.kategori}</p>
-                                </div>
-                                <div className="flex items-center gap-4 pr-4">
-                                     <Badge variant="secondary">{Array.isArray(e.pembina) ? e.pembina.length : 0} Pembina</Badge>
-                                    <Badge variant="outline">{Array.isArray(e.anggota) ? e.anggota.length : 0} Anggota</Badge>
+                            <div className="flex items-center pr-4">
+                                <AccordionTrigger className="hover:no-underline flex-1">
+                                    <div className="flex-1 text-left">
+                                        <p className="font-medium">{e.nama}</p>
+                                        <p className="text-xs text-muted-foreground">{e.kategori}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 pr-4">
+                                         <Badge variant="secondary">{Array.isArray(e.pembina) ? e.pembina.length : 0} Pembina</Badge>
+                                        <Badge variant="outline">{Array.isArray(e.anggota) ? e.anggota.length : 0} Anggota</Badge>
+                                    </div>
+                                </AccordionTrigger>
+                                <div onClick={(event) => event.stopPropagation()}>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={(event) => { event.stopPropagation(); handleOpenEkskulDialog(e); }}><Edit className="mr-2 h-4 w-4"/>Edit</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={(event) => { event.stopPropagation(); setEkskulToDelete(e); }} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenEkskulDialog(e)}><Edit className="mr-2 h-4 w-4"/>Edit</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setEkskulToDelete(e)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4"/>Hapus</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
-                            </AccordionTrigger>
+                            </div>
                             <AccordionContent>
                                 <div className="space-y-2 pt-2">
                                     <h4 className="font-semibold text-sm">Pembina:</h4>
@@ -363,11 +367,14 @@ export default function EkskulPrestasiPage() {
                                                     value={guru.nama}
                                                     onSelect={(currentValue) => {
                                                         const isSelected = ekskulFormData.pembina?.includes(guru.nama);
-                                                        if (isSelected) {
-                                                          setEkskulFormData(prev => ({ ...prev, pembina: (prev.pembina || []).filter(p => p !== guru.nama) }));
-                                                        } else {
-                                                          setEkskulFormData(prev => ({ ...prev, pembina: [...(prev.pembina || []), guru.nama] }));
-                                                        }
+                                                        setEkskulFormData(prev => {
+                                                            const prevPembina = prev.pembina || [];
+                                                            if (isSelected) {
+                                                                return { ...prev, pembina: prevPembina.filter(p => p !== guru.nama) };
+                                                            } else {
+                                                                return { ...prev, pembina: [...prevPembina, guru.nama] };
+                                                            }
+                                                        });
                                                       }}
                                                 >
                                                     <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -403,11 +410,14 @@ export default function EkskulPrestasiPage() {
                                                     value={siswa.nama}
                                                     onSelect={() => {
                                                         const isSelected = ekskulFormData.anggota?.includes(siswa.nis);
-                                                        if (isSelected) {
-                                                            setEkskulFormData(prev => ({ ...prev, anggota: (prev.anggota || []).filter(nis => nis !== siswa.nis) }));
-                                                        } else {
-                                                            setEkskulFormData(prev => ({ ...prev, anggota: [...(prev.anggota || []), siswa.nis] }));
-                                                        }
+                                                        setEkskulFormData(prev => {
+                                                            const prevAnggota = prev.anggota || [];
+                                                            if (isSelected) {
+                                                                return { ...prev, anggota: prevAnggota.filter(nis => nis !== siswa.nis) };
+                                                            } else {
+                                                                return { ...prev, anggota: [...prevAnggota, siswa.nis] };
+                                                            }
+                                                        });
                                                     }}
                                                 >
                                                     <Check className={cn("mr-2 h-4 w-4", ekskulFormData.anggota?.includes(siswa.nis) ? "opacity-100" : "opacity-0")}/>
