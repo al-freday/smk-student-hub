@@ -551,5 +551,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
-    
