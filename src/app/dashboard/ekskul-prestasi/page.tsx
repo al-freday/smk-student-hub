@@ -111,6 +111,7 @@ export default function EkskulPrestasiPage() {
   const [prestasiToDelete, setPrestasiToDelete] = useState<Prestasi | null>(null);
   const [prestasiFormData, setPrestasiFormData] = useState<Partial<Prestasi>>({});
   const [isPembinaPopoverOpen, setIsPembinaPopoverOpen] = useState(false);
+  const [isAnggotaPopoverOpen, setIsAnggotaPopoverOpen] = useState(false);
 
   const loadData = useCallback(() => {
     let ekskulData = getSourceData('ekskulData', null);
@@ -148,7 +149,6 @@ export default function EkskulPrestasiPage() {
     }
     setDaftarGuru(allGurus.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
-
 
   useEffect(() => {
     loadData();
@@ -396,7 +396,7 @@ export default function EkskulPrestasiPage() {
                                                             return { ...prev, pembina: [...prevPembina, guru.nama] };
                                                         }
                                                     });
-                                                    setIsPembinaPopoverOpen(true); // Keep it open for multi-select
+                                                    setIsPembinaPopoverOpen(true);
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -418,7 +418,7 @@ export default function EkskulPrestasiPage() {
                                 {daftarKelas.map(k => <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                        <Popover>
+                        <Popover open={isAnggotaPopoverOpen} onOpenChange={setIsAnggotaPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" role="combobox" className="w-full justify-between h-auto min-h-10" disabled={!selectedKelasAnggota}>
                                     <span className="flex flex-wrap gap-1">
@@ -447,6 +447,7 @@ export default function EkskulPrestasiPage() {
                                                                 return { ...prev, anggota: [...prevAnggota, siswa.nis] };
                                                             }
                                                         });
+                                                        setIsAnggotaPopoverOpen(true);
                                                     }}
                                                 >
                                                     <Check className={cn("mr-2 h-4 w-4", ekskulFormData.anggota?.includes(siswa.nis) ? "opacity-100" : "opacity-0")}/>
@@ -489,8 +490,11 @@ export default function EkskulPrestasiPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarSiswa.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
-                                                setPrestasiFormData({...prestasiFormData, nis: siswa.nis});
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={(currentValue) => {
+                                                const selectedSiswa = daftarSiswa.find(s => s.nama.toLowerCase() === currentValue);
+                                                if (selectedSiswa) {
+                                                    setPrestasiFormData({...prestasiFormData, nis: selectedSiswa.nis});
+                                                }
                                             }}>
                                                 <Check className={cn("mr-2 h-4 w-4", prestasiFormData.nis === siswa.nis ? "opacity-100" : "opacity-0")}/>
                                                 {siswa.nama} ({siswa.kelas})
