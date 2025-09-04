@@ -61,6 +61,7 @@ interface Prestasi {
   deskripsi: string;
   tingkat: 'Sekolah' | 'Kabupaten' | 'Provinsi' | 'Nasional' | 'Internasional';
   jenis: 'Akademik' | 'Non-Akademik';
+  pendamping?: string;
 }
 
 interface Guru {
@@ -86,6 +87,7 @@ export default function EkskulPrestasiPage() {
   const [daftarEkskul, setDaftarEkskul] = useState<Ekstrakurikuler[]>([]);
   const [daftarPrestasi, setDaftarPrestasi] = useState<Prestasi[]>([]);
   const [daftarGuru, setDaftarGuru] = useState<Guru[]>([]);
+  const [daftarGuruPendamping, setDaftarGuruPendamping] = useState<Guru[]>([]);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   
   // --- Dialog & Form States ---
@@ -108,12 +110,16 @@ export default function EkskulPrestasiPage() {
     const teachersData = getSourceData('teachersData', {});
     const { schoolInfo, ...roles } = teachersData;
     const allTeachers: Guru[] = [];
+    
     Object.values(roles).forEach((role: any) => {
         if (Array.isArray(role)) {
             allTeachers.push(...role.map((guru: any) => ({id: guru.id, nama: guru.nama})));
         }
     });
-    // Remove duplicates based on ID, prioritizing first occurrence
+    
+    const guruPendamping = roles.guru_pendamping || [];
+    setDaftarGuruPendamping(guruPendamping.sort((a: Guru, b: Guru) => a.nama.localeCompare(b.nama)));
+    
     const uniqueTeachers = Array.from(new Map(allTeachers.map(item => [item['id'], item])).values());
     setDaftarGuru(uniqueTeachers.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
@@ -167,7 +173,7 @@ export default function EkskulPrestasiPage() {
   const handleSavePrestasi = () => {
     const { tanggal, nis, deskripsi, tingkat, jenis } = prestasiFormData;
     if (!tanggal || !nis || !deskripsi || !tingkat || !jenis) {
-      toast({ title: "Gagal", description: "Semua kolom prestasi harus diisi.", variant: "destructive" });
+      toast({ title: "Gagal", description: "Semua kolom prestasi wajib (kecuali pendamping) harus diisi.", variant: "destructive" });
       return;
     }
     const siswa = daftarSiswa.find(s => s.nis === nis);
@@ -229,7 +235,7 @@ export default function EkskulPrestasiPage() {
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Prestasi</TableHead><TableHead>Tingkat</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Prestasi</TableHead><TableHead>Tingkat</TableHead><TableHead>Pendamping</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {daftarPrestasi.map(p => (
                     <TableRow key={p.id}>
@@ -237,6 +243,7 @@ export default function EkskulPrestasiPage() {
                       <TableCell className="font-medium">{p.namaSiswa} <span className="text-xs text-muted-foreground">({p.kelas})</span></TableCell>
                       <TableCell>{p.deskripsi}</TableCell>
                       <TableCell>{p.tingkat}</TableCell>
+                      <TableCell>{p.pendamping || <span className="text-muted-foreground text-xs italic">Tidak ada</span>}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleOpenPrestasiDialog(p)}><Edit className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => setPrestasiToDelete(p)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -328,8 +335,6 @@ export default function EkskulPrestasiPage() {
                                                   : [...currentPembina, guruName];
                                               return {...prev, pembina: newPembina};
                                           });
-                                          // Keep popover open for multi-select
-                                          // setPopoverOpen(false); 
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -352,19 +357,21 @@ export default function EkskulPrestasiPage() {
       
       {/* Dialog Prestasi */}
       <Dialog open={isPrestasiDialogOpen} onOpenChange={setIsPrestasiDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>{editingPrestasi ? 'Edit' : 'Catat'} Prestasi Siswa</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="tanggal">Tanggal</Label>
-              <Input id="tanggal" type="date" value={prestasiFormData.tanggal || ''} onChange={e => setPrestasiFormData({...prestasiFormData, tanggal: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Siswa</Label>
-              <Select value={prestasiFormData.nis} onValueChange={v => setPrestasiFormData({...prestasiFormData, nis: v})}>
-                <SelectTrigger><SelectValue placeholder="Pilih Siswa"/></SelectTrigger>
-                <SelectContent>{daftarSiswa.map(s => <SelectItem key={s.nis} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tanggal">Tanggal</Label>
+                  <Input id="tanggal" type="date" value={prestasiFormData.tanggal || ''} onChange={e => setPrestasiFormData({...prestasiFormData, tanggal: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Siswa</Label>
+                  <Select value={prestasiFormData.nis} onValueChange={v => setPrestasiFormData({...prestasiFormData, nis: v})}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Siswa"/></SelectTrigger>
+                    <SelectContent>{daftarSiswa.map(s => <SelectItem key={s.nis} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="deskripsi">Deskripsi Prestasi</Label>
@@ -385,6 +392,16 @@ export default function EkskulPrestasiPage() {
                         <SelectContent>{TINGKAT_PRESTASI.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="pendamping">Guru Pendamping (Opsional)</Label>
+                <Select value={prestasiFormData.pendamping} onValueChange={(v: any) => setPrestasiFormData({...prestasiFormData, pendamping: v})}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Guru Pendamping"/></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">Tidak Ada</SelectItem>
+                        {daftarGuruPendamping.map(g => <SelectItem key={g.id} value={g.nama}>{g.nama}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
           </div>
           <DialogFooter>
