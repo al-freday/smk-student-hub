@@ -234,4 +234,3 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
-
