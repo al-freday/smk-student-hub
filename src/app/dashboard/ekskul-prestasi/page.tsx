@@ -335,6 +335,7 @@ export default function EkskulPrestasiPage() {
                                                   : [...currentPembina, guruName];
                                               return {...prev, pembina: newPembina};
                                           });
+                                          setPopoverOpen(true); // Keep popover open
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
