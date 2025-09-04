@@ -142,8 +142,13 @@ export default function EkskulPrestasiPage() {
             }
         });
     }
+    // Tambah Wakasek Kesiswaan
+    if (!allGurus.some(g => g.nama === 'Wakasek Kesiswaan')) {
+        allGurus.push({ id: 'wakasek_kesiswaan-0', nama: 'Wakasek Kesiswaan' });
+    }
     setDaftarGuru(allGurus.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
+
 
   useEffect(() => {
     loadData();
@@ -154,7 +159,7 @@ export default function EkskulPrestasiPage() {
   // --- Ekskul Handlers ---
   const handleOpenEkskulDialog = (ekskul: Ekstrakurikuler | null = null) => {
     setEditingEkskul(ekskul);
-    setEkskulFormData(ekskul || { nama: "", kategori: "", pembina: [], anggota: [] });
+    setEkskulFormData(ekskul ? {...ekskul} : { nama: "", kategori: "", pembina: [], anggota: [] });
     setSelectedKelasAnggota("");
     setIsEkskulDialogOpen(true);
   };
@@ -391,7 +396,7 @@ export default function EkskulPrestasiPage() {
                                                             return { ...prev, pembina: [...prevPembina, guru.nama] };
                                                         }
                                                     });
-                                                    setIsPembinaPopoverOpen(true);
+                                                    setIsPembinaPopoverOpen(true); // Keep it open for multi-select
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -548,12 +553,10 @@ export default function EkskulPrestasiPage() {
        <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data prestasi milik {prestasiToDelete?.namaSiswa}.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
+            <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
     </div>
   );
 }
-
-    
