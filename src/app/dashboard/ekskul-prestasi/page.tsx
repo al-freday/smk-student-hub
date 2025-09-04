@@ -120,7 +120,7 @@ export default function EkskulPrestasiPage() {
     const guruPendamping = roles.guru_pendamping || [];
     setDaftarGuruPendamping(guruPendamping.sort((a: Guru, b: Guru) => a.nama.localeCompare(b.nama)));
     
-    const uniqueTeachers = Array.from(new Map(allTeachers.map(item => [item['id'], item])).values());
+    const uniqueTeachers = Array.from(new Map(allTeachers.map(item => [item['nama'], item])).values());
     setDaftarGuru(uniqueTeachers.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
 
@@ -335,7 +335,7 @@ export default function EkskulPrestasiPage() {
                                                   : [...currentPembina, guruName];
                                               return {...prev, pembina: newPembina};
                                           });
-                                          setPopoverOpen(true); // Keep popover open
+                                          setPopoverOpen(true);
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -416,13 +416,13 @@ export default function EkskulPrestasiPage() {
       <AlertDialog open={!!ekskulToDelete} onOpenChange={() => setEkskulToDelete(null)}>
           <AlertDialogContent>
               <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus data ekskul secara permanen.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
+              <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeleteEkskul}>Hapus</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
       <AlertDialog open={!!prestasiToDelete} onOpenChange={() => setPrestasiToDelete(null)}>
           <AlertDialogContent>
               <AlertDialogHeader><AlertDialogTitle>Yakin ingin menghapus?</AlertDialogTitle><AlertDialogDescription>Tindakan ini akan menghapus catatan prestasi ini secara permanen.</AlertDialogDescription></AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
+              <AlertDialogFooter><AlertDialogCancel>Batal</Button></AlertDialogCancel><AlertDialogAction onClick={handleDeletePrestasi}>Hapus</AlertDialogAction></AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
     </div>
