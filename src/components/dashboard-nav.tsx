@@ -50,7 +50,6 @@ const navItemsByRole = {
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
     { href: "/dashboard/mata-pelajaran", icon: BookMarked, label: "Mata Pelajaran" },
     { href: "/dashboard/jadwal-pelajaran", icon: CalendarClock, label: "Jadwal Pelajaran" },
-    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Ekskul & Prestasi" },
     { type: 'divider', label: 'Aktivitas Harian' },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Kehadiran Siswa" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru"},
@@ -98,7 +97,6 @@ const navItemsByRole = {
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/bimbingan-siswa", icon: Contact, label: "Bimbingan Siswa" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
-    { href: "/dashboard/ekskul-prestasi", icon: Trophy, label: "Catat Prestasi" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   admin: [
