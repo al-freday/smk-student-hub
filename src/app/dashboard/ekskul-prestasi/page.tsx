@@ -48,7 +48,7 @@ interface Siswa {
 }
 
 interface Guru {
-  id: string; // uniqueId, e.g., "wali_kelas-1"
+  id: number | string;
   nama: string;
 }
 
@@ -61,7 +61,7 @@ interface Ekstrakurikuler {
   id: number;
   nama: string;
   kategori: string;
-  pembina: string[];
+  pembina: string[]; // nama guru
   anggota: string[]; // NIS siswa
 }
 
@@ -115,11 +115,11 @@ export default function EkskulPrestasiPage() {
   const loadData = useCallback(() => {
     let ekskulData = getSourceData('ekskulData', null);
     
-    if (!ekskulData || !Array.isArray(ekskulData) || ekskulData.some((e: any) => typeof e.id === 'undefined')) {
+    if (!ekskulData || !Array.isArray(ekskulData) || ekskulData.length === 0 || ekskulData.some((e: any) => typeof e.id === 'undefined')) {
         ekskulData = initialEkskulData;
         updateSourceData('ekskulData', ekskulData);
     }
-    setDaftarEkskul(ekskulData.map((e: any) => ({ ...e, anggota: e.anggota || [] }))); // Ensure anggota array exists
+    setDaftarEkskul(ekskulData.map((e: any) => ({ ...e, anggota: e.anggota || [], pembina: e.pembina || [] })));
     
     setDaftarPrestasi(getSourceData('prestasiData', []));
     setDaftarSiswa(getSourceData('siswaData', []));
@@ -132,15 +132,17 @@ export default function EkskulPrestasiPage() {
         Object.keys(roles).forEach(roleKey => {
             if(Array.isArray(roles[roleKey])) {
                 roles[roleKey].forEach((guru: any) => {
-                    allGurus.push({
-                        id: `${roleKey}-${guru.id}`,
-                        nama: guru.nama
-                    });
+                    if (guru && guru.id !== undefined && guru.nama && !allGurus.some(g => g.nama === guru.nama)) {
+                        allGurus.push({
+                            id: `${roleKey}-${guru.id}`,
+                            nama: guru.nama
+                        });
+                    }
                 });
             }
         });
     }
-    setDaftarGuru(allGurus);
+    setDaftarGuru(allGurus.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function EkskulPrestasiPage() {
       updatedData = currentData.map((e: Ekstrakurikuler) => e.id === editingEkskul.id ? { ...e, ...ekskulFormData } : e);
     } else {
       const newId = currentData.length > 0 ? Math.max(...currentData.map((e: Ekstrakurikuler) => e.id)) + 1 : Date.now();
-      updatedData = [...currentData, { ...ekskulFormData, id: newId, anggota: ekskulFormData.anggota || [] }];
+      updatedData = [...currentData, { ...ekskulFormData, id: newId, anggota: ekskulFormData.anggota || [], pembina: ekskulFormData.pembina || [] }];
     }
     updateSourceData('ekskulData', updatedData);
     toast({ title: "Sukses", description: "Data ekstrakurikuler berhasil disimpan." });
@@ -369,7 +371,7 @@ export default function EkskulPrestasiPage() {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
+                        <PopoverContent className="w-[calc(var(--radix-popover-trigger-width))] p-0">
                             <Command>
                                 <CommandInput placeholder="Cari nama guru..."/>
                                 <CommandList>
@@ -389,7 +391,7 @@ export default function EkskulPrestasiPage() {
                                                             return { ...prev, pembina: [...prevPembina, guru.nama] };
                                                         }
                                                     });
-                                                    setIsPembinaPopoverOpen(false);
+                                                    setIsPembinaPopoverOpen(true);
                                                 }}
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
@@ -420,7 +422,7 @@ export default function EkskulPrestasiPage() {
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
+                            <PopoverContent className="w-[calc(var(--radix-popover-trigger-width))] p-0">
                                 <Command>
                                     <CommandInput placeholder="Cari nama siswa..."/>
                                     <CommandList>
@@ -475,14 +477,16 @@ export default function EkskulPrestasiPage() {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[450px] p-0">
+                        <PopoverContent className="w-[calc(var(--radix-popover-trigger-width))] p-0">
                             <Command>
                                 <CommandInput placeholder="Ketik nama siswa..."/>
                                 <CommandList>
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {daftarSiswa.map(siswa => (
-                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => setPrestasiFormData({...prestasiFormData, nis: siswa.nis})}>
+                                            <CommandItem key={siswa.nis} value={siswa.nama} onSelect={() => {
+                                                setPrestasiFormData({...prestasiFormData, nis: siswa.nis});
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", prestasiFormData.nis === siswa.nis ? "opacity-100" : "opacity-0")}/>
                                                 {siswa.nama} ({siswa.kelas})
                                             </CommandItem>
