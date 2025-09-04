@@ -110,12 +110,12 @@ export default function EkskulPrestasiPage() {
     const allTeachers: Guru[] = [];
     Object.values(roles).forEach((role: any) => {
         if (Array.isArray(role)) {
-            allTeachers.push(...role);
+            allTeachers.push(...role.map((guru: any) => ({id: guru.id, nama: guru.nama})));
         }
     });
     // Remove duplicates based on ID, prioritizing first occurrence
     const uniqueTeachers = Array.from(new Map(allTeachers.map(item => [item['id'], item])).values());
-    setDaftarGuru(uniqueTeachers);
+    setDaftarGuru(uniqueTeachers.sort((a,b) => a.nama.localeCompare(b.nama)));
   }, []);
 
   useEffect(() => {
@@ -328,6 +328,8 @@ export default function EkskulPrestasiPage() {
                                                   : [...currentPembina, guruName];
                                               return {...prev, pembina: newPembina};
                                           });
+                                          // Keep popover open for multi-select
+                                          // setPopoverOpen(false); 
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
