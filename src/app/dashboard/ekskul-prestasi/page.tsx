@@ -398,7 +398,7 @@ export default function EkskulPrestasiPage() {
                 <Select value={prestasiFormData.pendamping} onValueChange={(v: any) => setPrestasiFormData({...prestasiFormData, pendamping: v})}>
                     <SelectTrigger><SelectValue placeholder="Pilih Guru Pendamping"/></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Tidak Ada</SelectItem>
+                        <SelectItem value={undefined as any}>Tidak Ada</SelectItem>
                         {daftarGuruPendamping.map(g => <SelectItem key={g.id} value={g.nama}>{g.nama}</SelectItem>)}
                     </SelectContent>
                 </Select>
