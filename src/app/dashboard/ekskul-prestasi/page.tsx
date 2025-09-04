@@ -113,6 +113,7 @@ export default function EkskulPrestasiPage() {
             allTeachers.push(...role);
         }
     });
+    // Remove duplicates based on ID, prioritizing first occurrence
     const uniqueTeachers = Array.from(new Map(allTeachers.map(item => [item['id'], item])).values());
     setDaftarGuru(uniqueTeachers);
   }, []);
@@ -313,15 +314,22 @@ export default function EkskulPrestasiPage() {
                             <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
                             <CommandGroup>
                                 {daftarGuru.map(guru => (
-                                    <CommandItem key={guru.id} value={guru.nama} onSelect={() => {
-                                        setEkskulFormData(prev => {
-                                            const currentPembina = prev.pembina || [];
-                                            const newPembina = currentPembina.includes(guru.nama)
-                                                ? currentPembina.filter(p => p !== guru.nama)
-                                                : [...currentPembina, guru.nama];
-                                            return {...prev, pembina: newPembina};
-                                        })
-                                    }}>
+                                    <CommandItem
+                                        key={guru.id}
+                                        value={guru.nama}
+                                        onSelect={(currentValue) => {
+                                          setEkskulFormData(prev => {
+                                              const currentPembina = prev.pembina || [];
+                                              const guruName = daftarGuru.find(g => g.nama.toLowerCase() === currentValue)?.nama;
+                                              if (!guruName) return prev;
+
+                                              const newPembina = currentPembina.includes(guruName)
+                                                  ? currentPembina.filter(p => p !== guruName)
+                                                  : [...currentPembina, guruName];
+                                              return {...prev, pembina: newPembina};
+                                          });
+                                        }}
+                                    >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
                                         {guru.nama}
                                     </CommandItem>
@@ -400,4 +408,3 @@ export default function EkskulPrestasiPage() {
     </div>
   );
 }
-
