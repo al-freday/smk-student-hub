@@ -111,10 +111,18 @@ export default function EkskulPrestasiPage() {
     const { schoolInfo, ...roles } = teachersData;
     const allTeachers: Guru[] = [];
     
-    Object.values(roles).forEach((role: any) => {
-        if (Array.isArray(role)) {
-            allTeachers.push(...role.map((guru: any) => ({id: guru.id, nama: guru.nama})));
-        }
+    // Hardcoded Wakasek Kesiswaan
+    allTeachers.push({ id: 'wakasek_kesiswaan-0', nama: 'Wakasek Kesiswaan' });
+
+    Object.keys(roles).forEach(roleKey => {
+      if (Array.isArray(roles[roleKey])) {
+        roles[roleKey].forEach((guru: any) => {
+          if (guru && guru.id !== undefined && guru.nama) {
+            const uniqueId = `${roleKey}-${guru.id}`;
+            allTeachers.push({ id: uniqueId, nama: guru.nama });
+          }
+        });
+      }
     });
     
     const guruPendamping = roles.guru_pendamping || [];
@@ -335,7 +343,6 @@ export default function EkskulPrestasiPage() {
                                                   : [...currentPembina, guruName];
                                               return {...prev, pembina: newPembina};
                                           });
-                                          setPopoverOpen(true);
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", ekskulFormData.pembina?.includes(guru.nama) ? "opacity-100" : "opacity-0")}/>
