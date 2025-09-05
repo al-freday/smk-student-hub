@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookCopy, Gem, ShieldCheck, PlusCircle, Loader2 } from "lucide-react";
+import { BookCopy, Gem, ShieldCheck, PlusCircle, Loader2, Archive } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -139,7 +139,7 @@ export default function BimbinganSiswaPage() {
       return;
     }
     const newLog = {
-        id: `log-${Date.now()}`,
+        id: `log-karakter-${Date.now()}`,
         tanggal: new Date().toISOString(),
         kategori: logKarakterFormData.kategori,
         nis: logKarakterFormData.nis,
@@ -149,7 +149,7 @@ export default function BimbinganSiswaPage() {
     const userLogs = allLogs[logKarakterFormData.nis] || [];
     allLogs[logKarakterFormData.nis] = [newLog, ...userLogs];
     updateSourceData('logBimbinganData', allLogs);
-    toast({ title: "Sukses", description: "Log bimbingan berhasil disimpan." });
+    toast({ title: "Sukses", description: "Log bimbingan karakter berhasil disimpan." });
     setIsLogKarakterDialogOpen(false);
   }
 
@@ -164,7 +164,7 @@ export default function BimbinganSiswaPage() {
       toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
       return;
     }
-    const newLog: LogAkademik = {
+    const newLog = {
       id: `log-akademik-${Date.now()}`,
       tanggal: new Date().toISOString(),
       kategori: logAkademikFormData.kategori,
@@ -190,7 +190,7 @@ export default function BimbinganSiswaPage() {
         toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
         return;
     }
-    const newLog: LogKompetensi = {
+    const newLog = {
         id: `log-kompetensi-${Date.now()}`,
         tanggal: new Date().toISOString(),
         kategori: logKompetensiFormData.kategori,
@@ -227,11 +227,16 @@ export default function BimbinganSiswaPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Pusat Bimbingan Siswa</h2>
-        <p className="text-muted-foreground">
-          Kelola tugas pokok pendampingan Anda untuk setiap siswa binaan.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Pusat Bimbingan Siswa</h2>
+          <p className="text-muted-foreground">
+            Kelola tugas pokok pendampingan Anda untuk setiap siswa binaan.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push('/dashboard/rekap-bimbingan')}>
+          <Archive className="mr-2 h-4 w-4" /> Lihat Rekap Bimbingan
+        </Button>
       </div>
 
       <Tabs defaultValue="kompetensi" className="w-full">
