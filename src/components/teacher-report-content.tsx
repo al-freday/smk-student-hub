@@ -67,7 +67,7 @@ const ReportTable = ({ headers, data }: { headers: string[], data: (string|numbe
             ))}
             {data.length === 0 && (
                 <tr>
-                    <td colSpan={headers.length} className="text-center p-4 border text-gray-500">Tidak ada data untuk dilaporkan.</td>
+                    <td colSpan={headers.length} className="text-center p-4 border text-gray-500">Tidak ada data untuk dilaporkan pada periode ini.</td>
                 </tr>
             )}
         </tbody>
@@ -112,17 +112,32 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
     }
     
     if (roleKey === 'guru_pendamping') {
-        const logBimbingan = getSourceData('logBimbinganData', {});
         const allSiswa = getSourceData('siswaData', []);
-        
-        const bimbinganData = (guru.siswaBinaan || []).flatMap((namaSiswa: string) => {
-            const siswa = allSiswa.find((s: any) => s.nama === namaSiswa);
-            if(!siswa || !logBimbingan[siswa.nis]) return [];
-            return logBimbingan[siswa.nis]
+        const logBimbingan = getSourceData('logBimbinganData', {});
+        const prestasiData = getSourceData('prestasiData', []);
+        const pklData = getSourceData('pklData', {});
+
+        const siswaBinaan = allSiswa.filter((s: any) => guru.siswaBinaan?.includes(s.nama));
+
+        const bimbinganData = siswaBinaan.flatMap((siswa: any) => {
+            const logs = logBimbingan[siswa.nis] || [];
+            return logs
                 .filter((log: any) => isWithinInterval(new Date(log.tanggal), monthInterval))
-                .map((log: any) => [namaSiswa, log.kategori, log.catatan]);
+                .map((log: any) => [siswa.nama, log.kategori, log.catatan]);
         });
-        data = { ...data, bimbinganData };
+        
+        const prestasiSiswaBinaan = siswaBinaan.flatMap((siswa: any) => {
+            return prestasiData
+                .filter((p: any) => p.nis === siswa.nis && isWithinInterval(new Date(p.tanggal), monthInterval))
+                .map((p: any) => [siswa.nama, p.deskripsi, p.tingkat]);
+        });
+        
+        const statusPkl = siswaBinaan.map((siswa: any) => {
+            const status = pklData[siswa.nis] || { status: 'Belum terdata', perusahaan: '-', progres: 0 };
+            return [siswa.nama, status.status, status.perusahaan, `${status.progres}%`];
+        });
+
+        data = { ...data, bimbinganData, prestasiSiswaBinaan, statusPkl };
     }
 
     setReportData(data);
@@ -148,9 +163,17 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
         )}
         
         {roleKey === 'guru_pendamping' && (
-            <Section title="Log Bimbingan Siswa">
-                <ReportTable headers={["Nama Siswa", "Kategori", "Catatan"]} data={reportData.bimbinganData} />
-            </Section>
+             <>
+                <Section title="Log Bimbingan Perilaku & Karakter">
+                    <ReportTable headers={["Nama Siswa", "Kategori", "Catatan"]} data={reportData.bimbinganData} />
+                </Section>
+                 <Section title="Rekapitulasi Prestasi Siswa Binaan">
+                    <ReportTable headers={["Nama Siswa", "Deskripsi Prestasi", "Tingkat"]} data={reportData.prestasiSiswaBinaan} />
+                </Section>
+                 <Section title="Status Kesiapan Praktik Kerja Lapangan (PKL)">
+                    <ReportTable headers={["Nama Siswa", "Status", "Perusahaan", "Progres"]} data={reportData.statusPkl} />
+                </Section>
+            </>
         )}
 
         {/* Placeholder for other roles */}
