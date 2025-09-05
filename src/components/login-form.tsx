@@ -19,7 +19,8 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { signInToFirebase } from "@/lib/firebase"; // Import the new function
+import { signInToFirebase } from "@/lib/firebase";
+import { updateSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
   userId: z.string().min(1, { message: "Silakan pilih pengguna." }),
@@ -30,6 +31,7 @@ interface User {
     id: string;
     nama: string;
     role: string;
+    roleKey: string;
     password?: string;
 }
 
@@ -64,15 +66,15 @@ export function LoginForm({ allUsers }: LoginFormProps) {
   });
   
   const handleLoginSuccess = (user: User) => {
-      const roleKey = getRoleKeyFromName(user.role);
-      localStorage.setItem('userRole', roleKey);
+      // Use the new updateSourceData for local session caching
+      updateSourceData('userRole', user.roleKey);
       
       const userForSettings = {
           nama: user.nama,
           role: user.role,
           email: `${user.id.replace(/-/g, '_')}@schoolemail.com`,
       };
-      localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+      updateSourceData('currentUser', userForSettings);
       
       window.dispatchEvent(new Event('roleChanged'));
       
@@ -84,15 +86,17 @@ export function LoginForm({ allUsers }: LoginFormProps) {
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
+    // The logic to derive the password remains the same as it's part of the user data structure
     const idPart = String(selectedUser?.id).split('-').pop();
     const expectedPassword = selectedUser?.password || `password${idPart}`;
 
     if (selectedUser && values.password === expectedPassword) {
         try {
-            await signInToFirebase(); // Sign in to Firebase anonymously
+            await signInToFirebase(); // This must succeed to proceed
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             handleLoginSuccess(selectedUser);
         } catch (error) {
+            console.error("Firebase sign-in error:", error);
             toast({
                 title: "Login Gagal",
                 description: "Gagal menghubungkan ke server. Silakan coba lagi.",

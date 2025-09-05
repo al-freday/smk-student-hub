@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Settings, LogOut } from "lucide-react";
+import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -26,6 +27,7 @@ const getRoleName = (roleKey: string) => {
         guru_piket: 'Guru Piket',
         guru_pendamping: 'Guru Pendamping',
         wakasek_kesiswaan: 'Wakasek Kesiswaan',
+        tata_usaha: 'Tata Usaha'
     };
     return roles[roleKey] || 'Guru';
 };
@@ -41,11 +43,12 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const loadUsers = useCallback(() => {
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : {};
+      const teachersData = await fetchDataFromFirebase('teachersData');
       const users: User[] = [];
       
       // Hardcoded Wakasek Kesiswaan
@@ -56,33 +59,34 @@ export default function AdminDashboardPage() {
           roleName: 'Wakasek Kesiswaan'
       });
 
-      // Dynamic users from teachersData
-      const { schoolInfo, ...roles } = teachersData;
-
-      Object.keys(roles).forEach(roleKey => {
-          if (Array.isArray(roles[roleKey])) {
-            roles[roleKey].forEach((guru: any) => {
-              // Ensure guru object has id and nama
-              if (guru && guru.id !== undefined && guru.nama) {
-                const uniqueId = `${roleKey}-${guru.id}`;
-                users.push({
-                  id: uniqueId,
-                  nama: guru.nama,
-                  roleKey: roleKey,
-                  roleName: getRoleName(roleKey),
-                });
-              }
-            });
-          }
-      });
-      setAllUsers(users);
+      if (teachersData) {
+        const { schoolInfo, ...roles } = teachersData;
+        Object.keys(roles).forEach(roleKey => {
+            if (Array.isArray(roles[roleKey])) {
+              roles[roleKey].forEach((guru: any) => {
+                if (guru && guru.id !== undefined && guru.nama) {
+                  const uniqueId = `${roleKey}-${guru.id}`;
+                  users.push({
+                    id: uniqueId,
+                    nama: guru.nama,
+                    roleKey: roleKey,
+                    roleName: getRoleName(roleKey),
+                  });
+                }
+              });
+            }
+        });
+      }
+      setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
     } catch (error) {
-      console.error("Gagal memuat data pengguna:", error);
+      console.error("Gagal memuat data pengguna dari Firebase:", error);
       toast({
         title: "Gagal Memuat",
-        description: "Tidak dapat memuat data pengguna dari penyimpanan.",
+        description: "Tidak dapat memuat data pengguna dari server.",
         variant: "destructive",
       });
+    } finally {
+        setIsLoading(false);
     }
   }, [toast]);
 
@@ -111,14 +115,15 @@ export default function AdminDashboardPage() {
     }
     const userToImpersonate = allUsers.find(u => u.id === selectedUser);
     if (userToImpersonate) {
-        localStorage.setItem('userRole', userToImpersonate.roleKey);
+        // Use the new updateSourceData to cache session info locally
+        updateSourceData('userRole', userToImpersonate.roleKey);
 
         const userForSettings = {
             nama: userToImpersonate.nama,
             role: userToImpersonate.roleName,
             email: createEmailFromName(userToImpersonate.nama, userToImpersonate.id),
         };
-        localStorage.setItem('currentUser', JSON.stringify(userForSettings));
+        updateSourceData('currentUser', userForSettings);
 
         toast({
             title: "Login Berhasil",
@@ -149,25 +154,33 @@ export default function AdminDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="user-select">Pilih Pengguna untuk Login</Label>
-             <Select onValueChange={setSelectedUser} value={selectedUser ?? undefined}>
-              <SelectTrigger id="user-select">
-                <SelectValue placeholder="Pilih nama pengguna..." />
-              </SelectTrigger>
-              <SelectContent>
-                {allUsers.map(user => (
-                   <SelectItem key={user.id} value={user.id}>
-                    {user.nama} ({user.roleName})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-           <Button className="w-full" onClick={handleImpersonate}>
-            <LogIn className="mr-2 h-4 w-4" />
-            Login Sebagai Pengguna Terpilih
-          </Button>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-24">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="user-select">Pilih Pengguna untuk Login</Label>
+                 <Select onValueChange={setSelectedUser} value={selectedUser ?? undefined}>
+                  <SelectTrigger id="user-select">
+                    <SelectValue placeholder="Pilih nama pengguna..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allUsers.map(user => (
+                       <SelectItem key={user.id} value={user.id}>
+                        {user.nama} ({user.roleName})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+               <Button className="w-full" onClick={handleImpersonate}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Login Sebagai Pengguna Terpilih
+              </Button>
+            </>
+          )}
           
           <div className="flex justify-between items-center pt-4 border-t">
              <Button variant="outline" asChild>

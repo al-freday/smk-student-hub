@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getSourceData } from '@/lib/data-manager';
+import { fetchDataFromFirebase, updateSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -20,6 +20,7 @@ interface User {
     id: string;
     nama: string;
     role: string;
+    roleKey: string;
     password?: string;
 }
 
@@ -35,6 +36,15 @@ const getRoleName = (roleKey: string) => {
     return roles[roleKey] || 'Guru';
 };
 
+const getRoleKey = (roleName: string) => {
+    const roleMap: { [key: string]: string } = {
+      'Wali Kelas': 'wali_kelas', 'Guru BK': 'guru_bk', 'Guru Mapel': 'guru_mapel',
+      'Guru Piket': 'guru_piket', 'Guru Pendamping': 'guru_pendamping',
+      'Wakasek Kesiswaan': 'wakasek_kesiswaan', 'Tata Usaha': 'tata_usaha',
+    };
+    return roleMap[roleName] || 'unknown';
+}
+
 
 export default function LoginPage() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
@@ -44,35 +54,43 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadInitialData = useCallback(() => {
+  const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          const savedData = getSourceData('teachersData', {});
-          if (savedData && savedData.schoolInfo) {
-              setSchoolInfo(savedData.schoolInfo);
+          const teachersData = await fetchDataFromFirebase('teachersData');
+          
+          if (teachersData && teachersData.schoolInfo) {
+              setSchoolInfo(teachersData.schoolInfo);
+              // Cache it locally for other parts of the app to use
+              updateSourceData('teachersData', teachersData);
           }
 
           const users: User[] = [];
-          if (savedData) {
-            const { schoolInfo, ...roles } = savedData;
+          if (teachersData) {
+            const { schoolInfo, ...roles } = teachersData;
             
+            // Add Wakasek manually as it's a special role
             users.push({
               id: 'wakasek_kesiswaan-0',
               nama: 'Wakasek Kesiswaan',
               role: 'Wakasek Kesiswaan',
-              password: 'password123',
+              roleKey: 'wakasek_kesiswaan',
+              password: 'password123', // Static password for Wakasek
             });
 
+            // Iterate over roles fetched from Firebase
             Object.keys(roles).forEach(roleKey => {
                 const roleArray = roles[roleKey as keyof typeof roles];
                 if (Array.isArray(roleArray)) {
                     roleArray.forEach((guru: any) => {
                         if(guru && guru.id !== undefined && guru.nama) {
                             const uniqueId = `${roleKey}-${guru.id}`;
+                            const roleName = getRoleName(roleKey);
                             users.push({
                                 id: uniqueId,
                                 nama: guru.nama,
-                                role: getRoleName(roleKey),
+                                role: roleName,
+                                roleKey: getRoleKey(roleName),
                                 password: guru.password,
                             });
                         }
@@ -82,7 +100,7 @@ export default function LoginPage() {
           }
           setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
       } catch (e) {
-          console.error("Failed to load initial data", e)
+          console.error("Failed to load initial data from Firebase", e)
       } finally {
           setIsLoading(false);
       }
@@ -96,7 +114,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-2 text-muted-foreground">Memuat data sekolah...</p>
+        <p className="mt-2 text-muted-foreground">Menghubungkan ke server...</p>
       </div>
     );
   }

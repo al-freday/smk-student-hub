@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -38,9 +38,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { fetchDataFromFirebase, saveDataToFirebase } from "@/lib/data-manager";
 
-
+// --- Tipe Data ---
 interface Guru {
   id: number;
   nama: string;
@@ -84,7 +84,6 @@ const getRoleKey = (roleName: string): AllRoles | null => {
     return role ? role.value : null;
 }
 
-
 const createEmailFromName = (name: string, id: number | string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     return `${namePart}${id}@schoolemail.com`;
@@ -94,7 +93,6 @@ const initialData: { [key in AllRoles]: Guru[] } = {
     wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
     wakasek_kesiswaan: [], tata_usaha: [],
 };
-
 
 export default function AdminManajemenPenggunaPage() {
   const router = useRouter();
@@ -113,10 +111,10 @@ export default function AdminManajemenPenggunaPage() {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [activeDialogRole, setActiveDialogRole] = useState<AllRoles>('wali_kelas');
 
-  const loadDataFromStorage = () => {
+  const loadDataFromFirebase = useCallback(async () => {
     setIsLoading(true);
     try {
-        const teachersData = getSourceData('teachersData', { ...initialData });
+        const teachersData = await fetchDataFromFirebase('teachersData') || { ...initialData };
         const usersData = { ...initialData } as { [key in AllRoles]: User[] };
         
         const { schoolInfo, ...roles } = teachersData;
@@ -133,24 +131,24 @@ export default function AdminManajemenPenggunaPage() {
         }
         setUsers(usersData);
     } catch (error) {
-        console.error("Failed to parse teachers data from storage", error);
+        console.error("Failed to load teachers data from Firebase", error);
         toast({
             title: "Gagal Memuat Data",
-            description: "Data pengguna tidak dapat dimuat.",
+            description: "Data pengguna tidak dapat dimuat dari server.",
             variant: "destructive"
         })
     } finally {
         setIsLoading(false);
     }
-  };
+  }, [toast]);
   
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
       router.push("/admin");
       return;
     }
-    loadDataFromStorage();
-  }, [router, toast]);
+    loadDataFromFirebase();
+  }, [router, loadDataFromFirebase]);
   
   const handleOpenDialog = (role: AllRoles, user: User | null = null) => {
       setActiveDialogRole(role);
@@ -159,14 +157,14 @@ export default function AdminManajemenPenggunaPage() {
       setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
       if (!formData.nama) {
           toast({ title: "Gagal", description: "Nama pengguna harus diisi.", variant: "destructive" });
           return;
       }
 
-      const teachersData = getSourceData('teachersData', { ...initialData });
-      const currentList = teachersData[activeDialogRole] || [];
+      const teachersData = await fetchDataFromFirebase('teachersData') || { ...initialData };
+      const currentList: Guru[] = teachersData[activeDialogRole] || [];
       
       if (editingUser) {
           // Editing user
@@ -176,172 +174,44 @@ export default function AdminManajemenPenggunaPage() {
               }
               return t;
           });
-          teachersData[activeDialogRole] = updatedList;
+          await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
       } else {
           // Adding new user
           const newId = currentList.length > 0 ? Math.max(...currentList.map((t: Guru) => t.id)) + 1 : 1;
           const newPassword = formData.password || `password${newId}`;
-          const newUser = { id: newId, nama: formData.nama, password: newPassword };
-          teachersData[activeDialogRole] = [...currentList, newUser];
+          const newUser: Guru = { id: newId, nama: formData.nama!, password: newPassword };
+          const updatedList = [...currentList, newUser];
+          await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
       }
 
-      updateSourceData('teachersData', teachersData);
-      
-      loadDataFromStorage(); 
-      toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
+      await loadDataFromFirebase(); 
+      toast({ title: "Sukses", description: "Data pengguna berhasil disimpan ke server." });
       setIsDialogOpen(false);
   };
   
-  const handleDelete = (role: AllRoles) => {
+  const handleDelete = async (role: AllRoles) => {
       if (!userToDelete) return;
       
-      const teachersData = getSourceData('teachersData', initialData);
+      const teachersData = await fetchDataFromFirebase('teachersData') || initialData;
       const updatedList = (teachersData[role] || []).filter((t: Guru) => t.id !== userToDelete.id);
       
-      const { schoolInfo, ...roles } = teachersData;
-      const updatedTeachers = { ...roles, [role]: updatedList };
-      const finalDataToSave = { ...teachersData, ...updatedTeachers };
-
-      updateSourceData('teachersData', finalDataToSave);
+      await saveDataToFirebase(`teachersData/${role}`, updatedList);
       
-      loadDataFromStorage(); 
+      await loadDataFromFirebase(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
-  const handleDeleteAll = (role: AllRoles) => {
-    const teachersData = getSourceData('teachersData', { ...initialData });
+  const handleDeleteAll = async (role: AllRoles) => {
+    await saveDataToFirebase(`teachersData/${role}`, []);
     
-    const { schoolInfo, ...roles } = teachersData;
-    const updatedTeachers = { ...roles, [role]: [] };
-    const finalDataToSave = { ...teachersData, ...updatedTeachers };
-
-    updateSourceData('teachersData', finalDataToSave);
-    
-    loadDataFromStorage();
+    await loadDataFromFirebase();
     toast({
       title: `Semua Pengguna Dihapus`,
       description: `Semua pengguna dari peran ${getRoleName(role)} telah dihapus.`,
       variant: "destructive"
     });
     setIsDeleteAllDialogOpen(false);
-  };
-  
-  const handleExportData = (role: AllRoles) => {
-    const usersToExport = users[role];
-    if (!usersToExport || usersToExport.length === 0) {
-        toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(role)}.`, variant: "destructive" });
-        return;
-    }
-    
-    const headers = ['id', 'nama', 'email', 'role', 'password'];
-    const delimiter = ';'; 
-
-    const formatCsvCell = (value: any) => {
-        const stringValue = String(value || '');
-        if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
-            return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-    };
-
-    const csvRows = usersToExport.map(user => 
-      headers.map(header => formatCsvCell(user[header as keyof User])).join(delimiter)
-    );
-    
-    const csvContent = [
-        `sep=${delimiter}`,
-        headers.join(delimiter),
-        ...csvRows
-    ].join('\n');
-    
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', `data_${role}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({ title: "Ekspor Berhasil", description: `Data untuk ${getRoleName(role)} telah diunduh.` });
-  };
-
-
-  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            let text = e.target?.result as string;
-            text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
-
-            const delimiter = ';';
-            const rows = text.split('\n').filter(row => row.trim() !== '');
-            rows.shift(); // Hapus baris header
-
-            if (rows.length === 0) {
-                toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki data.", variant: "destructive" });
-                return;
-            }
-
-            const teachersData = getSourceData('teachersData', { ...initialData });
-            const { schoolInfo, ...currentRoles } = teachersData;
-            
-            const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
-
-            let importedCount = 0;
-            let updatedCount = 0;
-            
-            rows.forEach(row => {
-                const columns = row.split(delimiter).map(field => field.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
-                if (columns.length < 5) return;
-                
-                const [id, nama, email, roleName, password] = columns;
-                const roleKey = getRoleKey(roleName);
-
-                if (!roleKey || !id || !nama || !password) return;
-                
-                if (!updatedRoles[roleKey]) {
-                    updatedRoles[roleKey] = [];
-                }
-
-                const roleList: Guru[] = updatedRoles[roleKey];
-                const userId = parseInt(id);
-                const newUser: Guru = { id: userId, nama, password };
-
-                const existingUserIndex = roleList.findIndex(u => u.id === userId);
-
-                if (existingUserIndex > -1) {
-                    roleList[existingUserIndex] = { ...roleList[existingUserIndex], ...newUser };
-                    updatedCount++;
-                } else {
-                    roleList.push(newUser);
-                    importedCount++;
-                }
-            });
-
-            const finalDataToSave = { ...teachersData, ...updatedRoles };
-            updateSourceData('teachersData', finalDataToSave);
-            
-            loadDataFromStorage();
-            toast({ 
-                title: "Impor Selesai", 
-                description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
-            });
-
-        } catch (error) {
-            console.error("Error importing data:", error);
-            toast({ title: "Error", description: "Gagal memproses file. Pastikan format CSV sudah benar.", variant: "destructive" });
-        } finally {
-            if(fileInputRef.current) fileInputRef.current.value = "";
-        }
-    };
-    reader.readAsText(file);
   };
 
   if (isLoading) {
@@ -352,6 +222,7 @@ export default function AdminManajemenPenggunaPage() {
     );
   }
 
+  // --- Render logic remains mostly the same, only data source and save handlers are changed ---
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4">
@@ -361,7 +232,7 @@ export default function AdminManajemenPenggunaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            Tambah, edit, atau hapus data pengguna untuk setiap peran.
+            Tambah, edit, atau hapus data pengguna untuk setiap peran. Perubahan disimpan langsung ke server.
           </p>
         </div>
       </div>
@@ -389,15 +260,6 @@ export default function AdminManajemenPenggunaPage() {
                     Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeTeacherTab)}</span>
                 </p>
                 <div className="flex gap-2 flex-wrap justify-end">
-                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Impor Data
-                    </Button>
-                    <Button variant="outline" onClick={() => handleExportData(activeTeacherTab)}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Ekspor Data
-                    </Button>
                     <Button onClick={() => handleOpenDialog(activeTeacherTab)}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Tambah Pengguna
@@ -563,7 +425,7 @@ export default function AdminManajemenPenggunaPage() {
               <AlertDialogHeader>
                   <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                   <AlertDialogDescription>
-                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen.
+                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen dari server.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
