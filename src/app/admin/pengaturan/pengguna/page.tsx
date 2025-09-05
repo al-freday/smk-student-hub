@@ -99,7 +99,7 @@ export default function AdminManajemenPenggunaPage() {
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [users, setUsers] = useState<{ [key in AllRoles]: User[] }>(initialData);
+  const [users, setUsers] = useState<{ [key in AllRoles]: User[] }>({ ...initialData });
   const [isLoading, setIsLoading] = useState(true);
 
   const [activeTeacherTab, setActiveTeacherTab] = useState<TeacherRole>('wali_kelas');
@@ -115,20 +115,23 @@ export default function AdminManajemenPenggunaPage() {
   const loadDataFromFirebase = useCallback(async () => {
     setIsLoading(true);
     try {
-        const teachersData = await fetchDataFromFirebase('teachersData') || { ...initialData };
+        const teachersData = await fetchDataFromFirebase('teachersData');
+        const loadedData = { ...initialData, ...(teachersData || {}) };
+        
         const usersData = { ...initialData } as { [key in AllRoles]: User[] };
         
-        const { schoolInfo, ...roles } = teachersData;
+        const { schoolInfo, ...roles } = loadedData;
         
         for (const roleKey in roles) {
             if (usersData.hasOwnProperty(roleKey)) {
                 usersData[roleKey as AllRoles] = (roles[roleKey] || []).map((guru: Guru) => {
                     const idPart = String(guru.id).split('-').pop();
+                    const defaultPassword = `password${guru.id}`;
                     return {
                         ...guru,
                         role: getRoleName(roleKey),
                         email: createEmailFromName(guru.nama, guru.id),
-                        password: guru.password || `password${idPart}`,
+                        password: guru.password || defaultPassword,
                     }
                 });
             }
@@ -169,37 +172,41 @@ export default function AdminManajemenPenggunaPage() {
 
       const teachersData = await fetchDataFromFirebase('teachersData') || { ...initialData };
       const currentList: Guru[] = teachersData[activeDialogRole] || [];
+      let updatedList;
       
       if (editingUser) {
           // Editing user
-          const updatedList = currentList.map((t: Guru) => {
+          updatedList = currentList.map((t: Guru) => {
               if (t.id === editingUser.id) {
-                  return { ...t, nama: formData.nama, password: formData.password || t.password };
+                  return { ...t, nama: formData.nama!, password: formData.password || t.password };
               }
               return t;
           });
-          await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
       } else {
           // Adding new user
           const newId = currentList.length > 0 ? Math.max(...currentList.map((t: Guru) => t.id)) + 1 : 1;
           const newPassword = formData.password || `password${newId}`;
           const newUser: Guru = { id: newId, nama: formData.nama!, password: newPassword };
-          const updatedList = [...currentList, newUser];
-          await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
+          updatedList = [...currentList, newUser];
       }
 
+      await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
+      
       await loadDataFromFirebase(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan ke server." });
       setIsDialogOpen(false);
   };
   
-  const handleDelete = async (role: AllRoles) => {
+  const handleDelete = async () => {
       if (!userToDelete) return;
       
       const teachersData = await fetchDataFromFirebase('teachersData') || initialData;
-      const updatedList = (teachersData[role] || []).filter((t: Guru) => t.id !== userToDelete.id);
+      const roleKey = getRoleKey(userToDelete.role);
+      if(!roleKey) return;
+
+      const updatedList = (teachersData[roleKey] || []).filter((t: Guru) => t.id !== userToDelete.id);
       
-      await saveDataToFirebase(`teachersData/${role}`, updatedList);
+      await saveDataToFirebase(`teachersData/${roleKey}`, updatedList);
       
       await loadDataFromFirebase(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
@@ -288,7 +295,7 @@ export default function AdminManajemenPenggunaPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users[key].length > 0 ? (
+                        {users[key] && users[key].length > 0 ? (
                         users[key].map((user) => (
                             <TableRow key={user.id}>
                             <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
@@ -298,7 +305,7 @@ export default function AdminManajemenPenggunaPage() {
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(key, user)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => { setActiveDialogRole(key); setUserToDelete(user);}}>
+                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </TableCell>
@@ -360,7 +367,7 @@ export default function AdminManajemenPenggunaPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users[key].length > 0 ? (
+                        {users[key] && users[key].length > 0 ? (
                         users[key].map((user) => (
                             <TableRow key={user.id}>
                             <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
@@ -370,7 +377,7 @@ export default function AdminManajemenPenggunaPage() {
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(key, user)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => { setActiveDialogRole(key); setUserToDelete(user);}}>
+                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </TableCell>
@@ -429,12 +436,12 @@ export default function AdminManajemenPenggunaPage() {
               <AlertDialogHeader>
                   <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                   <AlertDialogDescription>
-                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna secara permanen dari server.
+                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna <span className="font-semibold">{userToDelete?.nama}</span> secara permanen dari server.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleDelete(activeDialogRole)}>Hapus</AlertDialogAction>
+                  <AlertDialogAction onClick={() => handleDelete()}>Hapus</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
@@ -456,3 +463,4 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
+
