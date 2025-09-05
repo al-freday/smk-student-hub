@@ -1,7 +1,7 @@
 
 "use client";
 
-import { db } from './firebase';
+import { db } from './firebase'; // Hanya import db instance
 import { ref, get, set } from 'firebase/database';
 
 const isServer = typeof window === 'undefined';
@@ -19,12 +19,10 @@ export const getSourceData = (key: string, defaultValue: any): any => {
   }
   try {
     const localData = localStorage.getItem(key);
-    // If no local data, set it from the default value
     if (localData === null) {
       localStorage.setItem(key, JSON.stringify(defaultValue));
       return defaultValue;
     }
-    // Handle cases where "undefined" is stored as a string
     if (localData === "undefined") {
         return defaultValue;
     }
@@ -47,7 +45,6 @@ export const updateSourceData = (key: string, data: any): void => {
   try {
     const dataString = JSON.stringify(data);
     localStorage.setItem(key, dataString);
-    // Dispatch a custom event to notify other parts of the app that data has changed.
     window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key, value: data } }));
   } catch (error) {
     console.error(`Failed to save data to localStorage for key "${key}".`, error);
@@ -63,16 +60,13 @@ export const updateSourceData = (key: string, data: any): void => {
 export async function saveDataToFirebase(key: string, data: any) {
   if (isServer) return;
   
-  // First, update local storage for immediate UI feedback
   updateSourceData(key, data);
 
-  // Then, try to save to Firebase
   try {
     const dbRef = ref(db, key);
     await set(dbRef, data);
   } catch (error) {
     console.error(`Firebase Write Error for key "${key}":`, error);
-    // Optionally, notify the user that cloud sync failed but local changes are saved.
   }
 }
 
@@ -87,10 +81,8 @@ export async function syncAllDataFromFirebase() {
         if (snapshot.exists()) {
             const allData = snapshot.val();
             for (const key in allData) {
-                // Update local storage without triggering a new Firebase write
                 localStorage.setItem(key, JSON.stringify(allData[key]));
             }
-            // Dispatch a general event to let the whole app know data has been synced
             window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { all: true } }));
             console.log("All data successfully synced from Firebase.");
         }
