@@ -32,6 +32,7 @@ interface LogKompetensi { id: string; tanggal: string; kategori: string; catatan
 
 type KategoriAkademik = "Pantau Perkembangan Belajar" | "Identifikasi Kesulitan Akademik" | "Koordinasi dengan Guru Mapel" | "Rencana Pembelajaran Individual";
 type KategoriKompetensi = "Motivasi & Pengembangan Diri" | "Pemetaan Minat & Bakat";
+type KategoriKarakter = "Tanamkan Disiplin & Tanggung Jawab" | "Bimbingan Perilaku Positif" | "Berikan Teladan (Role Model)" | "Kolaborasi dengan Orang Tua";
 
 export default function BimbinganSiswaPage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function BimbinganSiswaPage() {
 
   // --- Log Bimbingan Karakter States ---
   const [isLogKarakterDialogOpen, setIsLogKarakterDialogOpen] = useState(false);
-  const [logKarakterFormData, setLogKarakterFormData] = useState<Partial<Omit<LogBimbingan, 'id' | 'tanggal'>> & { nis?: string }>({});
+  const [logKarakterFormData, setLogKarakterFormData] = useState<Partial<Omit<LogBimbingan, 'id' | 'tanggal'>> & { nis?: string, kategori?: KategoriKarakter }>({});
   
   // --- Log Bimbingan Akademik States ---
   const [isLogAkademikDialogOpen, setIsLogAkademikDialogOpen] = useState(false);
@@ -128,6 +129,11 @@ export default function BimbinganSiswaPage() {
   };
 
   // --- Handlers for Log Bimbingan Karakter ---
+  const handleOpenLogKarakterDialog = (kategori: KategoriKarakter) => {
+    setLogKarakterFormData({ kategori });
+    setIsLogKarakterDialogOpen(true);
+  };
+  
   const handleSaveLogKarakter = () => {
     if (!logKarakterFormData.nis || !logKarakterFormData.kategori || !logKarakterFormData.catatan) {
       toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
@@ -137,6 +143,7 @@ export default function BimbinganSiswaPage() {
         id: `log-${Date.now()}`,
         tanggal: new Date().toISOString(),
         kategori: logKarakterFormData.kategori,
+        nis: logKarakterFormData.nis,
         catatan: logKarakterFormData.catatan,
     };
     const allLogs = getSourceData('logBimbinganData', {});
@@ -304,10 +311,10 @@ export default function BimbinganSiswaPage() {
                     <CardDescription>Menanamkan nilai-nilai positif dan membimbing perilaku siswa.</CardDescription>
                 </CardHeader>
                  <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {renderFeatureCard("Tanamkan Disiplin & Tanggung Jawab", "Gunakan data kehadiran dan catatan perilaku sebagai media pembinaan kedisiplinan.")}
-                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.", () => setIsLogKarakterDialogOpen(true))}
-                    {renderFeatureCard("Berikan Teladan (Role Model)", "Dokumentasikan kegiatan positif yang bisa menjadi contoh bagi siswa lain.")}
-                    {renderFeatureCard("Kolaborasi dengan Orang Tua", "Akses rekapitulasi performa siswa sebagai bahan diskusi dengan orang tua/wali.")}
+                    {renderFeatureCard("Tanamkan Disiplin & Tanggung Jawab", "Gunakan data kehadiran dan catatan perilaku sebagai media pembinaan kedisiplinan.", () => handleOpenLogKarakterDialog("Tanamkan Disiplin & Tanggung Jawab"))}
+                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.", () => handleOpenLogKarakterDialog("Bimbingan Perilaku Positif"))}
+                    {renderFeatureCard("Berikan Teladan (Role Model)", "Dokumentasikan kegiatan positif yang bisa menjadi contoh bagi siswa lain.", () => handleOpenLogKarakterDialog("Berikan Teladan (Role Model)"))}
+                    {renderFeatureCard("Kolaborasi dengan Orang Tua", "Akses rekapitulasi performa siswa sebagai bahan diskusi dengan orang tua/wali.", () => handleOpenLogKarakterDialog("Kolaborasi dengan Orang Tua"))}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -398,7 +405,10 @@ export default function BimbinganSiswaPage() {
       {/* Dialog Log Bimbingan Karakter */}
       <Dialog open={isLogKarakterDialogOpen} onOpenChange={setIsLogKarakterDialogOpen}>
           <DialogContent>
-              <DialogHeader><DialogTitle>Catat Log Bimbingan Perilaku</DialogTitle></DialogHeader>
+              <DialogHeader>
+                  <DialogTitle>Catat Log Pembentukan Karakter</DialogTitle>
+                  <DialogDescription>Kategori: {logKarakterFormData.kategori}</DialogDescription>
+              </DialogHeader>
               <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                       <Label>Pilih Siswa</Label>
@@ -410,12 +420,13 @@ export default function BimbinganSiswaPage() {
                       </Select>
                   </div>
                   <div className="space-y-2">
-                      <Label htmlFor="kategori-log">Kategori Bimbingan</Label>
-                      <Input id="kategori-log" placeholder="Contoh: Etika, Disiplin, Sosial" onChange={e => setLogKarakterFormData(p => ({...p, kategori: e.target.value}))}/>
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="catatan-log">Catatan Sesi</Label>
-                      <Textarea id="catatan-log" placeholder="Tuliskan ringkasan sesi bimbingan atau konseling di sini..." onChange={e => setLogKarakterFormData(p => ({...p, catatan: e.target.value}))}/>
+                      <Label htmlFor="catatan-log-karakter">Catatan Sesi / Observasi</Label>
+                      <Textarea 
+                        id="catatan-log-karakter" 
+                        placeholder="Tuliskan ringkasan sesi bimbingan, observasi perilaku, atau catatan kolaborasi..." 
+                        onChange={e => setLogKarakterFormData(p => ({...p, catatan: e.target.value}))}
+                        rows={5}
+                      />
                   </div>
               </div>
               <DialogFooter>
