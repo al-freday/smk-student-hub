@@ -29,6 +29,7 @@ import {
   Award,
   Inbox,
   DollarSign,
+  FileSignature, // Ditambahkan
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -64,6 +65,7 @@ const navItemsByRole = {
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan-masuk", icon: Inbox, label: "Laporan Masuk" },
+    { href: "/dashboard/surat", icon: FileSignature, label: "Surat" },
     { type: 'divider', label: 'Manajemen Kelas' },
     { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
@@ -235,3 +237,5 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
+
+    
