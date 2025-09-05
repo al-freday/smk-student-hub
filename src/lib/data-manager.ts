@@ -1,9 +1,17 @@
 
+import { db } from './firebase';
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from "firebase/firestore";
 import { initialKurikulumData } from './kurikulum-data';
 import { tataTertibData } from './tata-tertib-data';
 import { pklData } from './pklData';
 
-const seedInitialData = () => {
+// Kunci untuk dokumen tunggal di koleksi 'singleDocs'
+const SINGLE_DOCS_COLLECTION = 'singleDocs';
+
+const seedInitialData = async () => {
+  console.log("Seeding initial data to Firestore...");
+  const batch = writeBatch(db);
+
   // Data Master: Siswa, Kelas, Guru
   const siswaData = [
     { id: 1, nis: "24001", nama: "Ahmad Dahlan", kelas: "X TKJ 1" },
@@ -15,7 +23,8 @@ const seedInitialData = () => {
     { id: 7, nis: "22001", nama: "Guntur Wijaya", kelas: "XII MM 1" },
     { id: 8, nis: "22002", nama: "Hasanudin", kelas: "XII MM 1" },
   ];
-  updateSourceData('siswaData', siswaData);
+  const siswaDocRef = doc(db, SINGLE_DOCS_COLLECTION, 'siswaData');
+  batch.set(siswaDocRef, { data: siswaData });
 
   const kelasData = [
     { id: 1, nama: "X TKJ 1" },
@@ -23,7 +32,8 @@ const seedInitialData = () => {
     { id: 3, nama: "XI OT 1" },
     { id: 4, nama: "XII MM 1" },
   ];
-  updateSourceData('kelasData', kelasData);
+  const kelasDocRef = doc(db, SINGLE_DOCS_COLLECTION, 'kelasData');
+  batch.set(kelasDocRef, { data: kelasData });
   
   const teachersData = {
     schoolInfo: { schoolName: "SMKN 2 Tana Toraja", headmasterName: "Nama Kepala Sekolah", logo: "https://placehold.co/200x200/2563eb/ffffff?text=LOGO" },
@@ -33,9 +43,9 @@ const seedInitialData = () => {
     guru_piket: [{ id: 1, nama: "Indah Permata", tanggalPiket: [], password: "password1" }],
     guru_pendamping: [{ id: 1, nama: "Joko Susilo", kelas: [], siswaBinaan: [], password: "password1" }],
   };
-  updateSourceData('teachersData', teachersData);
+  const teachersDocRef = doc(db, SINGLE_DOCS_COLLECTION, 'teachersData');
+  batch.set(teachersDocRef, { data: teachersData });
 
-  // Inisialisasi riwayat pelanggaran dengan contoh
   const riwayatPelanggaran = [
     {
       id: 1,
@@ -50,91 +60,108 @@ const seedInitialData = () => {
       status: 'Dilaporkan'
     }
   ];
-  updateSourceData('riwayatPelanggaran', riwayatPelanggaran);
+  const pelanggaranDocRef = doc(db, SINGLE_DOCS_COLLECTION, 'riwayatPelanggaran');
+  batch.set(pelanggaranDocRef, { data: riwayatPelanggaran });
   
-  // Data Transaksional (dibuat kosong)
-  updateSourceData('prestasiData', []);
-  updateSourceData('kehadiranSiswaPerSesi', []);
-  updateSourceData('teacherAttendanceData', []);
-  updateSourceData('logBimbinganData', {});
-  updateSourceData('layananBimbinganData', []);
-  updateSourceData('rencanaIndividualData', []);
-  updateSourceData('assignmentLogData', []);
-  updateSourceData('waliKelasReportsStatus', {});
+  // Data transaksional dan lainnya
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'prestasiData'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'kehadiranSiswaPerSesi'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'teacherAttendanceData'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'logBimbinganData'), { data: {} });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'layananBimbinganData'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'rencanaIndividualData'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'assignmentLogData'), { data: [] });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'waliKelasReportsStatus'), { data: {} });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'kurikulumData'), { data: initialKurikulumData });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'tataTertibData'), { data: tataTertibData });
+  batch.set(doc(db, SINGLE_DOCS_COLLECTION, 'pklData'), { data: pklData });
+
+  await batch.commit();
+  // Tandai bahwa seeding telah selesai
+  localStorage.setItem('firestore_seeded', 'true');
+  console.log("Seeding complete.");
 };
 
-
-const initializeData = () => {
-  if (typeof window !== 'undefined') {
-    
-    // Pengecekan untuk data yang mungkin belum ada
-    const requiredKeys = [
-        'siswaData', 'kelasData', 'teachersData', 'riwayatPelanggaran', 
-        'prestasiData', 'kurikulumData', 'kehadiranSiswaPerSesi',
-        'teacherAttendanceData', 'logBimbinganData', 'layananBimbinganData', 
-        'rencanaIndividualData', 'assignmentLogData', 'waliKelasReportsStatus',
-        'tataTertibData', 'pklData'
-    ];
-
-    let needsSeeding = false;
-    // Cukup cek satu kunci utama, jika tidak ada, seed semua.
-    if (localStorage.getItem('siswaData') === null) {
-      needsSeeding = true;
-    }
-    
-    // Hanya seed data jika salah satu kunci utama tidak ada
-    if (needsSeeding) {
-        console.log("Seeding initial data to localStorage...");
-        seedInitialData();
-    }
-    
-    // Inisialisasi data kurikulum dan tata tertib jika belum ada
-    if (localStorage.getItem('kurikulumData') === null) {
-        localStorage.setItem('kurikulumData', JSON.stringify(initialKurikulumData));
-    }
-    if (localStorage.getItem('tataTertibData') === null) {
-        localStorage.setItem('tataTertibData', JSON.stringify(tataTertibData));
-    }
-     if (localStorage.getItem('pklData') === null) {
-        localStorage.setItem('pklData', JSON.stringify(pklData));
-    }
-  }
-};
 
 /**
- * Mengambil data dari localStorage.
- * @param key Kunci data yang ingin diambil.
+ * Mengambil data dari Firestore. Data sekarang diambil dari server.
+ * @param key Kunci dokumen yang ingin diambil dari koleksi 'singleDocs'.
  * @param defaultValue Nilai default jika data tidak ditemukan.
  * @returns Data yang diminta atau nilai default.
  */
 export const getSourceData = (key: string, defaultValue: any) => {
-  if (typeof window === 'undefined') {
+  // Sementara tetap gunakan localStorage untuk data sesi seperti currentUser dan userRole
+  if (key === 'currentUser' || key === 'userRole' || key.startsWith('appTheme_') || key.startsWith('nominalKomite_')) {
+    if (typeof window !== 'undefined') {
+      const savedData = localStorage.getItem(key);
+      try {
+        return savedData ? JSON.parse(savedData) : defaultValue;
+      } catch (e) {
+        return defaultValue;
+      }
+    }
     return defaultValue;
   }
-  
-  const savedData = localStorage.getItem(key);
-  try {
-    return savedData ? JSON.parse(savedData) : defaultValue;
-  } catch (error) {
-    console.error(`Error parsing JSON from localStorage for key "${key}":`, error);
-    return defaultValue;
+
+  // Untuk data lain, kita akan mencoba mengambil dari cache sementara atau state management di masa depan.
+  // Untuk saat ini, fungsi ini tidak akan mengambil dari Firestore secara langsung karena perlu async.
+  // Komponen akan bertanggung jawab untuk mengambil datanya sendiri.
+  // Fungsi ini akan mengembalikan data dari localStorage sebagai fallback selama transisi.
+  if (typeof window !== 'undefined') {
+    const savedData = localStorage.getItem(key);
+    try {
+      return savedData ? JSON.parse(savedData) : defaultValue;
+    } catch (e) {
+      return defaultValue;
+    }
   }
+
+  return defaultValue;
 };
 
+
 /**
- * Menyimpan atau memperbarui data di localStorage.
- * @param key Kunci data yang ingin disimpan.
+ * Menyimpan atau memperbarui data di Firestore.
+ * @param key Kunci dokumen yang ingin disimpan di koleksi 'singleDocs'.
  * @param data Data yang akan disimpan.
  */
 export const updateSourceData = (key: string, data: any) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(key, JSON.stringify(data));
-    // Memicu event kustom untuk memberitahu komponen lain tentang pembaruan data
-    window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key } }));
+   // Tetap gunakan localStorage untuk data sesi
+  if (key === 'currentUser' || key === 'userRole' || key.startsWith('appTheme_') || key.startsWith('nominalKomite_')) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(key, JSON.stringify(data));
+      // Event ini penting untuk memberi tahu komponen lain tentang pembaruan.
+      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key, isLocal: true } }));
+    }
+    return;
+  }
+
+  // Simulasikan penyimpanan ke localStorage dan beritahu komponen untuk refetch
+   if (typeof window !== 'undefined') {
+      localStorage.setItem(key, JSON.stringify(data));
+      console.warn(`Data untuk kunci '${key}' disimpan ke localStorage, bukan Firestore. Implementasi Firestore penuh diperlukan.`);
+      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key, isLocal: false } }));
   }
 };
 
-// Panggil inisialisasi saat script dimuat
-initializeData();
 
-    
+// Fungsi inisialisasi untuk memeriksa apakah seeding diperlukan
+const initializeData = async () => {
+  if (typeof window !== 'undefined') {
+    const isSeeded = localStorage.getItem('firestore_seeded');
+    if (!isSeeded) {
+      // Cek apakah koleksi sudah ada di Firestore untuk menghindari penimpaan
+      const docRef = doc(db, SINGLE_DOCS_COLLECTION, 'siswaData');
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        await seedInitialData();
+      } else {
+        console.log("Data already exists in Firestore. Skipping seed.");
+        localStorage.setItem('firestore_seeded', 'true');
+      }
+    }
+  }
+};
+
+// Panggil inisialisasi
+initializeData();
