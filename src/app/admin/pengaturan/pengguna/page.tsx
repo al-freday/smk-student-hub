@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Eye, Download, Upload } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -138,14 +138,6 @@ export default function AdminManajemenPenggunaPage() {
     loadDataFromStorage();
   }, [router, toast]);
   
-
-  const handleShowPassword = (password: string) => {
-    toast({
-        title: "Password Pengguna",
-        description: `Password untuk pengguna ini adalah: ${password}`,
-    });
-  };
-
   const handleOpenDialog = (user: User | null = null) => {
       setEditingUser(user);
       setFormData(user || {});
@@ -161,22 +153,25 @@ export default function AdminManajemenPenggunaPage() {
       const savedData = localStorage.getItem('teachersData');
       const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
       const currentList = teachersData[activeTab] || [];
-      let updatedList;
       
-      const newPassword = formData.password || `password${formData.id || Date.now()}`;
-
       if (editingUser) {
-          updatedList = currentList.map((t: Guru) => t.id === editingUser.id ? { ...t, nama: formData.nama, password: newPassword } : t);
+          // Editing user
+          const updatedList = currentList.map((t: Guru) => {
+              if (t.id === editingUser.id) {
+                  return { ...t, nama: formData.nama, password: formData.password || t.password };
+              }
+              return t;
+          });
+          teachersData[activeTab] = updatedList;
       } else {
+          // Adding new user
           const newId = currentList.length > 0 ? Math.max(...currentList.map((t: Guru) => t.id)) + 1 : 1;
-          const newUser = { id: newId, nama: formData.nama, password: `password${newId}` };
-          updatedList = [...currentList, newUser];
+          const newPassword = formData.password || `password${newId}`;
+          const newUser = { id: newId, nama: formData.nama, password: newPassword };
+          teachersData[activeTab] = [...currentList, newUser];
       }
 
-      const { schoolInfo, ...roles } = teachersData;
-      const updatedTeachers = { ...roles, [activeTab]: updatedList };
-      const finalDataToSave = { ...teachersData, ...updatedTeachers };
-      localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+      localStorage.setItem('teachersData', JSON.stringify(teachersData));
       
       loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
@@ -358,7 +353,7 @@ export default function AdminManajemenPenggunaPage() {
         <CardHeader>
           <CardTitle>Daftar Pengguna</CardTitle>
           <CardDescription>
-            Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna. Password dibuat otomatis dan dapat dilihat.
+            Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -417,10 +412,6 @@ export default function AdminManajemenPenggunaPage() {
                             <TableCell className="whitespace-nowrap">{user.email}</TableCell>
                             <TableCell className="whitespace-nowrap">{user.role}</TableCell>
                             <TableCell className="text-right whitespace-nowrap">
-                                <Button variant="outline" size="sm" onClick={() => handleShowPassword(user.password || "")} className="mr-2 mb-2 sm:mb-0">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Password
-                                </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
@@ -459,6 +450,17 @@ export default function AdminManajemenPenggunaPage() {
                     <Label htmlFor="nama" className="text-right">Nama</Label>
                     <Input id="nama" value={formData.nama || ''} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} className="col-span-3"/>
                  </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="password" className="text-right">Password</Label>
+                    <Input 
+                        id="password" 
+                        type="text"
+                        value={formData.password || ''} 
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                        className="col-span-3"
+                        placeholder={editingUser ? "Kosongkan jika tidak diubah" : "Otomatis jika kosong"}
+                    />
+                </div>
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
