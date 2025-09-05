@@ -9,32 +9,82 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
   logo: string;
 }
 
+interface User {
+    id: string;
+    nama: string;
+    role: string;
+    password?: string;
+}
+
+const getRoleName = (roleKey: string) => {
+    const roles: { [key: string]: string } = {
+        wali_kelas: 'Wali Kelas',
+        guru_bk: 'Guru BK',
+        guru_mapel: 'Guru Mapel',
+        guru_piket: 'Guru Piket',
+        guru_pendamping: 'Guru Pendamping',
+    };
+    return roles[roleKey] || 'Guru';
+};
+
+
 export default function Home() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMK Student Hub",
     logo: "",
   });
-  const [isClient, setIsClient] = useState(false);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    
-    const savedData = localStorage.getItem('teachersData');
-    if (savedData) {
-        const teachersData = JSON.parse(savedData);
-        if (teachersData.schoolInfo) {
-            setSchoolInfo(teachersData.schoolInfo);
+    try {
+        const savedData = getSourceData('teachersData', {});
+        if (savedData.schoolInfo) {
+            setSchoolInfo(savedData.schoolInfo);
         }
+
+        const users: User[] = [];
+        const { schoolInfo, ...roles } = savedData;
+        
+        // Add wakasek manually
+        users.push({
+          id: 'wakasek_kesiswaan-0',
+          nama: 'Wakasek Kesiswaan',
+          role: 'Wakasek Kesiswaan',
+          password: 'password123',
+        });
+
+        Object.keys(roles).forEach(roleKey => {
+            if (Array.isArray(roles[roleKey])) {
+                roles[roleKey].forEach((guru: any) => {
+                    if(guru && guru.id !== undefined && guru.nama) {
+                        const uniqueId = `${roleKey}-${guru.id}`;
+                        users.push({
+                            id: uniqueId,
+                            nama: guru.nama,
+                            role: getRoleName(roleKey),
+                            password: guru.password,
+                        });
+                    }
+                });
+            }
+        });
+        setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+    } catch (e) {
+        console.error("Failed to load initial data", e)
+    } finally {
+        setIsLoading(false);
     }
   }, []);
 
-  if (!isClient) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -63,7 +113,7 @@ export default function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm />
+            <LoginForm allUsers={allUsers} />
           </CardContent>
         </Card>
         <div className="mt-6 text-center">

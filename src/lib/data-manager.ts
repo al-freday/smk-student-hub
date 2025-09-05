@@ -26,11 +26,11 @@ const seedInitialData = () => {
   
   const teachersData = {
     schoolInfo: { schoolName: "SMKN 2 Tana Toraja", headmasterName: "Nama Kepala Sekolah", logo: "https://placehold.co/200x200/2563eb/ffffff?text=LOGO" },
-    wali_kelas: [{ id: "wali_kelas-1", nama: "Andi Pratama", kelas: ["X TKJ 1", "X TKJ 2"], password: "password1" }],
-    guru_bk: [{ id: "guru_bk-1", nama: "Siti Aminah", tugasKelas: "Kelas X", password: "password1" }],
-    guru_mapel: [{ id: "guru_mapel-1", nama: "Rahmat Hidayat", teachingAssignments: [], password: "password1" }],
-    guru_piket: [{ id: "guru_piket-1", nama: "Indah Permata", tanggalPiket: [], password: "password1" }],
-    guru_pendamping: [{ id: "guru_pendamping-1", nama: "Joko Susilo", kelas: [], siswaBinaan: [], password: "password1" }],
+    wali_kelas: [{ id: 1, nama: "Andi Pratama", kelas: ["X TKJ 1", "X TKJ 2"], password: "password1" }],
+    guru_bk: [{ id: 1, nama: "Siti Aminah", tugasKelas: "Kelas X", password: "password1" }],
+    guru_mapel: [{ id: 1, nama: "Rahmat Hidayat", teachingAssignments: [], password: "password1" }],
+    guru_piket: [{ id: 1, nama: "Indah Permata", tanggalPiket: [], password: "password1" }],
+    guru_pendamping: [{ id: 1, nama: "Joko Susilo", kelas: [], siswaBinaan: [], password: "password1" }],
   };
   updateSourceData('teachersData', teachersData);
 

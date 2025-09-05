@@ -18,34 +18,37 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSourceData } from "@/lib/data-manager";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  userId: z.string().min(1, { message: "Silakan pilih pengguna." }),
+  password: z.string().min(1, { message: "Password harus diisi." }),
 });
 
-const getRoleDisplayName = (role: string) => {
-    switch (role) {
-        case 'wali_kelas': return 'Wali Kelas';
-        case 'guru_bk': return 'Guru BK';
-        case 'guru_mapel': return 'Guru Mata Pelajaran';
-        case 'guru_piket': return 'Guru Piket';
-        case 'guru_pendamping': return 'Guru Pendamping';
-        case 'wakasek_kesiswaan': return 'Wakasek Kesiswaan';
-        case 'admin': return 'Administrator';
-        default: return 'Pengguna';
-    }
-};
+interface User {
+    id: string;
+    nama: string;
+    role: string;
+    password?: string;
+}
 
-const createEmailFromName = (name: string, id: string) => {
-    const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    const idPart = String(id).split('-').pop();
-    return `${namePart}${idPart}@schoolemail.com`;
-};
+interface LoginFormProps {
+    allUsers: User[];
+}
 
+const getRoleKeyFromName = (roleName: string) => {
+    const roles: { [key: string]: string } = {
+        'Wali Kelas': 'wali_kelas',
+        'Guru BK': 'guru_bk',
+        'Guru Mapel': 'guru_mapel',
+        'Guru Piket': 'guru_piket',
+        'Guru Pendamping': 'guru_pendamping',
+        'Wakasek Kesiswaan': 'wakasek_kesiswaan',
+    };
+    return roles[roleName] || 'unknown';
+}
 
-export function LoginForm() {
+export function LoginForm({ allUsers }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -53,23 +56,22 @@ export function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      userId: "",
       password: "",
     },
   });
-
-  const handleLoginSuccess = (userRoleKey: string, userDetails: {nama: string, email: string}) => {
-      localStorage.setItem('userRole', userRoleKey);
+  
+  const handleLoginSuccess = (user: User) => {
+      const roleKey = getRoleKeyFromName(user.role);
+      localStorage.setItem('userRole', roleKey);
       
-      const roleName = getRoleDisplayName(userRoleKey);
       const userForSettings = {
-          nama: userDetails.nama,
-          role: roleName,
-          email: userDetails.email,
+          nama: user.nama,
+          role: user.role,
+          email: `${user.id.replace(/-/g, '_')}@schoolemail.com`, // Create a dummy email for profile page
       };
       localStorage.setItem('currentUser', JSON.stringify(userForSettings));
       
-      // Memicu event kustom untuk memberitahu layout bahwa peran telah berubah
       window.dispatchEvent(new Event('roleChanged'));
       
       router.push("/dashboard");
@@ -78,64 +80,20 @@ export function LoginForm() {
  function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const emailToSearch = values.email.toLowerCase();
-
-    // Hardcoded check for wakasek comes first
-    if (emailToSearch === 'wakasek@schoolemail.com' && values.password === 'password123') {
-        setTimeout(() => {
-            setIsLoading(false);
-            handleLoginSuccess('wakasek_kesiswaan', { nama: 'Wakasek Kesiswaan', email: emailToSearch });
-        }, 1000);
-        return;
-    }
-
-    const teachersData = getSourceData('teachersData', {});
+    const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    let foundUser = null;
-    let userRoleKey = '';
-
-    const { schoolInfo, ...roles } = teachersData || {};
-
-    if (!roles) {
-        setIsLoading(false);
-        toast({
-          title: "Login Gagal",
-          description: "Data pengguna tidak valid. Silakan hubungi admin.",
-          variant: "destructive",
-        });
-        return;
-    }
-
-    for (const role in roles) {
-        if (!Array.isArray(roles[role])) continue;
-
-        const user = roles[role].find((u: any) => {
-            if (!u.nama || typeof u.nama !== 'string' || u.id === undefined) return false;
-            
-            const expectedEmail = createEmailFromName(u.nama, u.id);
-            
-            // Use provided password from seed data, fallback to a pattern if missing
-            const idPart = String(u.id).split('-').pop();
-            const expectedPassword = u.password || `password${idPart}`;
-            
-            return expectedEmail === emailToSearch && values.password === expectedPassword;
-        });
-
-        if (user) {
-            foundUser = user;
-            userRoleKey = role;
-            break;
-        }
-    }
+    // Fallback password logic for seeded data
+    const idPart = String(selectedUser?.id).split('-').pop();
+    const expectedPassword = selectedUser?.password || `password${idPart}`;
 
     setTimeout(() => {
       setIsLoading(false);
-      if (foundUser) {
-          handleLoginSuccess(userRoleKey, { nama: foundUser.nama, email: emailToSearch });
+      if (selectedUser && values.password === expectedPassword) {
+          handleLoginSuccess(selectedUser);
       } else {
          toast({
           title: "Login Gagal",
-          description: "Email atau password salah. Silakan hubungi admin jika lupa.",
+          description: "Nama pengguna atau password salah.",
           variant: "destructive",
         });
       }
@@ -148,13 +106,24 @@ export function LoginForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="email"
+            name="userId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="email@schoolemail.com" {...field} disabled={isLoading}/>
-                </FormControl>
+                <FormLabel>Nama Pengguna</FormLabel>
+                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih nama Anda" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {allUsers.map(user => (
+                        <SelectItem key={user.id} value={user.id}>
+                            {user.nama} ({user.role})
+                        </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
