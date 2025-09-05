@@ -28,8 +28,10 @@ interface Prestasi { id: string; nis: string; tanggal: string; deskripsi: string
 interface PklData { status: string; perusahaan: string; catatan: string; progres: number; }
 interface LogBimbingan { id: string; tanggal: string; kategori: string; catatan: string; }
 interface LogAkademik { id: string; tanggal: string; kategori: string; catatan: string; }
+interface LogKompetensi { id: string; tanggal: string; kategori: string; catatan: string; }
 
 type KategoriAkademik = "Pantau Perkembangan Belajar" | "Identifikasi Kesulitan Akademik" | "Koordinasi dengan Guru Mapel" | "Rencana Pembelajaran Individual";
+type KategoriKompetensi = "Motivasi & Pengembangan Diri" | "Pemetaan Minat & Bakat";
 
 export default function BimbinganSiswaPage() {
   const router = useRouter();
@@ -55,6 +57,11 @@ export default function BimbinganSiswaPage() {
   // --- Log Bimbingan Akademik States ---
   const [isLogAkademikDialogOpen, setIsLogAkademikDialogOpen] = useState(false);
   const [logAkademikFormData, setLogAkademikFormData] = useState<Partial<Omit<LogAkademik, 'id' | 'tanggal'>> & { nis?: string, kategori?: KategoriAkademik }>({});
+  
+  // --- Log Pengembangan Kompetensi States ---
+  const [isLogKompetensiDialogOpen, setIsLogKompetensiDialogOpen] = useState(false);
+  const [logKompetensiFormData, setLogKompetensiFormData] = useState<Partial<Omit<LogKompetensi, 'id' | 'tanggal'>> & { nis?: string, kategori?: KategoriKompetensi }>({});
+
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -166,6 +173,32 @@ export default function BimbinganSiswaPage() {
     setIsLogAkademikDialogOpen(false);
   };
 
+  // --- Handlers for Log Pengembangan Kompetensi ---
+  const handleOpenLogKompetensiDialog = (kategori: KategoriKompetensi) => {
+    setLogKompetensiFormData({ kategori });
+    setIsLogKompetensiDialogOpen(true);
+  };
+
+  const handleSaveLogKompetensi = () => {
+    if (!logKompetensiFormData.nis || !logKompetensiFormData.kategori || !logKompetensiFormData.catatan) {
+        toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
+        return;
+    }
+    const newLog: LogKompetensi = {
+        id: `log-kompetensi-${Date.now()}`,
+        tanggal: new Date().toISOString(),
+        kategori: logKompetensiFormData.kategori,
+        nis: logKompetensiFormData.nis,
+        catatan: logKompetensiFormData.catatan,
+    };
+    const allLogs = getSourceData('logKompetensiData', {});
+    const userLogs = allLogs[logKompetensiFormData.nis] || [];
+    allLogs[logKompetensiFormData.nis] = [newLog, ...userLogs];
+    updateSourceData('logKompetensiData', allLogs);
+    toast({ title: "Sukses", description: "Log pengembangan kompetensi berhasil disimpan." });
+    setIsLogKompetensiDialogOpen(false);
+  };
+
   const renderFeatureCard = (title: string, description: string, onClick?: () => void) => (
     <Card className="h-full hover:bg-muted/50 transition-colors flex flex-col">
         <CardHeader>
@@ -257,8 +290,8 @@ export default function BimbinganSiswaPage() {
                       </CardContent>
                     </Card>
 
-                    {renderFeatureCard("Motivasi & Pengembangan Diri", "Berikan catatan motivasi dan rekomendasikan peluang pengembangan seperti lomba atau seminar.")}
-                    {renderFeatureCard("Pemetaan Minat & Bakat", "Dokumentasikan minat dan bakat siswa sebagai dasar pengarahan kegiatan ekstrakurikuler.")}
+                    {renderFeatureCard("Motivasi & Pengembangan Diri", "Berikan catatan motivasi dan rekomendasikan peluang pengembangan seperti lomba atau seminar.", () => handleOpenLogKompetensiDialog("Motivasi & Pengembangan Diri"))}
+                    {renderFeatureCard("Pemetaan Minat & Bakat", "Dokumentasikan minat dan bakat siswa sebagai dasar pengarahan kegiatan ekstrakurikuler.", () => handleOpenLogKompetensiDialog("Pemetaan Minat & Bakat"))}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -425,8 +458,40 @@ export default function BimbinganSiswaPage() {
               </DialogFooter>
           </DialogContent>
       </Dialog>
+
+      {/* Dialog Log Pengembangan Kompetensi */}
+      <Dialog open={isLogKompetensiDialogOpen} onOpenChange={setIsLogKompetensiDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Catat Log Pengembangan Kompetensi</DialogTitle>
+                <DialogDescription>Kategori: {logKompetensiFormData.kategori}</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label>Pilih Siswa</Label>
+                      <Select onValueChange={nis => setLogKompetensiFormData(p => ({...p, nis}))}>
+                          <SelectTrigger><SelectValue placeholder="Pilih siswa binaan..." /></SelectTrigger>
+                          <SelectContent>
+                              {siswaBinaan.map(s => <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="catatan-log-kompetensi">Catatan / Rekomendasi</Label>
+                      <Textarea 
+                        id="catatan-log-kompetensi" 
+                        placeholder="Tuliskan hasil pemetaan minat bakat, atau rekomendasi kegiatan pengembangan diri..." 
+                        onChange={e => setLogKompetensiFormData(p => ({...p, catatan: e.target.value}))}
+                        rows={5}
+                      />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button onClick={handleSaveLogKompetensi}>Simpan Log</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
