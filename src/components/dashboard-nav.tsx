@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -32,6 +31,7 @@ import {
   FileSignature,
   Archive,
   Database,
+  FileUp,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -111,9 +111,8 @@ const navItemsByRole = {
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
   tata_usaha: [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard", icon: FileUp, label: "Unggah Data Induk" },
     { href: "/dashboard/hasil-data-olahan", icon: Database, label: "Hasil Data Olahan" },
-    { href: "/dashboard/rekap-pembayaran-komite", icon: DollarSign, label: "Rekap Pembayaran" },
   ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },

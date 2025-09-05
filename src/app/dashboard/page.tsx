@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,7 +15,7 @@ import KonselingBkPage from "./konseling-bk/page";
 import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 import GuruPiketDashboard from "@/components/guru-piket-dashboard";
 import GuruPendampingDashboard from "@/components/guru-pendamping-dashboard";
-import RekapPembayaranKomitePage from "./rekap-pembayaran-komite/page";
+import UnggahDataIndukPage from "./unggah-data-induk/page";
 
 const getRoleDisplayName = (role: string) => {
     const roles: { [key: string]: string } = {
@@ -47,7 +46,7 @@ const getWelcomeMessage = (role: string, name: string) => {
         case 'guru_pendamping':
             return `Selamat datang, ${name}. Kelola dan catat perkembangan setiap siswa binaan Anda.`;
         case 'tata_usaha':
-            return `Selamat datang, ${name}. Anda dapat memantau rekapitulasi pembayaran komite di sini.`;
+            return `Selamat datang, ${name}. Anda dapat mengelola data induk siswa di halaman ini.`;
         case 'admin':
             return `Anda sedang login sebagai Administrator. Gunakan panel admin untuk mengelola sistem.`;
         default:
@@ -193,7 +192,7 @@ const renderDashboardByRole = (role: string) => {
         case 'guru_pendamping':
             return <GuruPendampingDashboard />;
         case 'tata_usaha':
-            return <RekapPembayaranKomitePage />;
+            return <UnggahDataIndukPage />;
         case 'admin':
             return <AdminDashboard />;
         default:

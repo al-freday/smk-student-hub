@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -35,7 +34,7 @@ interface Siswa {
 }
 
 
-export default function UploadDataIndukPage() {
+export default function UnggahDataIndukPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -112,7 +111,7 @@ export default function UploadDataIndukPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Data Induk Siswa</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Unggah Data Induk Siswa</h2>
             <p className="text-muted-foreground">
               Unggah dan proses data induk siswa dari file Excel (.xlsx) atau CSV.
             </p>
