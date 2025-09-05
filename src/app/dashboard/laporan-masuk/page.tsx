@@ -12,7 +12,6 @@ import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, ClipboardCheck, Us
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 
 // --- Tipe Data ---
