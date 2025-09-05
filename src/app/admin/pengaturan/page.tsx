@@ -35,6 +35,7 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
 const userRoles = [
     { key: "admin", name: "Administrator" },
     { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
+    { key: "tata_usaha", name: "Tata Usaha" },
     { key: "wali_kelas", name: "Wali Kelas" },
     { key: "guru_bk", name: "Guru BK" },
     { key: "guru_mapel", name: "Guru Mapel" },
