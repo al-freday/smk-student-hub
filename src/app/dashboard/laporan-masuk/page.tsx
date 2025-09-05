@@ -8,11 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, ClipboardCheck, Users, Edit, Phone, BookUp, Monitor } from "lucide-react";
+import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, ClipboardCheck, Users, Edit, Phone, BookUp, Monitor, RefreshCw } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
@@ -88,6 +89,10 @@ export default function LaporanMasukPage() {
   
   // --- Data Terfilter ---
   const [pelanggaranDiKelas, setPelanggaranDiKelas] = useState<CatatanPelanggaran[]>([]);
+  
+  // --- State untuk Checklist ---
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -138,6 +143,16 @@ export default function LaporanMasukPage() {
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
   };
+  
+  const handleChecklistChange = (itemId: string, checked: boolean) => {
+    setChecklist(prev => ({ ...prev, [itemId]: checked }));
+  };
+
+  const resetChecklist = () => {
+    setChecklist({});
+    toast({ title: "Checklist Direset", description: "Anda dapat mulai menangani kasus baru." });
+  };
+
 
   if (isLoading) {
     return (
@@ -195,32 +210,45 @@ export default function LaporanMasukPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
-            <CardDescription>Gunakan panduan ini sebagai checklist saat menangani setiap kasus.</CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+                <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
+                <CardDescription>Gunakan checklist interaktif ini saat menangani setiap kasus.</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={resetChecklist}>
+                <RefreshCw className="mr-2 h-4 w-4"/> Atur Ulang Checklist
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-            <Accordion type="single" collapsible className="w-full">
+            <div className="space-y-4">
                 {alurPenanganan.map((item) => {
                     const Icon = item.icon;
                     return (
-                        <AccordionItem value={item.id} key={item.id}>
-                            <AccordionTrigger>
-                                <div className="flex items-center gap-3">
-                                    <Icon className="h-5 w-5 text-primary" />
-                                    <span className="font-semibold">{item.title}</span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
+                        <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg bg-muted/40">
+                            <Checkbox 
+                                id={`check-${item.id}`}
+                                className="mt-1"
+                                checked={checklist[item.id] || false}
+                                onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <label
+                                    htmlFor={`check-${item.id}`}
+                                    className="text-base font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                                >
+                                    <Icon className="h-5 w-5 text-primary" /> {item.title}
+                                </label>
+                                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                                     {item.content.map((point, index) => (
                                         <li key={index}>{point}</li>
                                     ))}
                                 </ul>
-                            </AccordionContent>
-                        </AccordionItem>
+                            </div>
+                        </div>
                     );
                 })}
-            </Accordion>
+            </div>
             <p className="mt-4 text-xs text-center text-muted-foreground italic">
                 Singkatnya, wali kelas jadi mediator + motivator + dokumentator. Tegas iya, tapi harus tetap jadi “rumah aman” bagi anak walinya.
             </p>
