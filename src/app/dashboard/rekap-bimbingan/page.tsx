@@ -121,8 +121,6 @@ export default function RekapBimbinganPage() {
             
             // Header
             if (schoolInfo?.logo) {
-                // Catatan: jsPDF membutuhkan gambar dari URL yang sama atau CORS-enabled. 
-                // Jika logo dari 'data:image/...', ini akan bekerja.
                 try {
                     doc.addImage(schoolInfo.logo, 'PNG', 15, 10, 20, 20);
                 } catch(e){ console.error("Gagal menambahkan logo:", e); }
@@ -150,7 +148,7 @@ export default function RekapBimbinganPage() {
                 head: [['Tanggal', 'Tipe', 'Kategori', 'Catatan']],
                 body: tableData,
                 theme: 'grid',
-                headStyles: { fillColor: [41, 128, 185] }, // Warna biru
+                headStyles: { fillColor: [41, 128, 185] }, 
             });
 
             doc.save(`Rekap_Bimbingan_${selectedSiswa.nama.replace(/\s/g, '_')}.pdf`);
@@ -161,7 +159,7 @@ export default function RekapBimbinganPage() {
         } finally {
             setIsGeneratingPdf(false);
         }
-    }, 500); // Penundaan singkat untuk memastikan UI responsif
+    }, 500);
   };
 
   if (isLoading) {
