@@ -140,6 +140,32 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
         data = { ...data, bimbinganData, prestasiSiswaBinaan, statusPkl };
     }
 
+    if (roleKey === 'guru_piket') {
+        const allTeacherAttendance = getSourceData('teacherAttendanceData', []);
+        const allPelanggaran = getSourceData('riwayatPelanggaran', []);
+
+        const rekapAbsensiGuru = allTeacherAttendance
+            .filter((rec: any) => rec.dicatatOleh === guru.nama && isWithinInterval(new Date(rec.tanggal), monthInterval))
+            .map((rec: any) => [
+                format(new Date(rec.tanggal), "dd MMM yyyy", { locale: id }),
+                rec.namaGuru,
+                rec.status,
+                rec.keterangan || '-',
+            ]);
+        
+        const laporanPelanggaran = allPelanggaran
+            .filter((p: any) => p.guruPelapor === guru.nama && isWithinInterval(new Date(p.tanggal), monthInterval))
+            .map((p: any) => [
+                 format(new Date(p.tanggal), "dd MMM yyyy", { locale: id }),
+                 p.namaSiswa,
+                 p.kelas,
+                 p.pelanggaran,
+                 p.poin,
+            ]);
+        
+        data = { ...data, rekapAbsensiGuru, laporanPelanggaran };
+    }
+
     setReportData(data);
     setIsLoading(false);
   }, [guruId, roleKey]);
@@ -176,8 +202,19 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
             </>
         )}
 
+        {roleKey === 'guru_piket' && (
+            <>
+                <Section title="Rekapitulasi Kehadiran Guru yang Dicatat">
+                    <ReportTable headers={["Tanggal", "Nama Guru", "Status", "Keterangan"]} data={reportData.rekapAbsensiGuru} />
+                </Section>
+                <Section title="Laporan Pelanggaran Siswa yang Dicatat">
+                    <ReportTable headers={["Tanggal", "Nama Siswa", "Kelas", "Pelanggaran", "Poin"]} data={reportData.laporanPelanggaran} />
+                </Section>
+            </>
+        )}
+
         {/* Placeholder for other roles */}
-        {['guru_bk', 'guru_mapel', 'guru_piket'].includes(roleKey) && (
+        {['guru_bk', 'guru_mapel'].includes(roleKey) && (
              <Section title="Ringkasan Aktivitas">
                 <p className="text-gray-600">Laporan detail untuk peran ini sedang dalam pengembangan. Data aktivitas Anda telah tercatat dalam sistem.</p>
             </Section>
