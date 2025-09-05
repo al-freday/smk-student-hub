@@ -8,14 +8,74 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, MessageSquare, CheckCircle, Loader2 } from "lucide-react";
+import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, ClipboardCheck, Users, Edit, Phone, BookUp, Monitor } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
 interface CatatanPelanggaran { id: number; tanggal: string; namaSiswa: string; kelas: string; pelanggaran: string; poin: number; status: StatusLaporan; }
+
+const alurPenanganan = [
+    {
+        id: "verifikasi",
+        title: "Verifikasi Laporan",
+        icon: ClipboardCheck,
+        content: [
+            "Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.",
+            "Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.",
+        ],
+    },
+    {
+        id: "panggil",
+        title: "Panggil & Ajak Bicara Siswa",
+        icon: Users,
+        content: [
+            "Wali kelas harus menjadi “pintu pertama” pembinaan.",
+            "Bicara empat mata terlebih dahulu agar siswa merasa aman untuk bercerita.",
+            "Bedakan antara pelanggaran yang disengaja dan yang terjadi karena ketidaktahuan.",
+        ],
+    },
+    {
+        id: "catat",
+        title: "Catat & Laporkan",
+        icon: Edit,
+        content: [
+            "Buat catatan kejadian di buku administrasi wali kelas atau sistem yang relevan.",
+            "Untuk kasus yang serius atau berulang, segera berkoordinasi dengan Guru BK dan Wakasek Kesiswaan.",
+        ],
+    },
+    {
+        id: "panggil_ortu",
+        title: "Panggil Orang Tua (Bila Perlu)",
+        icon: Phone,
+        content: [
+            "Hubungi orang tua/wali murid untuk pelanggaran yang berat atau berulang.",
+            "Tujuannya bukan untuk “mengadu”, melainkan untuk mencari solusi bersama demi kebaikan siswa.",
+        ],
+    },
+    {
+        id: "pembinaan",
+        title: "Pembinaan & Solusi",
+        icon: BookUp,
+        content: [
+            "Cari sanksi yang bersifat mendidik, bukan sekadar menghukum. Contoh: kerja bakti, membuat presentasi tentang tata tertib.",
+            "Ajak siswa untuk membuat komitmen tertulis agar lebih serius dalam memperbaiki diri.",
+        ],
+    },
+    {
+        id: "monitoring",
+        title: "Monitoring",
+        icon: Monitor,
+        content: [
+            "Setelah kasus selesai, wali kelas tetap memantau perkembangan siswa.",
+            "Jangan biarkan siswa merasa ditinggalkan atau dicap negatif secara permanen.",
+            "Dorong siswa untuk aktif dalam kegiatan positif agar energinya tersalurkan dengan baik.",
+        ],
+    },
+];
 
 export default function LaporanMasukPage() {
   const router = useRouter();
@@ -130,6 +190,40 @@ export default function LaporanMasukPage() {
                     )}
                 </TableBody>
             </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
+            <CardDescription>Gunakan panduan ini sebagai checklist saat menangani setiap kasus.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Accordion type="single" collapsible className="w-full">
+                {alurPenanganan.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <AccordionItem value={item.id} key={item.id}>
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-3">
+                                    <Icon className="h-5 w-5 text-primary" />
+                                    <span className="font-semibold">{item.title}</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
+                                    {item.content.map((point, index) => (
+                                        <li key={index}>{point}</li>
+                                    ))}
+                                </ul>
+                            </AccordionContent>
+                        </AccordionItem>
+                    );
+                })}
+            </Accordion>
+            <p className="mt-4 text-xs text-center text-muted-foreground italic">
+                Singkatnya, wali kelas jadi mediator + motivator + dokumentator. Tegas iya, tapi harus tetap jadi “rumah aman” bagi anak walinya.
+            </p>
         </CardContent>
       </Card>
     </div>
