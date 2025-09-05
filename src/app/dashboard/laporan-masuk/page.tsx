@@ -3,79 +3,33 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, ClipboardCheck, Users, Edit, Phone, BookUp, Monitor, RefreshCw } from "lucide-react";
+import { MoreHorizontal, MessageSquare, CheckCircle, Loader2, BookOpen, Users } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
-interface CatatanPelanggaran { id: number; tanggal: string; namaSiswa: string; kelas: string; pelanggaran: string; poin: number; status: StatusLaporan; }
-
-const alurPenanganan = [
-    {
-        id: "verifikasi",
-        title: "Verifikasi Laporan",
-        icon: ClipboardCheck,
-        content: [
-            "Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.",
-            "Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.",
-        ],
-    },
-    {
-        id: "panggil",
-        title: "Panggil & Ajak Bicara Siswa",
-        icon: Users,
-        content: [
-            "Wali kelas harus menjadi “pintu pertama” pembinaan.",
-            "Bicara empat mata terlebih dahulu agar siswa merasa aman untuk bercerita.",
-            "Bedakan antara pelanggaran yang disengaja dan yang terjadi karena ketidaktahuan.",
-        ],
-    },
-    {
-        id: "catat",
-        title: "Catat & Laporkan",
-        icon: Edit,
-        content: [
-            "Buat catatan kejadian di buku administrasi wali kelas atau sistem yang relevan.",
-            "Untuk kasus yang serius atau berulang, segera berkoordinasi dengan Guru BK dan Wakasek Kesiswaan.",
-        ],
-    },
-    {
-        id: "panggil_ortu",
-        title: "Panggil Orang Tua (Bila Perlu)",
-        icon: Phone,
-        content: [
-            "Hubungi orang tua/wali murid untuk pelanggaran yang berat atau berulang.",
-            "Tujuannya bukan untuk “mengadu”, melainkan untuk mencari solusi bersama demi kebaikan siswa.",
-        ],
-    },
-    {
-        id: "pembinaan",
-        title: "Pembinaan & Solusi",
-        icon: BookUp,
-        content: [
-            "Cari sanksi yang bersifat mendidik, bukan sekadar menghukum. Contoh: kerja bakti, membuat presentasi tentang tata tertib.",
-            "Ajak siswa untuk membuat komitmen tertulis agar lebih serius dalam memperbaiki diri.",
-        ],
-    },
-    {
-        id: "monitoring",
-        title: "Monitoring",
-        icon: Monitor,
-        content: [
-            "Setelah kasus selesai, wali kelas tetap memantau perkembangan siswa.",
-            "Jangan biarkan siswa merasa ditinggalkan atau dicap negatif secara permanen.",
-            "Dorong siswa untuk aktif dalam kegiatan positif agar energinya tersalurkan dengan baik.",
-        ],
-    },
-];
+interface CatatanPelanggaran { 
+    id: number; 
+    tanggal: string; 
+    namaSiswa: string; 
+    kelas: string; 
+    pelanggaran: string; 
+    poin: number; 
+    status: StatusLaporan;
+    guruPelapor: string;
+    tindakanAwal?: string;
+    catatanWaliKelas?: string; // Kolom baru untuk catatan pembinaan
+}
 
 export default function LaporanMasukPage() {
   const router = useRouter();
@@ -88,9 +42,11 @@ export default function LaporanMasukPage() {
   
   // --- Data Terfilter ---
   const [pelanggaranDiKelas, setPelanggaranDiKelas] = useState<CatatanPelanggaran[]>([]);
-  
-  // --- State untuk Checklist ---
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+
+  // --- State untuk Dialog ---
+  const [selectedKasus, setSelectedKasus] = useState<CatatanPelanggaran | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [catatanPembinaan, setCatatanPembinaan] = useState("");
 
 
   const loadData = useCallback(() => {
@@ -143,13 +99,23 @@ export default function LaporanMasukPage() {
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
   };
   
-  const handleChecklistChange = (itemId: string, checked: boolean) => {
-    setChecklist(prev => ({ ...prev, [itemId]: checked }));
+  const handleOpenDetail = (kasus: CatatanPelanggaran) => {
+    setSelectedKasus(kasus);
+    setCatatanPembinaan(kasus.catatanWaliKelas || "");
+    setIsDetailOpen(true);
   };
+  
+  const handleSavePembinaan = () => {
+    if (!selectedKasus) return;
 
-  const resetChecklist = () => {
-    setChecklist({});
-    toast({ title: "Checklist Direset", description: "Anda dapat mulai menangani kasus baru." });
+    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
+    const updatedRiwayat = allPelanggaran.map(item =>
+      item.id === selectedKasus.id ? { ...item, catatanWaliKelas: catatanPembinaan, status: 'Ditindaklanjuti Wali Kelas' as StatusLaporan } : item
+    );
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    toast({ title: "Catatan Disimpan", description: `Catatan pembinaan untuk ${selectedKasus.namaSiswa} telah disimpan.` });
+    setIsDetailOpen(false);
+    setSelectedKasus(null);
   };
 
 
@@ -172,87 +138,87 @@ export default function LaporanMasukPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle>Daftar Laporan</CardTitle>
-            <CardDescription>Gunakan menu Aksi untuk menindaklanjuti atau meneruskan laporan ke Guru BK.</CardDescription>
+            <CardTitle>Daftar Laporan Perlu Diverifikasi</CardTitle>
+            <CardDescription>Berikut adalah {pelanggaranDiKelas.length} laporan baru yang membutuhkan tindakan Anda.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Table>
-                <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Poin</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    {pelanggaranDiKelas.length > 0 ? pelanggaranDiKelas.map(p => (
-                         <TableRow key={p.id}>
-                            <TableCell>
-                                <p className="font-medium">{p.namaSiswa}</p>
-                                <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yyyy")}</p>
-                            </TableCell>
-                            <TableCell>
-                                <p>{p.pelanggaran}</p>
-                            </TableCell>
-                            <TableCell><Badge variant="destructive">{p.poin} Poin</Badge></TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><MoreHorizontal className="h-4 w-4 mr-2"/>Aksi</Button></DropdownMenuTrigger>
+            {pelanggaranDiKelas.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pelanggaranDiKelas.map(p => (
+                        <Card key={p.id} className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-lg">{p.namaSiswa}</CardTitle>
+                                <CardDescription>{p.kelas} | Dilaporkan oleh {p.guruPelapor}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 space-y-2">
+                                <p className="text-sm font-semibold">{p.pelanggaran} <Badge variant="destructive">{p.poin} Poin</Badge></p>
+                                <p className="text-xs text-muted-foreground">Tanggal: {format(new Date(p.tanggal), "dd MMMM yyyy")}</p>
+                                {p.tindakanAwal && <p className="text-xs italic text-muted-foreground">Tindakan Awal: "{p.tindakanAwal}"</p>}
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                 <Button variant="outline" onClick={() => handleOpenDetail(p)}>Proses Kasus</Button>
+                                 <DropdownMenu>
+                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                                     <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}><CheckCircle className="mr-2 h-4 w-4" />Tandai ditindaklanjuti</DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" />Teruskan ke BK</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
-                    )) : (
-                        <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan pelanggaran baru yang perlu ditindaklanjuti.</TableCell></TableRow>
-                    )}
-                </TableBody>
-            </Table>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center h-48 flex flex-col justify-center items-center">
+                    <CheckCircle className="h-12 w-12 text-green-500 mb-4"/>
+                    <h3 className="text-lg font-semibold">Tidak Ada Laporan Baru</h3>
+                    <p className="text-muted-foreground">Semua laporan pelanggaran di kelas Anda sudah ditangani.</p>
+                </div>
+            )}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div>
-                <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
-                <CardDescription>Gunakan checklist interaktif ini saat menangani setiap kasus.</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={resetChecklist}>
-                <RefreshCw className="mr-2 h-4 w-4"/> Atur Ulang Checklist
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-4">
-                {alurPenanganan.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                        <div key={item.id} className="flex items-start gap-4 p-4 border rounded-lg bg-muted/40">
-                            <Checkbox 
-                                id={`check-${item.id}`}
-                                className="mt-1"
-                                checked={checklist[item.id] || false}
-                                onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)}
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                                <label
-                                    htmlFor={`check-${item.id}`}
-                                    className="text-base font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                                >
-                                    <Icon className="h-5 w-5 text-primary" /> {item.title}
-                                </label>
-                                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                                    {item.content.map((point, index) => (
-                                        <li key={index}>{point}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-            <p className="mt-4 text-xs text-center text-muted-foreground italic">
-                Singkatnya, wali kelas jadi mediator + motivator + dokumentator. Tegas iya, tapi harus tetap jadi “rumah aman” bagi anak walinya.
-            </p>
-        </CardContent>
-      </Card>
+      
+       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                  <DialogTitle>Detail Kasus & Pembinaan Awal</DialogTitle>
+                  <DialogDescription>
+                      Siswa: <span className="font-semibold text-primary">{selectedKasus?.namaSiswa} ({selectedKasus?.kelas})</span>
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div>
+                      <h4 className="font-semibold text-sm">Detail Pelanggaran</h4>
+                      <div className="text-sm p-3 bg-secondary rounded-md mt-1">
+                          <p><strong>Pelanggaran:</strong> {selectedKasus?.pelanggaran} ({selectedKasus?.poin} poin)</p>
+                          <p><strong>Tanggal:</strong> {selectedKasus && format(new Date(selectedKasus.tanggal), "dd MMMM yyyy")}</p>
+                          <p><strong>Pelapor:</strong> {selectedKasus?.guruPelapor}</p>
+                          {selectedKasus?.tindakanAwal && <p><strong>Tindakan Awal:</strong> {selectedKasus.tindakanAwal}</p>}
+                      </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <Label htmlFor="catatan-pembinaan" className="font-semibold text-sm flex items-center gap-2 mb-2">
+                        <Users className="h-4 w-4"/>
+                        Catat Hasil Pembinaan Awal (Panggil & Bicara)
+                    </Label>
+                    <Textarea 
+                        id="catatan-pembinaan"
+                        placeholder="Tuliskan ringkasan pembicaraan, analisis, dan komitmen siswa di sini..."
+                        rows={6}
+                        value={catatanPembinaan}
+                        onChange={(e) => setCatatanPembinaan(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Menyimpan catatan ini akan otomatis mengubah status kasus menjadi "Ditindaklanjuti Wali Kelas".
+                    </p>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Tutup</Button></DialogClose>
+                  <Button onClick={handleSavePembinaan}>Simpan Hasil Pembinaan</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }

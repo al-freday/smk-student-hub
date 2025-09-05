@@ -35,8 +35,25 @@ const seedInitialData = () => {
   };
   updateSourceData('teachersData', teachersData);
 
+  // Inisialisasi riwayat pelanggaran dengan contoh
+  const riwayatPelanggaran = [
+    {
+      id: 1,
+      tanggal: "2024-05-10",
+      nis: "24001",
+      namaSiswa: "Ahmad Dahlan",
+      kelas: "X TKJ 1",
+      pelanggaran: "Datang terlambat tanpa alasan.",
+      poin: 5,
+      guruPelapor: "Indah Permata",
+      tindakanAwal: "Diberi teguran lisan.",
+      status: 'Dilaporkan',
+      catatanWaliKelas: ""
+    }
+  ];
+  updateSourceData('riwayatPelanggaran', riwayatPelanggaran);
+  
   // Data Transaksional (dibuat kosong)
-  updateSourceData('riwayatPelanggaran', []);
   updateSourceData('prestasiData', []);
   updateSourceData('kehadiranSiswaPerSesi', []);
   updateSourceData('teacherAttendanceData', []);
@@ -61,11 +78,10 @@ const initializeData = () => {
     ];
 
     let needsSeeding = false;
-    requiredKeys.forEach(key => {
-        if (localStorage.getItem(key) === null) {
-            needsSeeding = true;
-        }
-    });
+    // Cukup cek satu kunci utama, jika tidak ada, seed semua.
+    if (localStorage.getItem('siswaData') === null) {
+      needsSeeding = true;
+    }
     
     // Hanya seed data jika salah satu kunci utama tidak ada
     if (needsSeeding) {
