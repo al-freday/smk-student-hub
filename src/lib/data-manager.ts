@@ -56,10 +56,7 @@ export const updateSourceData = (key: string, data: any): void => {
 export async function fetchDataFromFirebase(path: string) {
   try {
     // Ensure we are authenticated before trying to fetch data
-    const user = await ensureAuthenticated();
-    if (!user && sessionStorage.getItem("admin_logged_in") !== "true") {
-        console.warn("Authentication not ready, but admin is not logged in. Attempting fetch anyway.");
-    }
+    await ensureAuthenticated();
     
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, path));
@@ -96,10 +93,7 @@ export async function fetchDataFromFirebase(path: string) {
  */
 export async function saveDataToFirebase(path: string, data: any) {
   try {
-    const user = await ensureAuthenticated(); // Ensure auth is ready
-    if (!user) {
-        throw new Error("Authentication failed. Cannot save data.");
-    }
+    await ensureAuthenticated(); // Ensure auth is ready
 
     const dbRef = ref(db, path);
     await set(dbRef, data);

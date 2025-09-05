@@ -46,7 +46,6 @@ export default function LoginPage() {
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          // This call now waits for auth to be ready
           const teachersData = await fetchDataFromFirebase('teachersData');
           
           if (teachersData && teachersData.schoolInfo) {

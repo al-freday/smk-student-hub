@@ -32,25 +32,22 @@ auth = getAuth(app);
 db = getDatabase(app);
 
 let authReadyPromise: Promise<User | null>;
+let resolveAuthReady: (user: User | null) => void;
 
 const initializeAuth = () => {
   authReadyPromise = new Promise(resolve => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      if (user) {
-        resolve(user);
-        unsubscribe();
-      } else {
-        // If not signed in, attempt anonymous sign-in
-        signInAnonymously(auth).then(userCredential => {
-          resolve(userCredential.user);
-          unsubscribe();
-        }).catch(error => {
-          console.error("Firebase anonymous sign-in failed:", error);
-          resolve(null); // Resolve with null on failure
-          unsubscribe();
-        });
-      }
-    });
+    resolveAuthReady = resolve;
+  });
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      resolveAuthReady(user);
+    } else {
+      signInAnonymously(auth).catch(error => {
+        console.error("Firebase anonymous sign-in failed:", error);
+        resolveAuthReady(null);
+      });
+    }
   });
 };
 
