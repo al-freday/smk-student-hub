@@ -13,12 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Input } from "@/components/ui/input";
+
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
@@ -40,7 +38,6 @@ export default function RencanaIndividualBkPage() {
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<CatatanRencana>>({});
-  const [isSiswaPopoverOpen, setIsSiswaPopoverOpen] = useState(false);
 
   const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
@@ -180,33 +177,20 @@ export default function RencanaIndividualBkPage() {
               <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                     <Label>Pilih Siswa</Label>
-                    <Popover open={isSiswaPopoverOpen} onOpenChange={setIsSiswaPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={isSiswaPopoverOpen} className="w-full justify-between">
-                                {formData.nis ? siswa.find(s => s.nis === formData.nis)?.nama : "Cari dan pilih siswa..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[450px] p-0">
-                            <Command>
-                                <CommandInput placeholder="Ketik nama siswa..."/>
-                                <CommandList>
-                                    <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
-                                    <CommandGroup>
-                                        {siswa.map(s => (
-                                            <CommandItem key={s.nis} value={s.nama} onSelect={() => {
-                                                setFormData({...formData, nis: s.nis});
-                                                setIsSiswaPopoverOpen(false);
-                                            }}>
-                                                <Check className={cn("mr-2 h-4 w-4", formData.nis === s.nis ? "opacity-100" : "opacity-0")}/>
-                                                {s.nama} ({s.kelas})
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Select value={formData.nis} onValueChange={(value) => setFormData({...formData, nis: value})}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Cari dan pilih siswa..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {siswa.map(s => (
+                                    <SelectItem key={s.nis} value={s.nis}>
+                                        {s.nama} ({s.kelas})
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="kategori">Kategori Konseling</Label>
