@@ -10,23 +10,33 @@ import { getSourceData } from "@/lib/data-manager";
 
 const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
-    const themeKey = `appTheme_${userRole || 'wakasek_kesiswaan'}`; 
-    const savedTheme = localStorage.getItem(themeKey);
-
-    let themeToApply = null;
-    let defaultThemeColors = { "--primary": "25 95% 53%", "--accent": "217 91% 60%" };
-
-    if (savedTheme) {
-      try {
-        themeToApply = JSON.parse(savedTheme).colors;
-      } catch (error) {
-        console.error("Gagal mem-parse tema yang disimpan:", error);
-      }
-    } 
+    // Ensure we have a default role if none is set, e.g., for the login page
+    const roleToUse = userRole || 'wakasek_kesiswaan'; 
     
-    const colorsToSet = themeToApply || defaultThemeColors;
+    const themeSettings = getSourceData('themeSettings', {});
+    const themeKey = themeSettings[roleToUse] || 'default';
+
+    // A static themes object to avoid dependency issues on initial load
+    const themes = {
+      default: { name: "Default (Oranye & Biru)", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
+      green: { name: "Hutan (Hijau)", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
+      blue: { name: "Samudera (Biru)", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
+      purple: { name: "Lavender (Ungu)", colors: { "--primary": "262 83% 58%", "--accent": "250 70% 75%" } },
+      pink: { name: "Fajar (Merah Muda)", colors: { "--primary": "340 82% 52%", "--accent": "340 70% 70%" } },
+      teal: { name: "Toska", colors: { "--primary": "173 80% 40%", "--accent": "173 70% 60%" } },
+      red: { name: "Bara (Merah & Oranye)", colors: { "--primary": "0 72% 51%", "--accent": "24 96% 53%" } },
+      yellow: { name: "Senja (Kuning & Coklat)", colors: { "--primary": "45 93% 47%", "--accent": "28 80% 50%" } },
+      gray: { name: "Grafit (Abu-abu & Biru)", colors: { "--primary": "220 9% 46%", "--accent": "217 91% 60%" } },
+      ruby: { name: "Ruby (Merah Anggur & Pink)", colors: { "--primary": "350 75% 45%", "--accent": "340 82% 70%" } },
+      mint: { name: "Mint & Sage", colors: { "--primary": "160 60% 45%", "--accent": "150 40% 60%" } },
+      indigo: { name: "Indigo & Violet", colors: { "--primary": "225 70% 55%", "--accent": "250 80% 65%" } },
+      coral: { name: "Coral & Peach", colors: { "--primary": "10 90% 60%", "--accent": "25 90% 70%" } },
+      slate: { name: "Slate & Sky", colors: { "--primary": "215 30% 50%", "--accent": "200 100% 75%" } },
+    };
+
+    const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
     
-    Object.entries(colorsToSet).forEach(([property, value]) => {
+    Object.entries(themeToApply.colors).forEach(([property, value]) => {
         document.documentElement.style.setProperty(property, value as string);
     });
 };
@@ -39,19 +49,11 @@ export default function RootLayout({
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
-  const loadSchoolInfoAndTheme = useCallback(async () => {
-      let currentSchoolInfo = { schoolName: "SMK Student Hub", logo: "" };
-      const savedData = await getSourceData('teachersData', null);
+  const loadSchoolInfoAndTheme = useCallback(() => {
+      const savedData = getSourceData('teachersData', null);
       if (savedData && savedData.schoolInfo) {
-          currentSchoolInfo = savedData.schoolInfo;
-          setSchoolInfo(currentSchoolInfo);
+          setSchoolInfo(savedData.schoolInfo);
       }
-
-      const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
-      if (favicon && currentSchoolInfo.logo) {
-        favicon.href = currentSchoolInfo.logo;
-      }
-      
       applyTheme();
   }, []);
   
@@ -59,17 +61,18 @@ export default function RootLayout({
     loadSchoolInfoAndTheme();
 
     const handleDataChange = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        if(customEvent.detail.key === 'teachersData'){
-            loadSchoolInfoAndTheme();
-        }
+        loadSchoolInfoAndTheme();
     };
 
+    // Listen for custom data updates and also for changes from other tabs
     window.addEventListener('dataUpdated', handleDataChange);
+    window.addEventListener('storage', handleDataChange);
+    // Listen for role changes on login/impersonation
     window.addEventListener('roleChanged', applyTheme);
 
     return () => {
       window.removeEventListener('dataUpdated', handleDataChange);
+      window.removeEventListener('storage', handleDataChange);
       window.removeEventListener('roleChanged', applyTheme);
     };
   }, [loadSchoolInfoAndTheme]);
@@ -83,7 +86,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <Head>
         <title>{pageTitle}</title>
-        <link id="favicon" key="favicon" rel="icon" href="/favicon.ico" type="image/x-icon" />
+        {schoolInfo.logo && <link id="favicon" key="favicon" rel="icon" href={schoolInfo.logo} type="image/png" />}
         <meta name="description" content={pageDescription} />
         
         {/* Open Graph / Facebook Meta Tags */}

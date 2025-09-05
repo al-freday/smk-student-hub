@@ -71,7 +71,7 @@ export default function AdminPengaturanPage() {
           return;
         }
           
-        const teachersData = await getSourceData('teachersData', {});
+        const teachersData = getSourceData('teachersData', {});
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -89,20 +89,13 @@ export default function AdminPengaturanPage() {
         }
         setTotalUsers(count);
 
+        const themeSettings = getSourceData('themeSettings', {});
         const loadedThemes: { [key: string]: string } = {};
         userRoles.forEach(role => {
-            const themeItem = localStorage.getItem(`appTheme_${role.key}`);
-            if (themeItem) {
-              try {
-                loadedThemes[role.key] = JSON.parse(themeItem).key;
-              } catch (e) {
-                loadedThemes[role.key] = 'default';
-              }
-            } else {
-              loadedThemes[role.key] = 'default';
-            }
+            loadedThemes[role.key] = themeSettings[role.key] || 'default';
         });
         setSelectedThemes(loadedThemes);
+
 
         let total = 0;
         for (let x in localStorage) {
@@ -143,10 +136,10 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = async () => {
-      const savedData = await getSourceData('teachersData', {});
+  const handleSaveChanges = () => {
+      const savedData = getSourceData('teachersData', {});
       const updatedData = { ...savedData, schoolInfo: schoolInfo };
-      await updateSourceData('teachersData', updatedData);
+      updateSourceData('teachersData', updatedData);
       
       toast({
           title: "Pengaturan Disimpan",
@@ -158,8 +151,9 @@ export default function AdminPengaturanPage() {
     const newSelectedThemes = { ...selectedThemes, [roleKey]: themeKey };
     setSelectedThemes(newSelectedThemes);
 
-    const themeToSave = { key: themeKey, colors: themes[themeKey].colors };
-    localStorage.setItem(`appTheme_${roleKey}`, JSON.stringify(themeToSave));
+    const currentThemeSettings = getSourceData('themeSettings', {});
+    currentThemeSettings[roleKey] = themeKey;
+    updateSourceData('themeSettings', currentThemeSettings);
     
     toast({
         title: "Tema Diperbarui",
