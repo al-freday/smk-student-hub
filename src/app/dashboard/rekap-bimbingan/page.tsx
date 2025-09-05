@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -9,8 +10,11 @@ import { getSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck } from "lucide-react";
+import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
 
 // Tipe Data
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
@@ -39,7 +43,7 @@ export default function RekapBimbinganPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [siswaBinaan, setSiswaBinaan] = useState<Siswa[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedNis, setSelectedNis] = useState<string>("");
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -55,14 +59,15 @@ export default function RekapBimbinganPage() {
       const daftarNamaSiswaBinaan = guruData?.siswaBinaan || [];
 
       const allSiswa: Siswa[] = getSourceData('siswaData', []);
-      setSiswaBinaan(allSiswa.filter(s => daftarNamaSiswaBinaan.includes(s.nama)));
+      const siswaPendampingan = allSiswa.filter(s => daftarNamaSiswaBinaan.includes(s.nama));
+      setSiswaBinaan(siswaPendampingan.sort((a,b) => a.nama.localeCompare(b.nama)));
       
       const logAkademik = getSourceData('logAkademikData', {});
       const logKompetensi = getSourceData('logKompetensiData', {});
       const logKarakter = getSourceData('logBimbinganData', {});
 
       const combinedLogs: Log[] = [];
-      const nisBinaan = new Set(allSiswa.filter(s => daftarNamaSiswaBinaan.includes(s.nama)).map(s => s.nis));
+      const nisBinaan = new Set(siswaPendampingan.map(s => s.nis));
 
       Object.entries(logAkademik).forEach(([nis, logs]: [string, any[]]) => {
           if (nisBinaan.has(nis)) logs.forEach(log => combinedLogs.push({ ...log, nis, tipe: 'Akademik' }));
@@ -89,20 +94,9 @@ export default function RekapBimbinganPage() {
   }, [loadData]);
   
   const filteredLogs = useMemo(() => {
-    if (!searchTerm) return allLogs;
-    const lowercasedFilter = searchTerm.toLowerCase();
-    
-    const siswaMap = new Map(siswaBinaan.map(s => [s.nis, s.nama]));
-    
-    return allLogs.filter(log => {
-        const namaSiswa = siswaMap.get(log.nis)?.toLowerCase() || '';
-        return (
-            namaSiswa.includes(lowercasedFilter) ||
-            log.catatan.toLowerCase().includes(lowercasedFilter) ||
-            log.kategori.toLowerCase().includes(lowercasedFilter)
-        );
-    });
-  }, [allLogs, searchTerm, siswaBinaan]);
+    if (!selectedNis) return [];
+    return allLogs.filter(log => log.nis === selectedNis);
+  }, [allLogs, selectedNis]);
 
   if (isLoading) {
     return (
@@ -131,58 +125,67 @@ export default function RekapBimbinganPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <CardTitle>Riwayat Catatan Bimbingan</CardTitle>
-                    <CardDescription>Daftar semua catatan yang telah Anda buat, diurutkan dari yang terbaru.</CardDescription>
+                    <CardDescription>Pilih seorang siswa untuk melihat semua riwayat bimbingannya.</CardDescription>
                 </div>
-                <Input
-                    placeholder="Cari nama siswa atau catatan..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full sm:w-64"
-                />
+                <div className="w-full sm:w-64">
+                    <Label htmlFor="siswa-select">Pilih Siswa</Label>
+                    <Select value={selectedNis} onValueChange={setSelectedNis}>
+                        <SelectTrigger id="siswa-select">
+                            <SelectValue placeholder="Pilih siswa binaan..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {siswaBinaan.map(siswa => (
+                                <SelectItem key={siswa.nis} value={siswa.nis}>{siswa.nama} ({siswa.kelas})</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </CardHeader>
         <CardContent>
-           <Table>
-              <TableHeader>
-                <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Siswa</TableHead>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Kategori</TableHead>
-                    <TableHead>Catatan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                  {filteredLogs.length > 0 ? (
-                    filteredLogs.map(log => {
-                        const siswa = siswaBinaan.find(s => s.nis === log.nis);
-                        return (
-                             <TableRow key={log.id}>
-                                <TableCell className="whitespace-nowrap">{format(new Date(log.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
-                                <TableCell>
-                                    <p className="font-medium">{siswa?.nama || 'N/A'}</p>
-                                    <p className="text-xs text-muted-foreground">{siswa?.kelas || ''}</p>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        {getTipeIcon(log.tipe)}
-                                        <span className="font-medium">{log.tipe}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>{log.kategori}</TableCell>
-                                <TableCell><p className="line-clamp-2">{log.catatan}</p></TableCell>
-                            </TableRow>
-                        )
-                    })
-                  ) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                            Tidak ada catatan bimbingan yang ditemukan.
-                        </TableCell>
-                    </TableRow>
-                  )}
-              </TableBody>
-           </Table>
+           {selectedNis ? (
+             <Table>
+                <TableHeader>
+                  <TableRow>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead>Kategori</TableHead>
+                      <TableHead>Catatan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredLogs.length > 0 ? (
+                      filteredLogs.map(log => {
+                          return (
+                               <TableRow key={log.id}>
+                                  <TableCell className="whitespace-nowrap">{format(new Date(log.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
+                                  <TableCell>
+                                      <div className="flex items-center gap-2">
+                                          {getTipeIcon(log.tipe)}
+                                          <span className="font-medium">{log.tipe}</span>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell>{log.kategori}</TableCell>
+                                  <TableCell><p className="line-clamp-3">{log.catatan}</p></TableCell>
+                              </TableRow>
+                          )
+                      })
+                    ) : (
+                      <TableRow>
+                          <TableCell colSpan={4} className="h-24 text-center">
+                              Tidak ada catatan bimbingan yang ditemukan untuk siswa ini.
+                          </TableCell>
+                      </TableRow>
+                    )}
+                </TableBody>
+             </Table>
+           ) : (
+             <div className="text-center text-muted-foreground py-10">
+                <UserSearch className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-semibold">Pilih Siswa</h3>
+                <p className="mt-1 text-sm">Silakan pilih seorang siswa dari daftar di atas untuk melihat rekap bimbingannya.</p>
+            </div>
+           )}
         </CardContent>
       </Card>
     </div>
