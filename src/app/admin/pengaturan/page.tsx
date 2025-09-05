@@ -30,6 +30,10 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
     yellow: { name: "Senja (Kuning & Coklat)", colors: { "--primary": "45 93% 47%", "--accent": "28 80% 50%" } },
     gray: { name: "Grafit (Abu-abu & Biru)", colors: { "--primary": "220 9% 46%", "--accent": "217 91% 60%" } },
     ruby: { name: "Ruby (Merah Anggur & Pink)", colors: { "--primary": "350 75% 45%", "--accent": "340 82% 70%" } },
+    mint: { name: "Mint & Sage", colors: { "--primary": "160 60% 45%", "--accent": "150 40% 60%" } },
+    indigo: { name: "Indigo & Violet", colors: { "--primary": "225 70% 55%", "--accent": "250 80% 65%" } },
+    coral: { name: "Coral & Peach", colors: { "--primary": "10 90% 60%", "--accent": "25 90% 70%" } },
+    slate: { name: "Slate & Sky", colors: { "--primary": "215 30% 50%", "--accent": "200 100% 75%" } },
 };
 
 const userRoles = [
