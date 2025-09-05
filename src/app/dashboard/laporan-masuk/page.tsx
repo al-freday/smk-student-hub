@@ -1,18 +1,18 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, MessageSquare, AlertTriangle, FileText, Check, User, Phone, BookOpen, Lightbulb, Repeat, RotateCcw } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, CheckCircle, MessageSquare, User, Calendar, ShieldAlert } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
@@ -25,30 +25,8 @@ interface CatatanPelanggaran {
     poin: number; 
     guruPelapor: string;
     status: StatusLaporan;
+    catatanWaliKelas?: string;
 }
-
-interface ChecklistItem {
-    id: string;
-    label: string;
-    checked: boolean;
-}
-
-const initialChecklist: ChecklistItem[] = [
-    { id: 'verifikasi-valid', label: 'Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.', checked: false },
-    { id: 'verifikasi-kronologi', label: 'Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.', checked: false },
-    { id: 'panggil-pintu-pertama', label: 'Wali kelas harus jadi “pintu pertama” pembinaan.', checked: false },
-    { id: 'panggil-empat-mata', label: 'Bicara empat mata dulu, biar siswa merasa aman buat cerita.', checked: false },
-    { id: 'panggil-bedakan', label: 'Bedakan: pelanggaran karena sengaja atau karena ketidaktahuan.', checked: false },
-    { id: 'catat-buku', label: 'Bikin catatan di buku tata tertib/administrasi wali kelas.', checked: false },
-    { id: 'catat-koordinasi', label: 'Kalau kasus serius, koordinasi dengan guru BK dan Wakasek Kesiswaan.', checked: false },
-    { id: 'ortu-wajib', label: 'Untuk pelanggaran berulang atau berat, wali kelas wajib menghubungi orang tua/wali murid.', checked: false },
-    { id: 'ortu-solusi', label: 'Tujuannya bukan sekadar “ngadu”, tapi cari solusi bareng.', checked: false },
-    { id: 'solusi-mendidik', label: 'Cari hukuman yang mendidik, bukan sekadar menghukum. Misalnya: kerja bakti, presentasi tentang aturan sekolah, atau bimbingan khusus.', checked: false },
-    { id: 'solusi-komitmen', label: 'Ajak siswa bikin komitmen tertulis supaya lebih serius memperbaiki diri.', checked: false },
-    { id: 'monitor-pantau', label: 'Setelah kasus selesai, wali kelas tetap memantau. Jangan sampai anak merasa ditinggalkan atau dicap nakal permanen.', checked: false },
-    { id: 'monitor-positif', label: 'Dorong anak buat lebih aktif di kegiatan positif biar energinya tersalurkan.', checked: false },
-];
-
 
 export default function LaporanMasukPage() {
   const router = useRouter();
@@ -57,7 +35,9 @@ export default function LaporanMasukPage() {
 
   const [kelasBinaan, setKelasBinaan] = useState<string[]>([]);
   const [pelanggaranDiKelas, setPelanggaranDiKelas] = useState<CatatanPelanggaran[]>([]);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(initialChecklist);
+  
+  const [selectedCase, setSelectedCase] = useState<CatatanPelanggaran | null>(null);
+  const [notes, setNotes] = useState("");
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -108,14 +88,25 @@ export default function LaporanMasukPage() {
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
   };
 
-  const handleChecklistChange = (itemId: string, checked: boolean) => {
-    setChecklist(prev => prev.map(item => item.id === itemId ? { ...item, checked } : item));
+  const handleOpenDialog = (kasus: CatatanPelanggaran) => {
+    setSelectedCase(kasus);
+    setNotes(kasus.catatanWaliKelas || "");
   };
-  
-  const resetChecklist = () => {
-      setChecklist(initialChecklist);
-      toast({ title: "Checklist Direset", description: "Anda dapat memulai penanganan untuk kasus baru." });
-  }
+
+  const handleSaveNotes = () => {
+    if (!selectedCase) return;
+    
+    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
+    const updatedRiwayat = allPelanggaran.map(item =>
+      item.id === selectedCase.id ? { ...item, catatanWaliKelas: notes } : item
+    );
+    updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    
+    // Also update the state for immediate UI feedback
+    setPelanggaranDiKelas(prev => prev.map(p => p.id === selectedCase.id ? {...p, catatanWaliKelas: notes} : p));
+
+    toast({ title: "Catatan Disimpan", description: "Catatan pembinaan awal Anda telah disimpan." });
+  };
 
   if (isLoading) {
     return (
@@ -139,124 +130,86 @@ export default function LaporanMasukPage() {
             <CardTitle>Daftar Laporan Perlu Diverifikasi</CardTitle>
             <CardDescription>Berikut adalah {pelanggaranDiKelas.length} laporan baru yang membutuhkan tindakan Anda.</CardDescription>
         </CardHeader>
-        <CardContent>
-             <Table>
-                <TableHeader><TableRow><TableHead>Siswa & Tanggal</TableHead><TableHead>Detail Pelanggaran</TableHead><TableHead>Pelapor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                <TableBody>
-                     {pelanggaranDiKelas.length > 0 ? (
-                        pelanggaranDiKelas.map(p => (
-                           <TableRow key={p.id}>
-                              <TableCell>
-                                  <p className="font-medium">{p.namaSiswa}</p>
-                                  <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yyyy")}</p>
-                              </TableCell>
-                              <TableCell>
-                                  <p>{p.pelanggaran}</p>
-                                  <Badge variant="destructive">{p.poin} Poin</Badge>
-                              </TableCell>
-                               <TableCell>{p.guruPelapor}</TableCell>
-                              <TableCell className="text-right">
-                                  <Button className="mr-2" size="sm" variant="secondary" onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}>
-                                     <CheckCircle className="mr-2 h-4 w-4"/> Tandai Ditangani
-                                 </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => handleStatusChange(p.id, 'Diteruskan ke BK')}>
-                                     <MessageSquare className="mr-2 h-4 w-4"/> Teruskan ke BK
-                                 </Button>
-                              </TableCell>
-                          </TableRow>
-                        ))
-                     ) : (
-                         <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan baru untuk kelas binaan Anda.</TableCell></TableRow>
-                     )}
-                </TableBody>
-            </Table>
+        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+             {pelanggaranDiKelas.length > 0 ? (
+                pelanggaranDiKelas.map(p => (
+                   <Card key={p.id} className="flex flex-col">
+                       <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-lg">{p.namaSiswa}</CardTitle>
+                                    <CardDescription>{p.kelas}</CardDescription>
+                                </div>
+                                <Badge variant="destructive">{p.poin} Poin</Badge>
+                            </div>
+                       </CardHeader>
+                       <CardContent className="flex-1 space-y-2">
+                           <p className="font-semibold text-sm">{p.pelanggaran}</p>
+                           <p className="text-xs text-muted-foreground">Dilaporkan oleh: {p.guruPelapor}</p>
+                           <p className="text-xs text-muted-foreground">Tanggal: {format(new Date(p.tanggal), "dd MMMM yyyy")}</p>
+                       </CardContent>
+                       <CardFooter>
+                           <Dialog onOpenChange={(open) => !open && setSelectedCase(null)}>
+                               <DialogTrigger asChild>
+                                   <Button className="w-full" onClick={() => handleOpenDialog(p)}>Proses Kasus</Button>
+                               </DialogTrigger>
+                           </Dialog>
+                       </CardFooter>
+                   </Card>
+                ))
+             ) : (
+                <div className="col-span-full text-center text-muted-foreground py-10">
+                    Tidak ada laporan baru untuk kelas binaan Anda.
+                </div>
+             )}
         </CardContent>
       </Card>
-      
-       <Card>
-        <CardHeader>
-            <div className="flex justify-between items-center">
-                 <div>
-                    <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
-                    <CardDescription>Gunakan panduan ini sebagai checklist saat menangani setiap kasus.</CardDescription>
-                 </div>
-                 <Button variant="outline" size="sm" onClick={resetChecklist}>
-                    <RotateCcw className="mr-2 h-4 w-4"/>
-                    Atur Ulang Checklist
-                 </Button>
-            </div>
-        </CardHeader>
-        <CardContent>
-             <Accordion type="multiple" className="w-full space-y-2" defaultValue={['verifikasi']}>
-                <AccordionItem value="verifikasi">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Check className="mr-2 h-5 w-5"/>Verifikasi Laporan</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                        {checklist.filter(c => c.id.startsWith('verifikasi')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-                 <AccordionItem value="panggil">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><User className="mr-2 h-5 w-5"/>Panggil & Ajak Bicara Siswa</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                         {checklist.filter(c => c.id.startsWith('panggil')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="catat">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><BookOpen className="mr-2 h-5 w-5"/>Catat & Laporkan</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                         {checklist.filter(c => c.id.startsWith('catat')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-                 <AccordionItem value="ortu">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Phone className="mr-2 h-5 w-5"/>Panggil Orang Tua (Bila Perlu)</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                         {checklist.filter(c => c.id.startsWith('ortu')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-                 <AccordionItem value="solusi">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Lightbulb className="mr-2 h-5 w-5"/>Pembinaan & Solusi</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                         {checklist.filter(c => c.id.startsWith('solusi')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-                 <AccordionItem value="monitoring">
-                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Repeat className="mr-2 h-5 w-5"/>Monitoring</AccordionTrigger>
-                    <AccordionContent className="p-4 space-y-2">
-                         {checklist.filter(c => c.id.startsWith('monitor')).map(item => (
-                            <div key={item.id} className="flex items-center space-x-2">
-                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
-                                <Label htmlFor={item.id}>{item.label}</Label>
-                            </div>
-                        ))}
-                    </AccordionContent>
-                </AccordionItem>
-             </Accordion>
-        </CardContent>
-      </Card>
+
+      {selectedCase && (
+        <Dialog open={!!selectedCase} onOpenChange={(open) => !open && setSelectedCase(null)}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Proses Kasus: {selectedCase.namaSiswa}</DialogTitle>
+                    <DialogDescription>
+                        Lakukan pembinaan awal dan tentukan tindak lanjut untuk kasus ini.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="p-4 bg-secondary rounded-lg space-y-2">
+                        <h4 className="font-semibold flex items-center gap-2"><ShieldAlert /> Detail Pelanggaran</h4>
+                        <p><strong>Pelanggaran:</strong> {selectedCase.pelanggaran} ({selectedCase.poin} poin)</p>
+                        <p><strong>Tanggal:</strong> {format(new Date(selectedCase.tanggal), "EEEE, dd MMMM yyyy", { locale: 'id' })}</p>
+                        <p><strong>Pelapor:</strong> {selectedCase.guruPelapor}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="catatan-pembinaan" className="font-semibold">Catat Hasil Pembinaan Awal (Panggil & Ajak Bicara Siswa)</Label>
+                        <Textarea 
+                            id="catatan-pembinaan"
+                            placeholder="Tuliskan ringkasan pembicaraan, analisis, dan komitmen siswa di sini..."
+                            rows={6}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                        />
+                        <div className="flex justify-end">
+                            <Button size="sm" variant="outline" onClick={handleSaveNotes}>Simpan Catatan</Button>
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <div className="w-full flex justify-between">
+                        <Button variant="secondary" onClick={() => { handleStatusChange(selectedCase.id, 'Ditindaklanjuti Wali Kelas'); setSelectedCase(null); }}>
+                            <CheckCircle className="mr-2 h-4 w-4"/> Tandai Sudah Ditangani
+                        </Button>
+                        <Button variant="destructive" onClick={() => { handleStatusChange(selectedCase.id, 'Diteruskan ke BK'); setSelectedCase(null); }}>
+                            <MessageSquare className="mr-2 h-4 w-4"/> Teruskan ke BK
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
