@@ -189,10 +189,10 @@ export default function LayananBimbinganBkPage() {
                   </div>
                    <div className="space-y-2">
                       <Label htmlFor="namaSiswa">Nama Siswa (Opsional)</Label>
-                      <Select value={formData.namaSiswa} onValueChange={value => setFormData({...formData, namaSiswa: value})}>
+                      <Select value={formData.namaSiswa} onValueChange={value => setFormData({...formData, namaSiswa: value === 'all' ? '' : value })}>
                           <SelectTrigger id="namaSiswa"><SelectValue placeholder="Pilih siswa spesifik jika perlu..." /></SelectTrigger>
                           <SelectContent>
-                               <SelectItem value="">-- Seluruh Siswa di Sasaran --</SelectItem>
+                               <SelectItem value="all">-- Seluruh Siswa di Sasaran --</SelectItem>
                                {siswaDiSasaran.map(s => (
                                   <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>
                                ))}
