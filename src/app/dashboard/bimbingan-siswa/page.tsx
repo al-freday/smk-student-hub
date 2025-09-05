@@ -27,6 +27,9 @@ interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface Prestasi { id: string; nis: string; tanggal: string; deskripsi: string; tingkat: string; }
 interface PklData { status: string; perusahaan: string; catatan: string; progres: number; }
 interface LogBimbingan { id: string; tanggal: string; kategori: string; catatan: string; }
+interface LogAkademik { id: string; tanggal: string; kategori: string; catatan: string; }
+
+type KategoriAkademik = "Pantau Perkembangan Belajar" | "Identifikasi Kesulitan Akademik" | "Koordinasi dengan Guru Mapel" | "Rencana Pembelajaran Individual";
 
 export default function BimbinganSiswaPage() {
   const router = useRouter();
@@ -45,9 +48,13 @@ export default function BimbinganSiswaPage() {
   const [pklData, setPklData] = useState<Record<string, PklData>>({});
   const [pklFormData, setPklFormData] = useState<Partial<PklData>>({});
 
-  // --- Log Bimbingan States ---
-  const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
-  const [logFormData, setLogFormData] = useState<Partial<Omit<LogBimbingan, 'id' | 'tanggal'>> & { nis?: string }>({});
+  // --- Log Bimbingan Karakter States ---
+  const [isLogKarakterDialogOpen, setIsLogKarakterDialogOpen] = useState(false);
+  const [logKarakterFormData, setLogKarakterFormData] = useState<Partial<Omit<LogBimbingan, 'id' | 'tanggal'>> & { nis?: string }>({});
+  
+  // --- Log Bimbingan Akademik States ---
+  const [isLogAkademikDialogOpen, setIsLogAkademikDialogOpen] = useState(false);
+  const [logAkademikFormData, setLogAkademikFormData] = useState<Partial<Omit<LogAkademik, 'id' | 'tanggal'>> & { nis?: string, kategori?: KategoriAkademik }>({});
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -113,25 +120,51 @@ export default function BimbinganSiswaPage() {
     setIsPklDialogOpen(false);
   };
 
-  // --- Handlers for Log Bimbingan ---
-  const handleSaveLog = () => {
-    if (!logFormData.nis || !logFormData.kategori || !logFormData.catatan) {
+  // --- Handlers for Log Bimbingan Karakter ---
+  const handleSaveLogKarakter = () => {
+    if (!logKarakterFormData.nis || !logKarakterFormData.kategori || !logKarakterFormData.catatan) {
       toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
       return;
     }
     const newLog = {
         id: `log-${Date.now()}`,
         tanggal: new Date().toISOString(),
-        kategori: logFormData.kategori,
-        catatan: logFormData.catatan,
+        kategori: logKarakterFormData.kategori,
+        catatan: logKarakterFormData.catatan,
     };
     const allLogs = getSourceData('logBimbinganData', {});
-    const userLogs = allLogs[logFormData.nis] || [];
-    allLogs[logFormData.nis] = [newLog, ...userLogs];
+    const userLogs = allLogs[logKarakterFormData.nis] || [];
+    allLogs[logKarakterFormData.nis] = [newLog, ...userLogs];
     updateSourceData('logBimbinganData', allLogs);
     toast({ title: "Sukses", description: "Log bimbingan berhasil disimpan." });
-    setIsLogDialogOpen(false);
+    setIsLogKarakterDialogOpen(false);
   }
+
+  // --- Handlers for Log Bimbingan Akademik ---
+  const handleOpenLogAkademikDialog = (kategori: KategoriAkademik) => {
+      setLogAkademikFormData({ kategori });
+      setIsLogAkademikDialogOpen(true);
+  };
+  
+  const handleSaveLogAkademik = () => {
+    if (!logAkademikFormData.nis || !logAkademikFormData.kategori || !logAkademikFormData.catatan) {
+      toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
+      return;
+    }
+    const newLog: LogAkademik = {
+      id: `log-akademik-${Date.now()}`,
+      tanggal: new Date().toISOString(),
+      kategori: logAkademikFormData.kategori,
+      nis: logAkademikFormData.nis,
+      catatan: logAkademikFormData.catatan,
+    };
+    const allLogs = getSourceData('logAkademikData', {});
+    const userLogs = allLogs[logAkademikFormData.nis] || [];
+    allLogs[logAkademikFormData.nis] = [newLog, ...userLogs];
+    updateSourceData('logAkademikData', allLogs);
+    toast({ title: "Sukses", description: "Log pendampingan akademik berhasil disimpan." });
+    setIsLogAkademikDialogOpen(false);
+  };
 
   const renderFeatureCard = (title: string, description: string, onClick?: () => void) => (
     <Card className="h-full hover:bg-muted/50 transition-colors flex flex-col">
@@ -177,10 +210,10 @@ export default function BimbinganSiswaPage() {
                     <CardDescription>Fokus pada pemantauan dan dukungan terhadap kemajuan belajar siswa.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {renderFeatureCard("Pantau Perkembangan Belajar", "Lihat rekap nilai, kehadiran, dan kemajuan siswa di setiap mata pelajaran.")}
-                    {renderFeatureCard("Identifikasi Kesulitan Akademik", "Gunakan data untuk menemukan siswa yang memerlukan bantuan atau bimbingan tambahan.")}
-                    {renderFeatureCard("Koordinasi dengan Guru Mapel", "Akses catatan dari guru mata pelajaran dan fasilitasi komunikasi untuk solusi bersama.")}
-                    {renderFeatureCard("Rencana Pembelajaran Individual", "Buat dan kelola rencana bimbingan khusus untuk siswa dengan kebutuhan tertentu.")}
+                    {renderFeatureCard("Pantau Perkembangan Belajar", "Lihat rekap nilai, kehadiran, dan kemajuan siswa di setiap mata pelajaran.", () => handleOpenLogAkademikDialog("Pantau Perkembangan Belajar"))}
+                    {renderFeatureCard("Identifikasi Kesulitan Akademik", "Gunakan data untuk menemukan siswa yang memerlukan bantuan atau bimbingan tambahan.", () => handleOpenLogAkademikDialog("Identifikasi Kesulitan Akademik"))}
+                    {renderFeatureCard("Koordinasi dengan Guru Mapel", "Akses catatan dari guru mata pelajaran dan fasilitasi komunikasi untuk solusi bersama.", () => handleOpenLogAkademikDialog("Koordinasi dengan Guru Mapel"))}
+                    {renderFeatureCard("Rencana Pembelajaran Individual", "Buat dan kelola rencana bimbingan khusus untuk siswa dengan kebutuhan tertentu.", () => handleOpenLogAkademikDialog("Rencana Pembelajaran Individual"))}
                 </CardContent>
             </Card>
         </TabsContent>
@@ -239,7 +272,7 @@ export default function BimbinganSiswaPage() {
                 </CardHeader>
                  <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {renderFeatureCard("Tanamkan Disiplin & Tanggung Jawab", "Gunakan data kehadiran dan catatan perilaku sebagai media pembinaan kedisiplinan.")}
-                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.", () => setIsLogDialogOpen(true))}
+                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.", () => setIsLogKarakterDialogOpen(true))}
                     {renderFeatureCard("Berikan Teladan (Role Model)", "Dokumentasikan kegiatan positif yang bisa menjadi contoh bagi siswa lain.")}
                     {renderFeatureCard("Kolaborasi dengan Orang Tua", "Akses rekapitulasi performa siswa sebagai bahan diskusi dengan orang tua/wali.")}
                 </CardContent>
@@ -329,14 +362,14 @@ export default function BimbinganSiswaPage() {
           </DialogContent>
       </Dialog>
       
-      {/* Dialog Log Bimbingan */}
-      <Dialog open={isLogDialogOpen} onOpenChange={setIsLogDialogOpen}>
+      {/* Dialog Log Bimbingan Karakter */}
+      <Dialog open={isLogKarakterDialogOpen} onOpenChange={setIsLogKarakterDialogOpen}>
           <DialogContent>
               <DialogHeader><DialogTitle>Catat Log Bimbingan Perilaku</DialogTitle></DialogHeader>
               <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                       <Label>Pilih Siswa</Label>
-                      <Select onValueChange={nis => setLogFormData(p => ({...p, nis}))}>
+                      <Select onValueChange={nis => setLogKarakterFormData(p => ({...p, nis}))}>
                           <SelectTrigger><SelectValue placeholder="Pilih siswa binaan..." /></SelectTrigger>
                           <SelectContent>
                               {siswaBinaan.map(s => <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}
@@ -345,19 +378,55 @@ export default function BimbinganSiswaPage() {
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="kategori-log">Kategori Bimbingan</Label>
-                      <Input id="kategori-log" placeholder="Contoh: Etika, Disiplin, Sosial" onChange={e => setLogFormData(p => ({...p, kategori: e.target.value}))}/>
+                      <Input id="kategori-log" placeholder="Contoh: Etika, Disiplin, Sosial" onChange={e => setLogKarakterFormData(p => ({...p, kategori: e.target.value}))}/>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="catatan-log">Catatan Sesi</Label>
-                      <Textarea id="catatan-log" placeholder="Tuliskan ringkasan sesi bimbingan atau konseling di sini..." onChange={e => setLogFormData(p => ({...p, catatan: e.target.value}))}/>
+                      <Textarea id="catatan-log" placeholder="Tuliskan ringkasan sesi bimbingan atau konseling di sini..." onChange={e => setLogKarakterFormData(p => ({...p, catatan: e.target.value}))}/>
                   </div>
               </div>
               <DialogFooter>
                   <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
-                  <Button onClick={handleSaveLog}>Simpan Log</Button>
+                  <Button onClick={handleSaveLogKarakter}>Simpan Log</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* Dialog Log Bimbingan Akademik */}
+      <Dialog open={isLogAkademikDialogOpen} onOpenChange={setIsLogAkademikDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Catat Log Pendampingan Akademik</DialogTitle>
+                <DialogDescription>Kategori: {logAkademikFormData.kategori}</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label>Pilih Siswa</Label>
+                      <Select onValueChange={nis => setLogAkademikFormData(p => ({...p, nis}))}>
+                          <SelectTrigger><SelectValue placeholder="Pilih siswa binaan..." /></SelectTrigger>
+                          <SelectContent>
+                              {siswaBinaan.map(s => <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="catatan-log-akademik">Catatan / Rencana Tindak Lanjut</Label>
+                      <Textarea 
+                        id="catatan-log-akademik" 
+                        placeholder="Tuliskan ringkasan hasil pemantauan, identifikasi masalah, atau rencana tindak lanjut..." 
+                        onChange={e => setLogAkademikFormData(p => ({...p, catatan: e.target.value}))}
+                        rows={5}
+                      />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button onClick={handleSaveLogAkademik}>Simpan Log</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
     </div>
   );
 }
+
+    
