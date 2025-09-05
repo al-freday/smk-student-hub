@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Users, ShieldAlert, TrendingUp, CheckCircle, Loader2 } from "lucide-react";
+import { MoreHorizontal, Users, ShieldAlert, TrendingUp, CheckCircle, Loader2, ArrowRight } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import StatCard from "@/components/stat-card";
 import { format } from "date-fns";
@@ -67,7 +67,7 @@ export default function KonselingBkPage() {
 
       // Filter kasus yang diteruskan ke BK untuk tingkat binaan
       const kasusUntukBk = allPelanggaran
-          .filter(p => p.status === 'Diteruskan ke BK' && p.kelas.startsWith(binaan.split(' ')[1]))
+          .filter(p => ['Diteruskan ke BK', 'Diproses BK'].includes(p.status) && p.kelas.startsWith(binaan.split(' ')[1]))
           .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
       setKasusMasuk(kasusUntukBk);
 
@@ -91,15 +91,6 @@ export default function KonselingBkPage() {
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
-  
-  const handleStatusChange = (id: number, status: string) => {
-    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
-    const updatedRiwayat = allPelanggaran.map(item =>
-      item.id === id ? { ...item, status: status } : item
-    );
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    toast({ title: "Status Kasus Diperbarui", description: `Kasus telah ditandai sebagai "${status}".` });
-  };
   
   if (isLoading) {
     return (
@@ -139,12 +130,19 @@ export default function KonselingBkPage() {
       
       <Card>
           <CardHeader>
-              <CardTitle>Layanan Responsif: Kasus Masuk</CardTitle>
-              <CardDescription>Daftar pelanggaran yang diteruskan oleh Wali Kelas dan membutuhkan penanganan segera dari Anda.</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>Layanan Responsif: Kasus Masuk</CardTitle>
+                    <CardDescription>Daftar pelanggaran yang diteruskan oleh Wali Kelas dan membutuhkan penanganan dari Anda.</CardDescription>
+                </div>
+                <Button onClick={() => router.push('/dashboard/laporan-masuk-bk')}>
+                    Proses Laporan Masuk <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
           </CardHeader>
           <CardContent>
               <Table>
-                  <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                   <TableBody>
                       {kasusMasuk.length > 0 ? kasusMasuk.map(p => (
                            <TableRow key={p.id}>
@@ -155,13 +153,8 @@ export default function KonselingBkPage() {
                               <TableCell>
                                   <p>{p.pelanggaran} <Badge variant="destructive">{p.poin} Poin</Badge></p>
                               </TableCell>
-                              <TableCell className="text-right">
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                          <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Selesai')}><CheckCircle className="mr-2 h-4 w-4" />Tandai Selesai</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
+                              <TableCell>
+                                  <Badge variant={p.status === 'Diproses BK' ? 'default' : 'secondary'}>{p.status}</Badge>
                               </TableCell>
                           </TableRow>
                       )) : (
@@ -174,3 +167,5 @@ export default function KonselingBkPage() {
     </div>
   );
 }
+
+    

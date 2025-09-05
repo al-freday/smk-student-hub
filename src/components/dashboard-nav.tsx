@@ -75,6 +75,7 @@ const navItemsByRole = {
   ],
   guru_bk: [
     { href: "/dashboard", icon: HeartHandshake, label: "Dasbor BK" },
+    { href: "/dashboard/laporan-masuk-bk", icon: Inbox, label: "Laporan Masuk BK" },
     { type: 'divider', label: 'Layanan BK' },
     { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
