@@ -7,33 +7,31 @@ import { ref, get, set, child, remove } from 'firebase/database';
 const isServer = typeof window === 'undefined';
 
 /**
- * Retrieves data from Firebase Realtime Database. Uses localStorage as a cache for performance.
- * @param key The key to retrieve from Firebase (e.g., 'teachersData').
+ * Retrieves data from localStorage. Used for session-related info like user role.
+ * @param key The key to retrieve from localStorage.
  * @param defaultValue The value to return if no data exists.
- * @returns The data from Firebase or the default value.
+ * @returns The data from localStorage or the default value.
  */
 export const getSourceData = (key: string, defaultValue: any): any => {
   if (isServer) {
     return defaultValue;
   }
-  // This function will now primarily be a passthrough for local cache.
-  // The main data fetching will be more explicit.
   try {
     const localData = localStorage.getItem(key);
     if (localData === null) {
-      localStorage.setItem(key, JSON.stringify(defaultValue));
+      // Don't set default value here to avoid overwriting on initial load
       return defaultValue;
     }
     return JSON.parse(localData);
   } catch (e) {
-    console.error(`Failed to get/parse cached data for key "${key}" from localStorage.`, e);
+    console.error(`Failed to get/parse data for key "${key}" from localStorage.`, e);
     return defaultValue;
   }
 };
 
 /**
  * Updates data in localStorage and dispatches a local event for UI updates.
- * This is now mainly for caching session data or non-persistent state.
+ * Used for session-related info.
  * @param key The key for the data.
  * @param data The data object to be saved locally.
  */
@@ -50,7 +48,8 @@ export const updateSourceData = (key: string, data: any): void => {
   }
 };
 
-// --- NEW FIREBASE-CENTRIC FUNCTIONS ---
+
+// --- FIREBASE-CENTRIC FUNCTIONS ---
 
 /**
  * Fetches a specific dataset directly from Firebase Realtime Database.
@@ -63,20 +62,34 @@ export async function fetchDataFromFirebase(path: string) {
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, path));
     if (snapshot.exists()) {
-      return snapshot.val();
+      const data = snapshot.val();
+      // Also cache the fetched data in localStorage for performance and offline access
+      if (!isServer) {
+        localStorage.setItem(path, JSON.stringify(data));
+      }
+      return data;
     } else {
       console.log(`No data available at path: ${path}`);
+      // Cache null to prevent re-fetching non-existent data
+      if (!isServer) {
+        localStorage.setItem(path, JSON.stringify(null));
+      }
       return null;
     }
   } catch (error) {
     console.error(`Firebase Read Error for path "${path}":`, error);
+    // Attempt to return cached data on error
+    if (!isServer) {
+      const cachedData = localStorage.getItem(path);
+      if (cachedData) return JSON.parse(cachedData);
+    }
     throw error;
   }
 }
 
 /**
  * Saves or updates a specific dataset in Firebase Realtime Database.
- * This is the primary function for all data mutations.
+ * Also updates the local cache.
  * @param path The path to the data in Firebase (e.g., 'teachersData/wali_kelas').
  * @param data The data to save.
  */
@@ -84,6 +97,12 @@ export async function saveDataToFirebase(path: string, data: any) {
   try {
     const dbRef = ref(db, path);
     await set(dbRef, data);
+    // Update local cache after successful save
+    if (!isServer) {
+      localStorage.setItem(path, JSON.stringify(data));
+      // Dispatch event to notify components of data change
+      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: path, value: data } }));
+    }
   } catch (error) {
     console.error(`Firebase Write Error for path "${path}":`, error);
     throw error;
@@ -92,12 +111,18 @@ export async function saveDataToFirebase(path: string, data: any) {
 
 /**
  * Removes data from a specific path in Firebase Realtime Database.
+ * Also removes from local cache.
  * @param path The path to the data to remove.
  */
 export async function removeDataFromFirebase(path: string) {
     try {
         const dbRef = ref(db, path);
         await remove(dbRef);
+        // Remove from local cache
+        if (!isServer) {
+            localStorage.removeItem(path);
+             window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: path, value: null } }));
+        }
     } catch (error) {
         console.error(`Firebase Remove Error for path "${path}":`, error);
         throw error;

@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
       console.error("Gagal memuat data pengguna dari Firebase:", error);
       toast({
         title: "Gagal Memuat",
-        description: "Tidak dapat memuat data pengguna dari server.",
+        description: "Tidak dapat memuat data pengguna dari server. Periksa koneksi atau coba lagi.",
         variant: "destructive",
       });
     } finally {
