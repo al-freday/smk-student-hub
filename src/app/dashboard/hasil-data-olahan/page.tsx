@@ -8,11 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Users, Building, Loader2 } from "lucide-react";
+import { Download, Users, Building, Loader2, Save, Trash2 } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 // Tipe Data
 interface Siswa {
@@ -30,6 +41,8 @@ export default function HasilDataOlahanPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
 
   // Data
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
@@ -39,7 +52,7 @@ export default function HasilDataOlahanPage() {
   const [selectedKelas, setSelectedKelas] = useState("Semua Kelas");
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
+  const loadData = () => {
     setIsLoading(true);
     try {
       const userRole = localStorage.getItem('userRole');
@@ -55,6 +68,12 @@ export default function HasilDataOlahanPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('dataUpdated', loadData);
+    return () => window.removeEventListener('dataUpdated', loadData);
   }, [router, toast]);
 
   const filteredSiswa = useMemo(() => {
@@ -105,6 +124,21 @@ export default function HasilDataOlahanPage() {
     toast({ title: "Ekspor Berhasil", description: "Data siswa telah diunduh sebagai file CSV." });
   };
 
+  const handleSave = () => {
+    // Data disimpan secara otomatis, jadi ini hanya untuk konfirmasi UX
+    toast({ title: "Data Disimpan", description: "Semua perubahan telah berhasil disimpan." });
+  };
+
+  const handleDeleteAll = () => {
+    updateSourceData('siswaData', []); // Hapus semua data siswa
+    setIsDeleteDialogOpen(false);
+    toast({
+      title: "Data Dihapus",
+      description: "Semua data siswa telah berhasil dihapus dari sistem.",
+      variant: "destructive"
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
@@ -122,7 +156,11 @@ export default function HasilDataOlahanPage() {
             Lihat, filter, dan ekspor data siswa yang ada di sistem.
           </p>
         </div>
-        <Button onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Ekspor Data</Button>
+         <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</Button>
+            <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Ekspor Data</Button>
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}><Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data</Button>
+        </div>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2">
@@ -189,6 +227,23 @@ export default function HasilDataOlahanPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Apakah Anda Yakin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Tindakan ini akan menghapus **semua** data siswa secara permanen dari sistem. Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive hover:bg-destructive/90">
+                      Ya, Hapus Semua
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
