@@ -12,6 +12,8 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, DollarSign, Save, FileText, Users } from "lucide-react";
 import StatCard from "@/components/stat-card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 // --- Tipe Data ---
 interface Siswa {
@@ -40,7 +42,7 @@ const daftarBulan = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni"
 ];
 
-const NOMINAL_KOMITE = 100000; // Asumsi Rp 100.000 per bulan
+const NOMINAL_KOMITE_DEFAULT = 100000;
 
 export default function PembayaranKomitePage() {
   const router = useRouter();
@@ -54,6 +56,9 @@ export default function PembayaranKomitePage() {
   const [statusPembayaran, setStatusPembayaran] = useState<Pembayaran>({});
   const [riwayatPembayaran, setRiwayatPembayaran] = useState<Riwayat[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
+  const [nominalKomite, setNominalKomite] = useState<number>(NOMINAL_KOMITE_DEFAULT);
+  
+  const storageKeyNominal = useMemo(() => `nominalKomite_${selectedKelas}`, [selectedKelas]);
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -72,7 +77,9 @@ export default function PembayaranKomitePage() {
       setKelasBinaan(binaan);
       
       if (binaan.length > 0) {
-        setSelectedKelas(binaan[0]);
+        if (!selectedKelas) {
+            setSelectedKelas(binaan[0]);
+        }
       }
       
       setStatusPembayaran(getSourceData('pembayaranKomiteData', {}));
@@ -84,7 +91,12 @@ export default function PembayaranKomitePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, toast]);
+  }, [router, toast, selectedKelas]);
+  
+  useEffect(() => {
+    const savedNominal = getSourceData(storageKeyNominal, NOMINAL_KOMITE_DEFAULT);
+    setNominalKomite(savedNominal);
+  }, [storageKeyNominal]);
 
   useEffect(() => {
     loadData();
@@ -100,6 +112,14 @@ export default function PembayaranKomitePage() {
       setSiswaDiKelas([]);
     }
   }, [selectedKelas]);
+  
+  const handleNominalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.valueAsNumber;
+    if (!isNaN(value)) {
+        setNominalKomite(value);
+        updateSourceData(storageKeyNominal, value);
+    }
+  };
 
   const handlePaymentChange = (nis: string, bulan: string, lunas: boolean) => {
     setStatusPembayaran(prev => {
@@ -118,14 +138,12 @@ export default function PembayaranKomitePage() {
     const siswaLookup = new Map(siswaDiKelas.map(s => [s.nis, s]));
     const newHistory: Riwayat[] = [];
     
-    // Log changes to history (simple version, just logs current state)
     for (const nis in statusPembayaran) {
         const siswa = siswaLookup.get(nis);
         if (siswa) {
             for (const bulan in statusPembayaran[nis]) {
                 if (statusPembayaran[nis][bulan]) { // if paid
                     const recordId = `${new Date().toISOString()}-${nis}-${bulan}`;
-                    // A real implementation would check if a log for this already exists and is new
                      newHistory.push({
                         id: recordId,
                         tanggal: new Date().toISOString(),
@@ -139,9 +157,6 @@ export default function PembayaranKomitePage() {
             }
         }
     }
-    // A better implementation would merge histories, but for this demo, we can overwrite or append.
-    // Let's just create a log of SAVED payments.
-    // updateSourceData('riwayatPembayaranKomite', newHistory);
     
     toast({
       title: "Perubahan Disimpan",
@@ -155,12 +170,12 @@ export default function PembayaranKomitePage() {
       const pembayaranSiswa = statusPembayaran[siswa.nis] || {};
       daftarBulan.forEach(bulan => {
         if (!pembayaranSiswa[bulan]) {
-          tunggakan += NOMINAL_KOMITE;
+          tunggakan += nominalKomite;
         }
       });
     });
     return tunggakan;
-  }, [siswaDiKelas, statusPembayaran]);
+  }, [siswaDiKelas, statusPembayaran, nominalKomite]);
 
 
   if (isLoading) {
@@ -199,9 +214,22 @@ export default function PembayaranKomitePage() {
         <StatCard title="Total Siswa" value={siswaDiKelas.length.toString()} icon={<Users/>} isLoading={isLoading} />
         <StatCard title="Total Tunggakan" value={`Rp ${totalTunggakan.toLocaleString('id-ID')}`} icon={<DollarSign/>} isNegative={totalTunggakan > 0} isLoading={isLoading} />
         <Card>
-            <CardHeader><CardTitle>Informasi</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Informasi Iuran</CardTitle></CardHeader>
             <CardContent>
-                <p className="text-sm text-muted-foreground">Nominal iuran komite per bulan adalah <span className="font-semibold text-primary">Rp {NOMINAL_KOMITE.toLocaleString('id-ID')}</span>.</p>
+                <div className="space-y-2">
+                    <Label htmlFor="nominal-komite">Nominal Iuran Komite per Bulan</Label>
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold">Rp</span>
+                        <Input
+                            id="nominal-komite"
+                            type="number"
+                            value={nominalKomite}
+                            onChange={handleNominalChange}
+                            className="w-full"
+                            step="5000"
+                        />
+                    </div>
+                </div>
             </CardContent>
         </Card>
       </div>
