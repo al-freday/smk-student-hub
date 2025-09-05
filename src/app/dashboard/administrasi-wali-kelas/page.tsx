@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAdministrasiWaliKelasData } from "@/lib/data";
-import { Loader2, Users, CalendarClock, BookUser, FileText, Award, ShieldAlert, BarChart3, TrendingUp, TrendingDown, UserCheck } from "lucide-react";
+import { Loader2, Users, CalendarClock, BookUser, FileText, Award, ShieldAlert, BarChart3, TrendingUp, TrendingDown, UserCheck, Sitemap, Building } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,8 @@ export default function AdministrasiWaliKelasPage() {
         <ScrollArea className="w-full whitespace-nowrap">
           <TabsList>
             <TabsTrigger value="data-induk"><Users className="mr-2 h-4 w-4"/>Data Induk Kelas</TabsTrigger>
+            <TabsTrigger value="struktur-kelas"><Sitemap className="mr-2 h-4 w-4" />Struktur Kelas</TabsTrigger>
+            <TabsTrigger value="sarana-prasarana"><Building className="mr-2 h-4 w-4" />Sarana Prasarana</TabsTrigger>
             <TabsTrigger value="kehadiran"><CalendarClock className="mr-2 h-4 w-4"/>Administrasi Kehadiran</TabsTrigger>
             <TabsTrigger value="pembelajaran"><BookUser className="mr-2 h-4 w-4"/>Administrasi Pembelajaran</TabsTrigger>
             <TabsTrigger value="disiplin"><ShieldAlert className="mr-2 h-4 w-4"/>Administrasi Disiplin</TabsTrigger>
@@ -110,10 +112,34 @@ export default function AdministrasiWaliKelasPage() {
             </Card>
         </TabsContent>
 
-        {/* B. Administrasi Kehadiran */}
+        {/* B. Struktur Organisasi Kelas */}
+        <TabsContent value="struktur-kelas">
+            <Card>
+                <CardHeader><CardTitle>B. Struktur Organisasi Kelas</CardTitle><CardDescription>Kelola daftar pengurus kelas dan tugasnya.</CardDescription></CardHeader>
+                <CardContent>
+                    <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                        <p>Fitur untuk mengelola struktur organisasi kelas (Ketua, Wakil, Sekretaris, dll.) akan segera tersedia di sini.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+        {/* C. Keadaan Sarana dan Prasarana Kelas */}
+        <TabsContent value="sarana-prasarana">
+            <Card>
+                <CardHeader><CardTitle>C. Keadaan Sarana dan Prasarana Kelas</CardTitle><CardDescription>Catat inventaris dan kondisi fasilitas di dalam kelas binaan Anda.</CardDescription></CardHeader>
+                <CardContent>
+                     <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                        <p>Fitur untuk mencatat daftar inventaris, kondisi barang (baik/rusak), dan kebutuhan sarana prasarana akan segera tersedia di sini.</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+        {/* D. Administrasi Kehadiran */}
         <TabsContent value="kehadiran">
              <Card>
-                <CardHeader><CardTitle>B. Rekapitulasi Kehadiran Bulanan</CardTitle><CardDescription>Persentase kehadiran setiap siswa selama sebulan terakhir.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>D. Rekapitulasi Kehadiran Bulanan</CardTitle><CardDescription>Persentase kehadiran setiap siswa selama sebulan terakhir.</CardDescription></CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead>Hadir</TableHead><TableHead>Sakit</TableHead><TableHead>Izin</TableHead><TableHead>Alpa</TableHead><TableHead>Total (%)</TableHead></TableRow></TableHeader>
@@ -134,10 +160,10 @@ export default function AdministrasiWaliKelasPage() {
             </Card>
         </TabsContent>
 
-        {/* C. Administrasi Pembelajaran */}
+        {/* E. Administrasi Pembelajaran */}
         <TabsContent value="pembelajaran">
             <Card>
-                 <CardHeader><CardTitle>C. Daftar Guru Mata Pelajaran</CardTitle><CardDescription>Guru yang mengajar di kelas binaan Anda.</CardDescription></CardHeader>
+                 <CardHeader><CardTitle>E. Daftar Guru Mata Pelajaran</CardTitle><CardDescription>Guru yang mengajar di kelas binaan Anda.</CardDescription></CardHeader>
                  <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Mata Pelajaran</TableHead><TableHead>Guru Pengajar</TableHead></TableRow></TableHeader>
@@ -154,10 +180,10 @@ export default function AdministrasiWaliKelasPage() {
             </Card>
         </TabsContent>
         
-        {/* D. Administrasi Disiplin */}
+        {/* F. Administrasi Disiplin */}
         <TabsContent value="disiplin">
              <Card>
-                <CardHeader><CardTitle>D. Buku Catatan Perilaku dan Kejadian Penting</CardTitle><CardDescription>Riwayat pelanggaran dan prestasi siswa di kelas Anda.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>F. Buku Catatan Perilaku dan Kejadian Penting</CardTitle><CardDescription>Riwayat pelanggaran dan prestasi siswa di kelas Anda.</CardDescription></CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Nama Siswa</TableHead><TableHead>Catatan</TableHead><TableHead className="text-center">Poin/Status</TableHead></TableRow></TableHeader>
@@ -178,10 +204,10 @@ export default function AdministrasiWaliKelasPage() {
              </Card>
         </TabsContent>
 
-        {/* F. Laporan & Evaluasi */}
+        {/* G. Laporan & Evaluasi */}
         <TabsContent value="laporan">
              <Card>
-                <CardHeader><CardTitle>F. Rekapitulasi Poin & Prestasi (Evaluasi Semester)</CardTitle><CardDescription>Akumulasi poin dan prestasi sebagai bahan evaluasi.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>G. Rekapitulasi Poin & Prestasi (Evaluasi Semester)</CardTitle><CardDescription>Akumulasi poin dan prestasi sebagai bahan evaluasi.</CardDescription></CardHeader>
                 <CardContent>
                      <Table>
                         <TableHeader><TableRow><TableHead>Nama Siswa</TableHead><TableHead className="text-center">Total Poin Pelanggaran</TableHead><TableHead className="text-center">Jumlah Prestasi</TableHead></TableRow></TableHeader>
