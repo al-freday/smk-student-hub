@@ -86,7 +86,8 @@ const getRoleKey = (roleName: string): AllRoles | null => {
 
 const createEmailFromName = (name: string, id: number | string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    return `${namePart}${id}@schoolemail.com`;
+    const idPart = String(id).split('-').pop();
+    return `${namePart}${idPart}@schoolemail.com`;
 };
 
 const initialData: { [key in AllRoles]: Guru[] } = {
@@ -121,12 +122,15 @@ export default function AdminManajemenPenggunaPage() {
         
         for (const roleKey in roles) {
             if (usersData.hasOwnProperty(roleKey)) {
-                usersData[roleKey as AllRoles] = (roles[roleKey] || []).map((guru: Guru) => ({
-                    ...guru,
-                    role: getRoleName(roleKey),
-                    email: createEmailFromName(guru.nama, guru.id),
-                    password: guru.password || `password${guru.id}`,
-                }));
+                usersData[roleKey as AllRoles] = (roles[roleKey] || []).map((guru: Guru) => {
+                    const idPart = String(guru.id).split('-').pop();
+                    return {
+                        ...guru,
+                        role: getRoleName(roleKey),
+                        email: createEmailFromName(guru.nama, guru.id),
+                        password: guru.password || `password${idPart}`,
+                    }
+                });
             }
         }
         setUsers(usersData);

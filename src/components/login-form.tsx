@@ -72,7 +72,9 @@ export function LoginForm({ allUsers }: LoginFormProps) {
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    const idPart = String(selectedUser?.id).split('-').pop();
+    // Fallback password logic for users without an explicit password set.
+    // This MUST match the logic in the admin user management page.
+    const idPart = String(selectedUser?.id).split('-').pop() || "0";
     const expectedPassword = selectedUser?.password || `password${idPart}`;
 
     if (selectedUser && values.password === expectedPassword) {
