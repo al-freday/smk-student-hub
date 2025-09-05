@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -9,18 +8,11 @@ import { Button } from "@/components/ui/button";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, MessageSquare, AlertTriangle, FileText } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { Loader2, CheckCircle, MessageSquare, AlertTriangle, FileText, Check, User, Phone, BookOpen, Lightbulb, Repeat, RotateCcw } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
@@ -33,22 +25,39 @@ interface CatatanPelanggaran {
     poin: number; 
     guruPelapor: string;
     status: StatusLaporan;
-    catatanWaliKelas?: string;
 }
+
+interface ChecklistItem {
+    id: string;
+    label: string;
+    checked: boolean;
+}
+
+const initialChecklist: ChecklistItem[] = [
+    { id: 'verifikasi-valid', label: 'Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.', checked: false },
+    { id: 'verifikasi-kronologi', label: 'Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.', checked: false },
+    { id: 'panggil-pintu-pertama', label: 'Wali kelas harus jadi “pintu pertama” pembinaan.', checked: false },
+    { id: 'panggil-empat-mata', label: 'Bicara empat mata dulu, biar siswa merasa aman buat cerita.', checked: false },
+    { id: 'panggil-bedakan', label: 'Bedakan: pelanggaran karena sengaja atau karena ketidaktahuan.', checked: false },
+    { id: 'catat-buku', label: 'Bikin catatan di buku tata tertib/administrasi wali kelas.', checked: false },
+    { id: 'catat-koordinasi', label: 'Kalau kasus serius, koordinasi dengan guru BK dan Wakasek Kesiswaan.', checked: false },
+    { id: 'ortu-wajib', label: 'Untuk pelanggaran berulang atau berat, wali kelas wajib menghubungi orang tua/wali murid.', checked: false },
+    { id: 'ortu-solusi', label: 'Tujuannya bukan sekadar “ngadu”, tapi cari solusi bareng.', checked: false },
+    { id: 'solusi-mendidik', label: 'Cari hukuman yang mendidik, bukan sekadar menghukum. Misalnya: kerja bakti, presentasi tentang aturan sekolah, atau bimbingan khusus.', checked: false },
+    { id: 'solusi-komitmen', label: 'Ajak siswa bikin komitmen tertulis supaya lebih serius memperbaiki diri.', checked: false },
+    { id: 'monitor-pantau', label: 'Setelah kasus selesai, wali kelas tetap memantau. Jangan sampai anak merasa ditinggalkan atau dicap nakal permanen.', checked: false },
+    { id: 'monitor-positif', label: 'Dorong anak buat lebih aktif di kegiatan positif biar energinya tersalurkan.', checked: false },
+];
+
 
 export default function LaporanMasukPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- Data Pengguna & Kelas ---
   const [kelasBinaan, setKelasBinaan] = useState<string[]>([]);
-  
-  // --- Data Kasus ---
   const [pelanggaranDiKelas, setPelanggaranDiKelas] = useState<CatatanPelanggaran[]>([]);
-  const [selectedCase, setSelectedCase] = useState<CatatanPelanggaran | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [catatanPembinaan, setCatatanPembinaan] = useState("");
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(initialChecklist);
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -90,12 +99,6 @@ export default function LaporanMasukPage() {
     return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
 
-  const handleOpenDialog = (kasus: CatatanPelanggaran) => {
-    setSelectedCase(kasus);
-    setCatatanPembinaan(kasus.catatanWaliKelas || "");
-    setIsDialogOpen(true);
-  };
-  
   const handleStatusChange = (id: number, status: StatusLaporan) => {
     const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
     const updatedRiwayat = allPelanggaran.map(item =>
@@ -103,24 +106,16 @@ export default function LaporanMasukPage() {
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
-    setIsDialogOpen(false);
-    setSelectedCase(null);
   };
 
-  const handleSaveCatatan = () => {
-    if (!selectedCase) return;
-    
-    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
-    const updatedRiwayat = allPelanggaran.map(item =>
-      item.id === selectedCase.id ? { ...item, catatanWaliKelas: catatanPembinaan } : item
-    );
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    
-    toast({ title: "Catatan Disimpan", description: "Catatan pembinaan awal telah disimpan." });
-    // Keep dialog open for further action
-    // To update the state in the dialog
-    setSelectedCase(prev => prev ? { ...prev, catatanWaliKelas: catatanPembinaan } : null);
+  const handleChecklistChange = (itemId: string, checked: boolean) => {
+    setChecklist(prev => prev.map(item => item.id === itemId ? { ...item, checked } : item));
   };
+  
+  const resetChecklist = () => {
+      setChecklist(initialChecklist);
+      toast({ title: "Checklist Direset", description: "Anda dapat memulai penanganan untuk kasus baru." });
+  }
 
   if (isLoading) {
     return (
@@ -144,102 +139,124 @@ export default function LaporanMasukPage() {
             <CardTitle>Daftar Laporan Perlu Diverifikasi</CardTitle>
             <CardDescription>Berikut adalah {pelanggaranDiKelas.length} laporan baru yang membutuhkan tindakan Anda.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pelanggaranDiKelas.length > 0 ? (
-                pelanggaranDiKelas.map(p => (
-                    <Card key={p.id} className="flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="text-lg">{p.namaSiswa}</CardTitle>
-                            <CardDescription>{p.kelas} | {format(new Date(p.tanggal), "dd MMMM yyyy")}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 space-y-3">
-                            <div>
-                                <p className="text-sm font-semibold">Pelanggaran:</p>
-                                <p className="text-sm text-muted-foreground">{p.pelanggaran} <Badge variant="destructive">{p.poin} Poin</Badge></p>
-                            </div>
-                             <div>
-                                <p className="text-sm font-semibold">Pelapor:</p>
-                                <p className="text-sm text-muted-foreground">{p.guruPelapor}</p>
-                            </div>
-                        </CardContent>
-                        <DialogFooter className="p-6 pt-0">
-                            <Button className="w-full" onClick={() => handleOpenDialog(p)}>
-                                <FileText className="mr-2 h-4 w-4"/> Proses Kasus
-                            </Button>
-                        </DialogFooter>
-                    </Card>
-                ))
-            ) : (
-                <div className="col-span-full text-center h-48 flex flex-col justify-center items-center bg-secondary rounded-lg">
-                    <CheckCircle className="h-12 w-12 text-green-500 mb-4"/>
-                    <h3 className="text-lg font-semibold">Tidak Ada Laporan Baru</h3>
-                    <p className="text-muted-foreground">Semua laporan pelanggaran di kelas Anda sudah ditangani.</p>
-                </div>
-            )}
+        <CardContent>
+             <Table>
+                <TableHeader><TableRow><TableHead>Siswa & Tanggal</TableHead><TableHead>Detail Pelanggaran</TableHead><TableHead>Pelapor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                <TableBody>
+                     {pelanggaranDiKelas.length > 0 ? (
+                        pelanggaranDiKelas.map(p => (
+                           <TableRow key={p.id}>
+                              <TableCell>
+                                  <p className="font-medium">{p.namaSiswa}</p>
+                                  <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yyyy")}</p>
+                              </TableCell>
+                              <TableCell>
+                                  <p>{p.pelanggaran}</p>
+                                  <Badge variant="destructive">{p.poin} Poin</Badge>
+                              </TableCell>
+                               <TableCell>{p.guruPelapor}</TableCell>
+                              <TableCell className="text-right">
+                                  <Button className="mr-2" size="sm" variant="secondary" onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}>
+                                     <CheckCircle className="mr-2 h-4 w-4"/> Tandai Ditangani
+                                 </Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleStatusChange(p.id, 'Diteruskan ke BK')}>
+                                     <MessageSquare className="mr-2 h-4 w-4"/> Teruskan ke BK
+                                 </Button>
+                              </TableCell>
+                          </TableRow>
+                        ))
+                     ) : (
+                         <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan baru untuk kelas binaan Anda.</TableCell></TableRow>
+                     )}
+                </TableBody>
+            </Table>
         </CardContent>
       </Card>
       
-      {/* Dialog Proses Kasus */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
-                  <DialogTitle>Detail Kasus & Tindak Lanjut</DialogTitle>
-                  <DialogDescription>
-                      Verifikasi, catat pembinaan, dan tentukan langkah selanjutnya untuk kasus ini.
-                  </DialogDescription>
-              </DialogHeader>
-              {selectedCase && (
-                <div className="grid gap-6 py-4">
-                    {/* Bagian Detail Kasus */}
-                    <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
-                        <h4 className="font-semibold">Ringkasan Laporan</h4>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div><strong>Siswa:</strong> {selectedCase.namaSiswa}</div>
-                            <div><strong>Kelas:</strong> {selectedCase.kelas}</div>
-                            <div><strong>Tanggal:</strong> {format(new Date(selectedCase.tanggal), "dd MMMM yyyy")}</div>
-                            <div><strong>Pelapor:</strong> {selectedCase.guruPelapor}</div>
-                            <div className="col-span-2">
-                                <strong>Pelanggaran:</strong> {selectedCase.pelanggaran} ({selectedCase.poin} poin)
+       <Card>
+        <CardHeader>
+            <div className="flex justify-between items-center">
+                 <div>
+                    <CardTitle>Alur Kerja Penanganan Laporan</CardTitle>
+                    <CardDescription>Gunakan panduan ini sebagai checklist saat menangani setiap kasus.</CardDescription>
+                 </div>
+                 <Button variant="outline" size="sm" onClick={resetChecklist}>
+                    <RotateCcw className="mr-2 h-4 w-4"/>
+                    Atur Ulang Checklist
+                 </Button>
+            </div>
+        </CardHeader>
+        <CardContent>
+             <Accordion type="multiple" className="w-full space-y-2" defaultValue={['verifikasi']}>
+                <AccordionItem value="verifikasi">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Check className="mr-2 h-5 w-5"/>Verifikasi Laporan</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                        {checklist.filter(c => c.id.startsWith('verifikasi')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
                             </div>
-                        </div>
-                    </div>
-                    
-                    {/* Bagian Form Pembinaan */}
-                    <div className="space-y-2">
-                        <Label htmlFor="catatan-pembinaan" className="font-semibold">2. Panggil & Ajak Bicara Siswa: Catatan Pembinaan Awal</Label>
-                        <Textarea 
-                            id="catatan-pembinaan"
-                            placeholder="Tulis ringkasan pembicaraan, analisis, dan komitmen siswa di sini..."
-                            rows={5}
-                            value={catatanPembinaan}
-                            onChange={(e) => setCatatanPembinaan(e.target.value)}
-                        />
-                         <Button size="sm" variant="outline" onClick={handleSaveCatatan}>Simpan Catatan</Button>
-                    </div>
-
-                    {/* Bagian Aksi */}
-                    <div className="space-y-2">
-                         <Label className="font-semibold">3. Catat & Laporkan: Tentukan Status Akhir</Label>
-                         <div className="flex flex-col sm:flex-row gap-2">
-                             <Button className="flex-1" variant="secondary" onClick={() => handleStatusChange(selectedCase.id, 'Ditindaklanjuti Wali Kelas')}>
-                                 <CheckCircle className="mr-2 h-4 w-4"/> Tandai Sudah Ditangani (Selesai di tingkat kelas)
-                             </Button>
-                              <Button className="flex-1" variant="destructive" onClick={() => handleStatusChange(selectedCase.id, 'Diteruskan ke BK')}>
-                                 <MessageSquare className="mr-2 h-4 w-4"/> Teruskan ke BK (Kasus serius)
-                             </Button>
-                         </div>
-                    </div>
-                </div>
-              )}
-              <DialogFooter>
-                  <DialogClose asChild>
-                      <Button variant="outline">Tutup</Button>
-                  </DialogClose>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="panggil">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><User className="mr-2 h-5 w-5"/>Panggil & Ajak Bicara Siswa</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                         {checklist.filter(c => c.id.startsWith('panggil')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
+                            </div>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="catat">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><BookOpen className="mr-2 h-5 w-5"/>Catat & Laporkan</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                         {checklist.filter(c => c.id.startsWith('catat')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
+                            </div>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="ortu">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Phone className="mr-2 h-5 w-5"/>Panggil Orang Tua (Bila Perlu)</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                         {checklist.filter(c => c.id.startsWith('ortu')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
+                            </div>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="solusi">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Lightbulb className="mr-2 h-5 w-5"/>Pembinaan & Solusi</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                         {checklist.filter(c => c.id.startsWith('solusi')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
+                            </div>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="monitoring">
+                    <AccordionTrigger className="font-semibold text-base p-3 bg-secondary rounded-md"><Repeat className="mr-2 h-5 w-5"/>Monitoring</AccordionTrigger>
+                    <AccordionContent className="p-4 space-y-2">
+                         {checklist.filter(c => c.id.startsWith('monitor')).map(item => (
+                            <div key={item.id} className="flex items-center space-x-2">
+                                <Checkbox id={item.id} checked={item.checked} onCheckedChange={(checked) => handleChecklistChange(item.id, !!checked)} />
+                                <Label htmlFor={item.id}>{item.label}</Label>
+                            </div>
+                        ))}
+                    </AccordionContent>
+                </AccordionItem>
+             </Accordion>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-    
