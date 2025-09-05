@@ -47,8 +47,7 @@ const seedInitialData = () => {
       poin: 5,
       guruPelapor: "Indah Permata",
       tindakanAwal: "Diberi teguran lisan.",
-      status: 'Dilaporkan',
-      catatanWaliKelas: ""
+      status: 'Dilaporkan'
     }
   ];
   updateSourceData('riwayatPelanggaran', riwayatPelanggaran);
