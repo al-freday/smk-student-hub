@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, UserCog, Loader2, ShieldAlert, Inbox, FileText, ArrowRight } from "lucide-react";
+import { Users, UserCog, Loader2, ShieldAlert, Inbox, FileText, ArrowRight } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardStats } from "@/lib/data";
@@ -73,8 +73,6 @@ const WakasekDashboard = () => {
             setIsLoading(false);
         };
         fetchStats();
-        // Listener tidak lagi efektif karena data diambil satu kali,
-        // perlu strategi refetch atau real-time listener dari Firestore.
     }, []);
 
     return (
@@ -204,9 +202,8 @@ const renderDashboardByRole = (role: string) => {
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [userRole, setUserRole] = useState("");
+    const [userRole, setUserRole] = useState<string | null>(null);
     const [userInfo, setUserInfo] = useState<{ name: string, role: string } | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
         const role = localStorage.getItem('userRole');
@@ -220,17 +217,15 @@ export default function DashboardPage() {
         try {
             const parsedUser = JSON.parse(user);
             setUserInfo({ name: parsedUser.nama, role: parsedUser.role });
+            setUserRole(role);
         } catch (e) {
-            // Fallback if user data is malformed
-            setUserInfo({ name: "Pengguna", role: getRoleDisplayName(role) });
+            console.error("Failed to parse user data, redirecting to login.");
+            router.replace('/');
         }
-
-        setUserRole(role);
-        setIsLoading(false);
     }, [router]);
 
 
-    if (isLoading || !userInfo) {
+    if (!userRole || !userInfo) {
         return (
             <div className="flex-1 space-y-6 flex justify-center items-center h-[calc(100vh-8rem)]">
                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
