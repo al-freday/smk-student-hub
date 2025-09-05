@@ -28,6 +28,7 @@ import {
   Folders,
   Award,
   Inbox,
+  DollarSign,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -66,6 +67,7 @@ const navItemsByRole = {
     { type: 'divider', label: 'Manajemen Kelas' },
     { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
+    { href: "/dashboard/pembayaran-komite", icon: DollarSign, label: "Pembayaran Komite" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
