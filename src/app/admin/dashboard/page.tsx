@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
+import { signInToFirebase } from "@/lib/firebase";
 
 interface User {
   id: string;
@@ -48,6 +49,8 @@ export default function AdminDashboardPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Ensure we are authenticated with Firebase before fetching data
+      await signInToFirebase();
       const teachersData = await fetchDataFromFirebase('teachersData');
       const users: User[] = [];
       
@@ -100,11 +103,12 @@ export default function AdminDashboardPage() {
     loadUsers();
 
     // Add event listener to reload users when the window gets focus
-    window.addEventListener('focus', loadUsers);
+    const handleFocus = () => loadUsers();
+    window.addEventListener('focus', handleFocus);
 
     // Cleanup listener on component unmount
     return () => {
-        window.removeEventListener('focus', loadUsers);
+        window.removeEventListener('focus', handleFocus);
     };
   }, [router, loadUsers]);
   
