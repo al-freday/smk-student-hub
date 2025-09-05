@@ -107,7 +107,7 @@ export function LoginForm() {
             
             // Generate email based on name and ID
             const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-            const idPart = String(u.id).split('-').pop();
+            const idPart = String(u.id); // No need to split, use the full ID
             const expectedEmail = `${namePart}${idPart}@schoolemail.com`;
             
             // Use provided password from seed data, fallback to a pattern if missing
@@ -176,5 +176,3 @@ export function LoginForm() {
     </div>
   );
 }
-
-    
