@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 // --- Tipe Data ---
 type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diproses BK' | 'Diteruskan ke Wakasek' | 'Selesai' | 'Ditolak';
@@ -256,5 +257,3 @@ export default function LaporanMasukBkPage() {
     </div>
   );
 }
-
-    
