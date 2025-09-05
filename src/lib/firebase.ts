@@ -12,13 +12,8 @@ const firebaseConfig = {
   storageBucket: "STORAGE_BUCKET",
   messagingSenderId: "MESSAGING_SENDER_ID",
   appId: "APP_ID",
-  databaseURL: "DATABASE_URL"
+  databaseURL: "https://PROJECT_ID.firebaseio.com"
 };
-
-// Dynamically construct the databaseURL if it's a placeholder
-if (firebaseConfig.databaseURL === "DATABASE_URL" && firebaseConfig.projectId) {
-  firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}.firebaseio.com`;
-}
 
 // Initialize Firebase for client side
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -41,28 +36,25 @@ if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' |
     }
 }
 
-// --- NEW ANONYMOUS AUTHENTICATION LOGIC ---
-
 let firebaseUser: User | null = null;
-let authReady = false;
+let authReadyPromise: Promise<User | null>;
+
+let resolveAuthReady: (user: User | null) => void;
+authReadyPromise = new Promise(resolve => {
+    resolveAuthReady = resolve;
+});
 
 onAuthStateChanged(auth, user => {
     firebaseUser = user;
-    authReady = true;
+    resolveAuthReady(user);
 });
 
-/**
- * Signs in the user anonymously to get access to the database.
- * This should be called after your custom password check is successful.
- */
 export const signInToFirebase = async () => {
     if (firebaseUser) {
-        console.log("User already signed in to Firebase.");
         return firebaseUser;
     }
     try {
         const userCredential = await signInAnonymously(auth);
-        console.log("Signed in anonymously to Firebase.");
         return userCredential.user;
     } catch (error) {
         console.error("Firebase anonymous sign-in failed:", error);
@@ -70,14 +62,14 @@ export const signInToFirebase = async () => {
     }
 };
 
-/**
- * Signs out the current Firebase user.
- */
 export const signOutFromFirebase = async () => {
     try {
         await firebaseSignOut(auth);
         firebaseUser = null;
-        console.log("Signed out from Firebase.");
+        // Reset the promise for the next login
+        authReadyPromise = new Promise(resolve => {
+            resolveAuthReady = resolve;
+        });
     } catch (error) {
         console.error("Firebase sign-out failed:", error);
     }
