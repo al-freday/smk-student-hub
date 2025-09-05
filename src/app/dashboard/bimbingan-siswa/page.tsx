@@ -1,20 +1,157 @@
 
 "use client";
 
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookCopy, Gem, ShieldCheck } from "lucide-react";
+import { BookCopy, Gem, ShieldCheck, PlusCircle, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+
+// --- Tipe Data ---
+interface Siswa { id: number; nis: string; nama: string; kelas: string; }
+interface Prestasi { id: string; nis: string; tanggal: string; deskripsi: string; tingkat: string; }
+interface PklData { status: string; perusahaan: string; catatan: string; progres: number; }
+interface LogBimbingan { id: string; tanggal: string; kategori: string; catatan: string; }
 
 export default function BimbinganSiswaPage() {
-  
-  const renderFeatureCard = (title: string, description: string) => (
-    <Card className="h-full hover:bg-muted/50 transition-colors">
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [siswaBinaan, setSiswaBinaan] = useState<Siswa[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // --- Prestasi States ---
+  const [isPrestasiDialogOpen, setIsPrestasiDialogOpen] = useState(false);
+  const [prestasiFormData, setPrestasiFormData] = useState<Partial<Omit<Prestasi, 'id' | 'tanggal'>>>({});
+
+  // --- PKL States ---
+  const [isPklDialogOpen, setIsPklDialogOpen] = useState(false);
+  const [selectedSiswaPkl, setSelectedSiswaPkl] = useState<Siswa | null>(null);
+  const [pklData, setPklData] = useState<Record<string, PklData>>({});
+  const [pklFormData, setPklFormData] = useState<Partial<PklData>>({});
+
+  // --- Log Bimbingan States ---
+  const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
+  const [logFormData, setLogFormData] = useState<Partial<Omit<LogBimbingan, 'id' | 'tanggal'>> & { nis?: string }>({});
+
+  const loadData = useCallback(() => {
+    setIsLoading(true);
+    try {
+      const user = getSourceData('currentUser', null);
+      if (!user) {
+        router.push('/');
+        return;
+      }
+
+      const teachersData = getSourceData('teachersData', {});
+      const guruData = teachersData.guru_pendamping?.find((gp: any) => gp.nama === user.nama);
+      const daftarNamaSiswaBinaan = guruData?.siswaBinaan || [];
+
+      const allSiswa: Siswa[] = getSourceData('siswaData', []);
+      setSiswaBinaan(allSiswa.filter(s => daftarNamaSiswaBinaan.includes(s.nama)));
+      setPklData(getSourceData('pklData', {}));
+
+    } catch (error) {
+      console.error("Gagal memuat data:", error);
+      toast({ title: "Gagal memuat data", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router, toast]);
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('dataUpdated', loadData);
+    return () => window.removeEventListener('dataUpdated', loadData);
+  }, [loadData]);
+
+  // --- Handlers for Prestasi ---
+  const handleSavePrestasi = () => {
+    if (!prestasiFormData.nis || !prestasiFormData.deskripsi || !prestasiFormData.tingkat) {
+      toast({ title: "Gagal", description: "Siswa, deskripsi, dan tingkat harus diisi.", variant: "destructive" });
+      return;
+    }
+    const newPrestasi = {
+      ...prestasiFormData,
+      id: `pres-${Date.now()}`,
+      tanggal: new Date().toISOString(),
+    };
+    const allPrestasi = getSourceData('prestasiData', []);
+    updateSourceData('prestasiData', [...allPrestasi, newPrestasi]);
+    toast({ title: "Sukses", description: "Prestasi siswa berhasil dicatat." });
+    setIsPrestasiDialogOpen(false);
+  };
+
+  // --- Handlers for PKL ---
+  const handleOpenPklDialog = (siswa: Siswa) => {
+    setSelectedSiswaPkl(siswa);
+    setPklFormData(pklData[siswa.nis] || { status: 'Belum Siap', progres: 0 });
+    setIsPklDialogOpen(true);
+  };
+
+  const handleSavePkl = () => {
+    if (!selectedSiswaPkl) return;
+    const updatedPklData = { ...pklData, [selectedSiswaPkl.nis]: pklFormData };
+    updateSourceData('pklData', updatedPklData);
+    setPklData(updatedPklData);
+    toast({ title: "Sukses", description: `Data PKL untuk ${selectedSiswaPkl.nama} berhasil diperbarui.` });
+    setIsPklDialogOpen(false);
+  };
+
+  // --- Handlers for Log Bimbingan ---
+  const handleSaveLog = () => {
+    if (!logFormData.nis || !logFormData.kategori || !logFormData.catatan) {
+      toast({ title: "Gagal", description: "Siswa, kategori, dan catatan harus diisi.", variant: "destructive" });
+      return;
+    }
+    const newLog = {
+        id: `log-${Date.now()}`,
+        tanggal: new Date().toISOString(),
+        kategori: logFormData.kategori,
+        catatan: logFormData.catatan,
+    };
+    const allLogs = getSourceData('logBimbinganData', {});
+    const userLogs = allLogs[logFormData.nis] || [];
+    allLogs[logFormData.nis] = [newLog, ...userLogs];
+    updateSourceData('logBimbinganData', allLogs);
+    toast({ title: "Sukses", description: "Log bimbingan berhasil disimpan." });
+    setIsLogDialogOpen(false);
+  }
+
+  const renderFeatureCard = (title: string, description: string, onClick?: () => void) => (
+    <Card className="h-full hover:bg-muted/50 transition-colors flex flex-col">
         <CardHeader>
             <CardTitle className="text-base">{title}</CardTitle>
             <CardDescription className="text-sm">{description}</CardDescription>
         </CardHeader>
+        {onClick && (
+          <CardContent className="mt-auto">
+            <Button onClick={onClick} className="w-full">
+                <PlusCircle className="mr-2 h-4 w-4"/> Kelola
+            </Button>
+          </CardContent>
+        )}
     </Card>
   );
+
+  if (isLoading) {
+    return <div className="flex-1 flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="flex-1 space-y-6">
@@ -25,7 +162,7 @@ export default function BimbinganSiswaPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="akademik" className="w-full">
+      <Tabs defaultValue="kompetensi" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="akademik"><BookCopy className="mr-2 h-4 w-4"/>Pendampingan Akademik</TabsTrigger>
             <TabsTrigger value="kompetensi"><Gem className="mr-2 h-4 w-4"/>Pengembangan Kompetensi</TabsTrigger>
@@ -56,8 +193,37 @@ export default function BimbinganSiswaPage() {
                     <CardDescription>Mendorong siswa untuk mencapai potensi maksimal baik di dalam maupun di luar kelas.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {renderFeatureCard("Dorong Prestasi Siswa", "Catat dan validasi prestasi akademik maupun non-akademik yang diraih siswa.")}
-                    {renderFeatureCard("Bimbingan Karier & PKL", "Kelola kesiapan siswa untuk Praktik Kerja Lapangan (PKL) dan perencanaan karier.")}
+                    {renderFeatureCard("Catat Prestasi Siswa", "Validasi prestasi akademik maupun non-akademik yang diraih siswa.", () => setIsPrestasiDialogOpen(true))}
+                    
+                    <Card className="h-full">
+                      <CardHeader>
+                        <CardTitle className="text-base">Bimbingan Karier & PKL</CardTitle>
+                        <CardDescription className="text-sm">Kelola kesiapan siswa untuk Praktik Kerja Lapangan (PKL).</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start"><PlusCircle className="mr-2 h-4 w-4" /> Pilih Siswa...</Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Cari siswa binaan..." />
+                              <CommandList>
+                                <CommandEmpty>Tidak ada siswa ditemukan.</CommandEmpty>
+                                <CommandGroup>
+                                  {siswaBinaan.map((siswa) => (
+                                    <CommandItem key={siswa.id} onSelect={() => handleOpenPklDialog(siswa)}>
+                                      {siswa.nama}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </CardContent>
+                    </Card>
+
                     {renderFeatureCard("Motivasi & Pengembangan Diri", "Berikan catatan motivasi dan rekomendasikan peluang pengembangan seperti lomba atau seminar.")}
                     {renderFeatureCard("Pemetaan Minat & Bakat", "Dokumentasikan minat dan bakat siswa sebagai dasar pengarahan kegiatan ekstrakurikuler.")}
                 </CardContent>
@@ -73,13 +239,125 @@ export default function BimbinganSiswaPage() {
                 </CardHeader>
                  <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {renderFeatureCard("Tanamkan Disiplin & Tanggung Jawab", "Gunakan data kehadiran dan catatan perilaku sebagai media pembinaan kedisiplinan.")}
-                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.")}
+                    {renderFeatureCard("Bimbingan Perilaku Positif", "Catat sesi konseling atau bimbingan terkait etika, sopan santun, dan perilaku sosial.", () => setIsLogDialogOpen(true))}
                     {renderFeatureCard("Berikan Teladan (Role Model)", "Dokumentasikan kegiatan positif yang bisa menjadi contoh bagi siswa lain.")}
                     {renderFeatureCard("Kolaborasi dengan Orang Tua", "Akses rekapitulasi performa siswa sebagai bahan diskusi dengan orang tua/wali.")}
                 </CardContent>
             </Card>
         </TabsContent>
       </Tabs>
+
+      {/* --- Dialogs --- */}
+
+      {/* Dialog Catat Prestasi */}
+      <Dialog open={isPrestasiDialogOpen} onOpenChange={setIsPrestasiDialogOpen}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Catat Prestasi Siswa</DialogTitle></DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label>Pilih Siswa</Label>
+                      <Select onValueChange={nis => setPrestasiFormData(p => ({...p, nis}))}>
+                          <SelectTrigger><SelectValue placeholder="Pilih siswa binaan..." /></SelectTrigger>
+                          <SelectContent>
+                              {siswaBinaan.map(s => <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="deskripsi">Deskripsi Prestasi</Label>
+                      <Input id="deskripsi" placeholder="Contoh: Juara 1 LKS tingkat Provinsi" onChange={e => setPrestasiFormData(p => ({...p, deskripsi: e.target.value}))}/>
+                  </div>
+                   <div className="space-y-2">
+                      <Label htmlFor="tingkat">Tingkat</Label>
+                      <Select onValueChange={tingkat => setPrestasiFormData(p => ({...p, tingkat}))}>
+                          <SelectTrigger id="tingkat"><SelectValue placeholder="Pilih tingkat..." /></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Sekolah">Sekolah</SelectItem>
+                              <SelectItem value="Kabupaten/Kota">Kabupaten/Kota</SelectItem>
+                              <SelectItem value="Provinsi">Provinsi</SelectItem>
+                              <SelectItem value="Nasional">Nasional</SelectItem>
+                              <SelectItem value="Internasional">Internasional</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button onClick={handleSavePrestasi}>Simpan Prestasi</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      
+      {/* Dialog Kelola PKL */}
+      <Dialog open={isPklDialogOpen} onOpenChange={setIsPklDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Kelola Kesiapan PKL</DialogTitle>
+                <DialogDescription>Untuk siswa: {selectedSiswaPkl?.nama}</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="status-pkl">Status</Label>
+                      <Select value={pklFormData.status} onValueChange={status => setPklFormData({...pklFormData, status})}>
+                          <SelectTrigger id="status-pkl"><SelectValue/></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Belum Siap">Belum Siap</SelectItem>
+                              <SelectItem value="Proses Seleksi">Proses Seleksi</SelectItem>
+                              <SelectItem value="Siap Berangkat">Siap Berangkat</SelectItem>
+                              <SelectItem value="Sedang PKL">Sedang PKL</SelectItem>
+                              <SelectItem value="Selesai PKL">Selesai PKL</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="perusahaan">Perusahaan (Jika sudah ada)</Label>
+                      <Input id="perusahaan" value={pklFormData.perusahaan || ''} onChange={e => setPklFormData({...pklFormData, perusahaan: e.target.value})} />
+                  </div>
+                   <div className="space-y-2">
+                      <Label htmlFor="progres">Progres Kesiapan (%)</Label>
+                      <Input id="progres" type="number" min="0" max="100" value={pklFormData.progres || 0} onChange={e => setPklFormData({...pklFormData, progres: parseInt(e.target.value)})} />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="catatan-pkl">Catatan Pendamping</Label>
+                      <Textarea id="catatan-pkl" value={pklFormData.catatan || ''} onChange={e => setPklFormData({...pklFormData, catatan: e.target.value})} />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button onClick={handleSavePkl}>Simpan Data PKL</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      
+      {/* Dialog Log Bimbingan */}
+      <Dialog open={isLogDialogOpen} onOpenChange={setIsLogDialogOpen}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Catat Log Bimbingan Perilaku</DialogTitle></DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label>Pilih Siswa</Label>
+                      <Select onValueChange={nis => setLogFormData(p => ({...p, nis}))}>
+                          <SelectTrigger><SelectValue placeholder="Pilih siswa binaan..." /></SelectTrigger>
+                          <SelectContent>
+                              {siswaBinaan.map(s => <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="kategori-log">Kategori Bimbingan</Label>
+                      <Input id="kategori-log" placeholder="Contoh: Etika, Disiplin, Sosial" onChange={e => setLogFormData(p => ({...p, kategori: e.target.value}))}/>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="catatan-log">Catatan Sesi</Label>
+                      <Textarea id="catatan-log" placeholder="Tuliskan ringkasan sesi bimbingan atau konseling di sini..." onChange={e => setLogFormData(p => ({...p, catatan: e.target.value}))}/>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="outline">Batal</Button></DialogClose>
+                  <Button onClick={handleSaveLog}>Simpan Log</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   );
 }
