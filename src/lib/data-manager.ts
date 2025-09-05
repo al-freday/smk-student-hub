@@ -19,7 +19,6 @@ export const getSourceData = (key: string, defaultValue: any): any => {
   try {
     const localData = localStorage.getItem(key);
     if (localData === null) {
-      // Don't set default value here to avoid overwriting on initial load
       return defaultValue;
     }
     return JSON.parse(localData);
@@ -70,7 +69,6 @@ export async function fetchDataFromFirebase(path: string) {
       return data;
     } else {
       console.log(`No data available at path: ${path}`);
-      // Cache null to prevent re-fetching non-existent data
       if (!isServer) {
         localStorage.setItem(path, JSON.stringify(null));
       }
@@ -78,7 +76,6 @@ export async function fetchDataFromFirebase(path: string) {
     }
   } catch (error) {
     console.error(`Firebase Read Error for path "${path}":`, error);
-    // Attempt to return cached data on error
     if (!isServer) {
       const cachedData = localStorage.getItem(path);
       if (cachedData) return JSON.parse(cachedData);
@@ -97,17 +94,31 @@ export async function saveDataToFirebase(path: string, data: any) {
   try {
     const dbRef = ref(db, path);
     await set(dbRef, data);
-    // Update local cache after successful save
     if (!isServer) {
-      localStorage.setItem(path, JSON.stringify(data));
-      // Dispatch event to notify components of data change
-      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: path, value: data } }));
+      // Manually update the local cache for the root object if a sub-path is changed
+      const rootPath = path.split('/')[0];
+      const rootData = await fetchDataFromFirebase(rootPath);
+      if (rootData) {
+        updateSourceData(rootPath, rootData);
+      } else {
+         // If root data is complex, just update the specific path
+         // This is a simplification; a more robust solution might merge data
+         const existingData = getSourceData(rootPath, {});
+         const pathParts = path.split('/');
+         let current = existingData;
+         for (let i = 1; i < pathParts.length - 1; i++) {
+            current = current[pathParts[i]] = current[pathParts[i]] || {};
+         }
+         current[pathParts[pathParts.length-1]] = data;
+         updateSourceData(rootPath, existingData);
+      }
     }
   } catch (error) {
     console.error(`Firebase Write Error for path "${path}":`, error);
     throw error;
   }
 }
+
 
 /**
  * Removes data from a specific path in Firebase Realtime Database.
@@ -118,7 +129,6 @@ export async function removeDataFromFirebase(path: string) {
     try {
         const dbRef = ref(db, path);
         await remove(dbRef);
-        // Remove from local cache
         if (!isServer) {
             localStorage.removeItem(path);
              window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: path, value: null } }));

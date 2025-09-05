@@ -9,7 +9,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { fetchDataFromFirebase, updateSourceData } from '@/lib/data-manager';
+import { signInToFirebase } from '@/lib/firebase';
+import { fetchDataFromFirebase } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -57,28 +58,28 @@ export default function LoginPage() {
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
+          // First, sign in anonymously to get permission to read the database.
+          await signInToFirebase();
+
+          // Now that we're authenticated, we can fetch data.
           const teachersData = await fetchDataFromFirebase('teachersData');
           
           if (teachersData && teachersData.schoolInfo) {
               setSchoolInfo(teachersData.schoolInfo);
-              // Cache it locally for other parts of the app to use
-              updateSourceData('teachersData', teachersData);
           }
 
           const users: User[] = [];
           if (teachersData) {
             const { schoolInfo, ...roles } = teachersData;
             
-            // Add Wakasek manually as it's a special role
             users.push({
               id: 'wakasek_kesiswaan-0',
               nama: 'Wakasek Kesiswaan',
               role: 'Wakasek Kesiswaan',
               roleKey: 'wakasek_kesiswaan',
-              password: 'password123', // Static password for Wakasek
+              password: 'password123',
             });
 
-            // Iterate over roles fetched from Firebase
             Object.keys(roles).forEach(roleKey => {
                 const roleArray = roles[roleKey as keyof typeof roles];
                 if (Array.isArray(roleArray)) {
@@ -127,7 +128,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4">
                {schoolInfo.logo ? (
                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={schoolInfo.logo} alt="School Logo" data-ai-hint="school building" />
+                    <AvatarImage src={schoolInfo.logo} alt="School Logo" data-ai-hint="school building"/>
                     <AvatarFallback>S</AvatarFallback>
                  </Avatar>
                ) : (

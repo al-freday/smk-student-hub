@@ -1,20 +1,18 @@
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getDatabase, connectDatabaseEmulator, Database } from "firebase/database";
+import { getDatabase, Database } from "firebase/database";
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSignOut, User, Auth } from "firebase/auth";
 
 // Your web app's Firebase configuration is automatically provided by the system.
-// Do not manually edit this object.
 const firebaseConfig = {
-  apiKey: "API_KEY",
-  authDomain: "PROJECT_ID.firebaseapp.com",
-  projectId: "PROJECT_ID",
-  storageBucket: "PROJECT_ID.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID",
-  measurementId: "G-MEASUREMENT_ID",
-  databaseURL: "https://PROJECT_ID.firebaseio.com"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
 };
 
 
@@ -31,22 +29,6 @@ if (getApps().length === 0) {
 
 auth = getAuth(app);
 db = getDatabase(app);
-
-
-// Check if we are in a local development environment and connect to the emulator if needed.
-if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('cloudworkstations.dev'))) {
-    try {
-        // @ts-ignore - A simple check to prevent multiple connections in HMR environments
-        if (!db.emulator) {
-            console.log("Connecting to local Realtime Database emulator.");
-            connectDatabaseEmulator(db, 'localhost', 9000);
-            // @ts-ignore
-            db.emulator = true;
-        }
-    } catch (error) {
-        console.warn("Could not connect to Realtime Database emulator. It might already be connected.", error);
-    }
-}
 
 let firebaseUser: User | null = null;
 let authReadyPromise: Promise<User | null>;
@@ -65,6 +47,12 @@ export const signInToFirebase = async () => {
     if (firebaseUser) {
         return firebaseUser;
     }
+    // Wait for initial auth state to be resolved
+    await authReadyPromise;
+    if (firebaseUser) {
+        return firebaseUser;
+    }
+
     try {
         const userCredential = await signInAnonymously(auth);
         return userCredential.user;
@@ -86,5 +74,11 @@ export const signOutFromFirebase = async () => {
         console.error("Firebase sign-out failed:", error);
     }
 };
+
+// Ensure auth is ready before exporting db
+export const getDb = async () => {
+    await authReadyPromise;
+    return db;
+}
 
 export { app, db, auth };
