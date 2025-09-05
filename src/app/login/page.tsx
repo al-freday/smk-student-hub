@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadInitialData = () => {
+  const loadInitialData = useCallback(() => {
       try {
           const savedData = getSourceData('teachersData', {});
           if (savedData.schoolInfo) {
@@ -54,7 +54,6 @@ export default function LoginPage() {
           const users: User[] = [];
           const { schoolInfo, ...roles } = savedData;
           
-          // Add wakasek manually
           users.push({
             id: 'wakasek_kesiswaan-0',
             nama: 'Wakasek Kesiswaan',
@@ -83,17 +82,18 @@ export default function LoginPage() {
       } finally {
           setIsLoading(false);
       }
-  };
+  }, []);
 
   useEffect(() => {
     loadInitialData();
-    // Add event listener to reload school info when admin saves settings
     window.addEventListener('dataUpdated', loadInitialData);
+    window.addEventListener('storage', loadInitialData); // Listen for changes from other tabs
 
     return () => {
         window.removeEventListener('dataUpdated', loadInitialData);
+        window.removeEventListener('storage', loadInitialData);
     };
-  }, []);
+  }, [loadInitialData]);
 
   if (isLoading) {
     return (

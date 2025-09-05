@@ -3,9 +3,10 @@
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import Head from "next/head";
+import { getSourceData } from "@/lib/data-manager";
 
 const applyTheme = () => {
     const userRole = localStorage.getItem("userRole");
@@ -38,52 +39,38 @@ export default function RootLayout({
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
-  // This useEffect will run on the client to handle dynamic updates like theme and favicon
-  useEffect(() => {
-    const loadSchoolInfoAndTheme = () => {
+  const loadSchoolInfoAndTheme = useCallback(() => {
       let currentSchoolInfo = { schoolName: "SMK Student Hub", logo: "" };
-      const savedData = localStorage.getItem('teachersData');
-      if (savedData) {
-        try {
-          const teachersData = JSON.parse(savedData);
-          if (teachersData.schoolInfo) {
-            currentSchoolInfo = teachersData.schoolInfo;
-            setSchoolInfo(currentSchoolInfo);
-          }
-        } catch (e) {
-            console.error("Failed to parse teachersData from localStorage", e);
-        }
+      const savedData = getSourceData('teachersData', null);
+      if (savedData && savedData.schoolInfo) {
+          currentSchoolInfo = savedData.schoolInfo;
+          setSchoolInfo(currentSchoolInfo);
       }
 
-      // Dynamically set favicon on the client
       const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
       if (favicon && currentSchoolInfo.logo) {
         favicon.href = currentSchoolInfo.logo;
       }
       
       applyTheme();
-    };
-    
+  }, []);
+  
+  useEffect(() => {
     loadSchoolInfoAndTheme();
 
-    const handleStorageUpdate = () => {
-        loadSchoolInfoAndTheme();
-    };
-
-    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('storage', loadSchoolInfoAndTheme);
     window.addEventListener('roleChanged', applyTheme);
     window.addEventListener('dataUpdated', loadSchoolInfoAndTheme);
 
     return () => {
-      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('storage', loadSchoolInfoAndTheme);
       window.removeEventListener('roleChanged', applyTheme);
-      window.removeEventListener('dataUpdated', handleStorageUpdate);
+      window.removeEventListener('dataUpdated', loadSchoolInfoAndTheme);
     };
-  }, []);
+  }, [loadSchoolInfoAndTheme]);
   
   const pageTitle = schoolInfo.schoolName || "SMK Student Hub";
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${pageTitle}.`;
-  // Use a static, publicly accessible placeholder image for social media previews
   const imageUrl = "https://picsum.photos/1200/630";
 
 
