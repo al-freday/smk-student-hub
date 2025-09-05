@@ -38,6 +38,13 @@ const getRoleDisplayName = (role: string) => {
     }
 };
 
+const createEmailFromName = (name: string, id: string) => {
+    const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
+    const idPart = String(id).split('-').pop();
+    return `${namePart}${idPart}@schoolemail.com`;
+};
+
+
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -105,12 +112,10 @@ export function LoginForm() {
         const user = roles[role].find((u: any) => {
             if (!u.nama || typeof u.nama !== 'string' || u.id === undefined) return false;
             
-            // Generate email based on name and ID
-            const namePart = u.nama.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-            const idPart = String(u.id); // No need to split, use the full ID
-            const expectedEmail = `${namePart}${idPart}@schoolemail.com`;
+            const expectedEmail = createEmailFromName(u.nama, u.id);
             
             // Use provided password from seed data, fallback to a pattern if missing
+            const idPart = String(u.id).split('-').pop();
             const expectedPassword = u.password || `password${idPart}`;
             
             return expectedEmail === emailToSearch && values.password === expectedPassword;
