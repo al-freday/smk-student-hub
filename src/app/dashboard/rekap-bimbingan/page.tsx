@@ -9,9 +9,11 @@ import { getSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch } from "lucide-react";
+import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch, Download, Printer } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 
 // Tipe Data
@@ -39,6 +41,7 @@ export default function RekapBimbinganPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [siswaBinaan, setSiswaBinaan] = useState<Siswa[]>([]);
   const [selectedNis, setSelectedNis] = useState<string>("");
@@ -100,6 +103,42 @@ export default function RekapBimbinganPage() {
     return siswaBinaan.find(s => s.nis === selectedNis);
   }, [siswaBinaan, selectedNis]);
 
+  const handleDownloadPdf = async () => {
+    if (!selectedSiswa) return;
+    const reportElement = document.getElementById('report-table-area');
+    if (!reportElement) {
+        toast({ title: "Gagal", description: "Tidak dapat menemukan konten laporan.", variant: "destructive" });
+        return;
+    }
+    
+    setIsGeneratingPdf(true);
+    toast({ title: "Membuat PDF...", description: "Harap tunggu sebentar." });
+    
+    try {
+        const canvas = await html2canvas(reportElement, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        pdf.setFontSize(16);
+        pdf.text(`Rekap Bimbingan - ${selectedSiswa.nama}`, 14, 15);
+        pdf.setFontSize(10);
+        pdf.text(`Kelas: ${selectedSiswa.kelas}`, 14, 22);
+
+        pdf.addImage(imgData, 'PNG', 10, 30, pdfWidth - 20, imgHeight > 250 ? 250 : imgHeight);
+        
+        pdf.save(`Rekap_Bimbingan_${selectedSiswa.nama.replace(/\s/g, '_')}.pdf`);
+        toast({ title: "Berhasil!", description: "Laporan PDF telah diunduh." });
+    } catch (error) {
+        console.error("Gagal membuat PDF:", error);
+        toast({ title: "Gagal", description: "Terjadi kesalahan saat membuat PDF.", variant: "destructive" });
+    } finally {
+        setIsGeneratingPdf(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
@@ -127,7 +166,7 @@ export default function RekapBimbinganPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <CardTitle>Riwayat Catatan Bimbingan</CardTitle>
-                    <CardDescription>Pilih seorang siswa untuk melihat riwayat bimbingannya.</CardDescription>
+                    <CardDescription>Pilih seorang siswa untuk melihat dan mengunduh riwayat bimbingannya.</CardDescription>
                 </div>
                 <div className="flex items-end gap-2 w-full sm:w-auto">
                     <div className="flex-1">
@@ -143,44 +182,65 @@ export default function RekapBimbinganPage() {
                             </SelectContent>
                         </Select>
                     </div>
+                     <Button onClick={handleDownloadPdf} disabled={!selectedNis || isGeneratingPdf}>
+                        {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                        Unduh PDF
+                    </Button>
                 </div>
             </div>
         </CardHeader>
         <CardContent>
            {selectedNis ? (
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead>Tipe Bimbingan</TableHead>
-                    <TableHead>Kategori</TableHead>
-                    <TableHead>Catatan</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                   {filteredLogs.length > 0 ? (
-                     filteredLogs.map(log => (
-                        <TableRow key={log.id}>
-                            <TableCell className="whitespace-nowrap">{format(new Date(log.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    {getTipeIcon(log.tipe)}
-                                    <span className="font-medium">{log.tipe}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>{log.kategori}</TableCell>
-                            <TableCell>{log.catatan}</TableCell>
-                        </TableRow>
-                     ))
-                   ) : (
+             <div id="report-table-area">
+                 <Table>
+                   <TableHeader>
                      <TableRow>
-                         <TableCell colSpan={4} className="h-24 text-center">
-                             Tidak ada catatan bimbingan yang ditemukan untuk siswa ini.
-                         </TableCell>
+                        <TableHead>Siswa</TableHead>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Tipe</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead>Catatan</TableHead>
                      </TableRow>
-                   )}
-               </TableBody>
-             </Table>
+                   </TableHeader>
+                   <TableBody>
+                       {filteredLogs.length > 0 ? (
+                         filteredLogs.map((log, index, array) => {
+                            const prevLog = index > 0 ? array[index - 1] : null;
+                            const showSiswa = !prevLog || prevLog.nis !== log.nis;
+                            const showTanggal = showSiswa || prevLog?.tanggal !== log.tanggal;
+                            const showTipe = showTanggal || prevLog?.tipe !== log.tipe;
+
+                            return (
+                                <TableRow key={log.id}>
+                                    <TableCell className="font-medium whitespace-nowrap">
+                                        {showSiswa && (selectedSiswa?.nama || log.nis)}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        {showTanggal && format(new Date(log.tanggal), "dd MMM yyyy", { locale: id })}
+                                    </TableCell>
+                                    <TableCell>
+                                      {showTipe && (
+                                          <div className="flex items-center gap-2">
+                                              {getTipeIcon(log.tipe)}
+                                              <span>{log.tipe}</span>
+                                          </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell>{log.kategori}</TableCell>
+                                    <TableCell>{log.catatan}</TableCell>
+                                </TableRow>
+                            )
+                         })
+                       ) : (
+                         <TableRow>
+                             <TableCell colSpan={5} className="h-24 text-center">
+                                 Tidak ada catatan bimbingan yang ditemukan untuk siswa ini.
+                             </TableCell>
+                         </TableRow>
+                       )}
+                   </TableBody>
+                 </Table>
+             </div>
            ) : (
              <div className="text-center text-muted-foreground py-10">
                 <UserSearch className="mx-auto h-12 w-12 text-gray-400" />
