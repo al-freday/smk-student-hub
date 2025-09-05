@@ -1,6 +1,5 @@
 
 import { initialKurikulumData } from './kurikulum-data';
-import { initialEkskulData } from './ekskul-data';
 import { tataTertibData } from './tata-tertib-data';
 
 const seedInitialData = () => {
@@ -54,7 +53,7 @@ const initializeData = () => {
     // Pengecekan untuk data yang mungkin belum ada
     const requiredKeys = [
         'siswaData', 'kelasData', 'teachersData', 'riwayatPelanggaran', 
-        'prestasiData', 'ekskulData', 'kurikulumData', 'kehadiranSiswaPerSesi',
+        'prestasiData', 'kurikulumData', 'kehadiranSiswaPerSesi',
         'teacherAttendanceData', 'logBimbinganData', 'layananBimbinganData', 
         'rencanaIndividualData', 'assignmentLogData', 'waliKelasReportsStatus',
         'tataTertibData'
@@ -73,12 +72,9 @@ const initializeData = () => {
         seedInitialData();
     }
     
-    // Inisialisasi data kurikulum, ekskul, dan tata tertib jika belum ada
+    // Inisialisasi data kurikulum dan tata tertib jika belum ada
     if (localStorage.getItem('kurikulumData') === null) {
         localStorage.setItem('kurikulumData', JSON.stringify(initialKurikulumData));
-    }
-    if (localStorage.getItem('ekskulData') === null) {
-        localStorage.setItem('ekskulData', JSON.stringify(initialEkskulData));
     }
     if (localStorage.getItem('tataTertibData') === null) {
         localStorage.setItem('tataTertibData', JSON.stringify(tataTertibData));

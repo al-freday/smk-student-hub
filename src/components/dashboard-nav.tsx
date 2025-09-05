@@ -26,7 +26,6 @@ import {
   ClipboardCheck,
   Briefcase,
   Folders,
-  Award,
 } from "lucide-react";
 import {
   SidebarHeader,
