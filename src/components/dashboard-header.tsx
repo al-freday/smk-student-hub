@@ -62,10 +62,19 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     loadData();
-    window.addEventListener('dataUpdated', loadData as EventListener);
+    const handleDataChange = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        // Only reload user-specific data if currentUser or teachersData changes
+        if (['currentUser', 'teachersData'].includes(customEvent.detail?.key)) {
+            loadData();
+        }
+    };
+    window.addEventListener('dataUpdated', handleDataChange);
+    window.addEventListener('storage', loadData); // Listen for changes from other tabs
     
     return () => {
-        window.removeEventListener('dataUpdated', loadData as EventListener);
+        window.removeEventListener('dataUpdated', handleDataChange);
+        window.removeEventListener('storage', loadData);
     };
   }, [loadData]);
 

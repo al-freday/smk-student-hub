@@ -31,12 +31,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
+  const [pageTitle, setPageTitle] = useState("SMK Student Hub");
 
   const applyThemeForRole = useCallback(async () => {
     const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-    // Use localStorage for theme settings to avoid async calls in layout
-    const themeSettings = JSON.parse(localStorage.getItem('themeSettings') || '{}');
+    const themeSettings = await getSourceData('themeSettings', {});
     const themeKey = themeSettings[userRole] || 'default';
     const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
     
@@ -45,66 +44,34 @@ export default function RootLayout({
     });
   }, []);
   
-  const loadSchoolInfo = useCallback(async () => {
-    // This now fetches from DB and might take a moment.
-    // It's better to load this inside specific components that need it.
-    // For the layout, we can rely on a cached version in localStorage.
-    const savedData = JSON.parse(localStorage.getItem('teachersData') || '{}');
-     if (savedData && savedData.schoolInfo) {
-        setSchoolInfo(savedData.schoolInfo);
-     }
-     // Async fetch for future updates
-     getSourceData('teachersData', {}).then(dbData => {
-         if (dbData && dbData.schoolInfo) {
-             setSchoolInfo(dbData.schoolInfo);
-             localStorage.setItem('teachersData', JSON.stringify(dbData));
-         }
-     });
+  useEffect(() => {
+    applyThemeForRole();
+    window.addEventListener('roleChanged', applyThemeForRole);
+    return () => {
+      window.removeEventListener('roleChanged', applyThemeForRole);
+    };
+  }, [applyThemeForRole]);
+
+  useEffect(() => {
+    // This effect now only handles dynamic page title updates
+    const handleDataUpdate = async () => {
+        const teachersData = await getSourceData('teachersData', {});
+        if (teachersData && teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
+            setPageTitle(teachersData.schoolInfo.schoolName);
+        }
+    };
+    handleDataUpdate();
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
   }, []);
   
-  useEffect(() => {
-    loadSchoolInfo();
-    applyThemeForRole();
-
-    const handleDataChange = () => {
-      loadSchoolInfo();
-      applyThemeForRole();
-    };
-
-    window.addEventListener('dataUpdated', handleDataChange);
-    window.addEventListener('roleChanged', handleDataChange);
-    
-    return () => {
-      window.removeEventListener('dataUpdated', handleDataChange);
-      window.removeEventListener('roleChanged', handleDataChange);
-    };
-  }, [loadSchoolInfo, applyThemeForRole]);
-  
-  const pageTitle = schoolInfo.schoolName || "SMK Student Hub";
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${pageTitle}.`;
-  const imageUrl = "https://picsum.photos/1200/630";
 
   return (
     <html lang="en" suppressHydrationWarning>
       <Head>
         <title>{pageTitle}</title>
-        {schoolInfo.logo && <link id="favicon" key="favicon" rel="icon" href={schoolInfo.logo} type="image/png" />}
         <meta name="description" content={pageDescription} />
-        
-        {/* Open Graph / Facebook Meta Tags */}
-        <meta property="og:type" content="website" />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:image" content={imageUrl} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-
-        {/* Twitter Card Meta Tags */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:title" content={pageTitle} />
-        <meta property="twitter:description" content={pageDescription} />
-        <meta property="twitter:image" content={imageUrl} />
-        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
