@@ -140,18 +140,20 @@ export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
 
 /**
  * Mengambil dan mengolah semua data yang dibutuhkan untuk halaman Administrasi Wali Kelas.
+ * @param selectedKelas Kelas yang dipilih untuk filtering data.
  * @returns {object} Objek berisi semua data yang telah diolah.
  */
-export const getAdministrasiWaliKelasData = () => {
+export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     const currentUser = getSourceData('currentUser', null);
     if (!currentUser) return { currentUser: null };
     
     const teachersData = getSourceData('teachersData', {});
     const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
     const kelasBinaan = waliKelasData?.kelas || [];
+    const filterKelas = selectedKelas ? [selectedKelas] : kelasBinaan;
 
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
-    const siswaBinaan = allSiswa.filter(s => kelasBinaan.includes(s.kelas));
+    const siswaBinaan = allSiswa.filter(s => filterKelas.includes(s.kelas));
     
     const allPelanggaran: any[] = getSourceData('riwayatPelanggaran', []);
     const allPrestasi: any[] = getSourceData('prestasiData', []);
@@ -171,7 +173,7 @@ export const getAdministrasiWaliKelasData = () => {
         guruMapelList.forEach((guru: any) => {
             if (Array.isArray(guru.teachingAssignments)) {
                 guru.teachingAssignments.forEach((assignment: any) => {
-                    if (kelasBinaan.includes(assignment.className)) {
+                    if (filterKelas.includes(assignment.className)) {
                         const currentGurus = guruDiKelas.get(assignment.subject) || [];
                         if (!currentGurus.includes(guru.nama)) {
                             guruDiKelas.set(assignment.subject, [...currentGurus, guru.nama]);
@@ -216,7 +218,7 @@ export const getAdministrasiWaliKelasData = () => {
     
     return {
         currentUser,
-        kelasBinaan,
+        kelasBinaan, // Return all assigned classes for the dropdown
         totalSiswa: siswaBinaan.length,
         kehadiranRataRata,
         siswaPoinTertinggi,

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatCard from "@/components/stat-card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 // --- Tipe Data ---
 interface AdministrasiData {
@@ -31,14 +33,24 @@ export default function AdministrasiWaliKelasPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<AdministrasiData | null>(null);
+  const [selectedKelas, setSelectedKelas] = useState<string>("");
+  const [availableKelas, setAvailableKelas] = useState<string[]>([]);
 
   const loadData = useCallback(() => {
     setIsLoading(true);
     try {
-      const result = getAdministrasiWaliKelasData();
+      const result = getAdministrasiWaliKelasData(selectedKelas);
       if (!result.currentUser) {
         router.push('/');
         return;
+      }
+      
+      if (availableKelas.length === 0 && result.kelasBinaan.length > 0) {
+        setAvailableKelas(result.kelasBinaan);
+        // Set default selected class only once
+        if (!selectedKelas) {
+            setSelectedKelas(result.kelasBinaan[0]);
+        }
       }
       setData(result);
     } catch (error) {
@@ -46,7 +58,7 @@ export default function AdministrasiWaliKelasPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [router]);
+  }, [router, selectedKelas, availableKelas, setSelectedKelas]);
 
   useEffect(() => {
     loadData();
@@ -64,11 +76,26 @@ export default function AdministrasiWaliKelasPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Pusat Administrasi Wali Kelas</h2>
-        <p className="text-muted-foreground">
-          Kelola semua data dan dokumen untuk kelas binaan Anda: <span className="font-semibold text-primary">{data.kelasBinaan.join(', ')}</span>
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 className="text-3xl font-bold tracking-tight">Pusat Administrasi Wali Kelas</h2>
+            <p className="text-muted-foreground">
+            Kelola semua data dan dokumen untuk kelas binaan Anda.
+            </p>
+        </div>
+        {availableKelas.length > 1 && (
+            <div className="flex items-center gap-2">
+                <Label htmlFor="kelas-selector">Tampilkan Data Untuk Kelas:</Label>
+                <Select value={selectedKelas} onValueChange={setSelectedKelas}>
+                    <SelectTrigger id="kelas-selector" className="w-[180px]">
+                        <SelectValue placeholder="Pilih Kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableKelas.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        )}
       </div>
       
       <div className="grid gap-4 md:grid-cols-3">
