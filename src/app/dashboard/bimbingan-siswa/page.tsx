@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -31,7 +30,7 @@ interface LogAkademik { id: string; tanggal: string; kategori: string; catatan: 
 interface LogKompetensi { id: string; tanggal: string; kategori: string; catatan: string; }
 
 type KategoriAkademik = "Pantau Perkembangan Belajar" | "Identifikasi Kesulitan Akademik" | "Koordinasi dengan Guru Mapel" | "Rencana Pembelajaran Individual";
-type KategoriKompetensi = "Motivasi & Pengembangan Diri" | "Pemetaan Minat & Bakat";
+type KategoriKompetensi = "Motivasi & Pengembangan Diri" | "Pemetaan Minat & Bakat" | "Bimbingan Karier & PKL";
 type KategoriKarakter = "Tanamkan Disiplin & Tanggung Jawab" | "Bimbingan Perilaku Positif" | "Berikan Teladan (Role Model)" | "Kolaborasi dengan Orang Tua";
 
 export default function BimbinganSiswaPage() {
@@ -267,36 +266,7 @@ export default function BimbinganSiswaPage() {
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {renderFeatureCard("Catat Prestasi Siswa", "Validasi prestasi akademik maupun non-akademik yang diraih siswa.", () => setIsPrestasiDialogOpen(true))}
-                    
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">Bimbingan Karier & PKL</CardTitle>
-                        <CardDescription className="text-sm">Kelola kesiapan siswa untuk Praktik Kerja Lapangan (PKL).</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start"><PlusCircle className="mr-2 h-4 w-4" /> Pilih Siswa...</Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                              <CommandInput placeholder="Cari siswa binaan..." />
-                              <CommandList>
-                                <CommandEmpty>Tidak ada siswa ditemukan.</CommandEmpty>
-                                <CommandGroup>
-                                  {siswaBinaan.map((siswa) => (
-                                    <CommandItem key={siswa.id} onSelect={() => handleOpenPklDialog(siswa)}>
-                                      {siswa.nama}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </CardContent>
-                    </Card>
-
+                    {renderFeatureCard("Bimbingan Karier & PKL", "Kelola kesiapan dan catat perkembangan siswa untuk Praktik Kerja Lapangan (PKL).", () => handleOpenLogKompetensiDialog("Bimbingan Karier & PKL"))}
                     {renderFeatureCard("Motivasi & Pengembangan Diri", "Berikan catatan motivasi dan rekomendasikan peluang pengembangan seperti lomba atau seminar.", () => handleOpenLogKompetensiDialog("Motivasi & Pengembangan Diri"))}
                     {renderFeatureCard("Pemetaan Minat & Bakat", "Dokumentasikan minat dan bakat siswa sebagai dasar pengarahan kegiatan ekstrakurikuler.", () => handleOpenLogKompetensiDialog("Pemetaan Minat & Bakat"))}
                 </CardContent>
