@@ -109,10 +109,12 @@ export default function LaporanMasukWakasekPage() {
   };
   
   const handleStatusChange = (id: number, status: StatusLaporan, resetSelection: boolean = true) => {
-    const updatedRiwayat = semuaPelanggaran.map(item =>
+    const allPelanggaranData = getSourceData('riwayatPelanggaran', []);
+    const updatedRiwayat = allPelanggaranData.map((item: CatatanPelanggaran) =>
       item.id === id ? { ...item, status: status, penanganan: formData } : item
     );
     updateSourceData('riwayatPelanggaran', updatedRiwayat);
+    setSemuaPelanggaran(updatedRiwayat);
     toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
     if (resetSelection) {
         setSelectedPelanggaran(null);

@@ -65,13 +65,13 @@ export default function AdminPengaturanPage() {
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    async function loadData() {
+    function loadData() {
         if (sessionStorage.getItem("admin_logged_in") !== "true") {
           router.push("/admin");
           return;
         }
           
-        const teachersData = await getSourceData('teachersData', {});
+        const teachersData = getSourceData('teachersData', {});
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -89,14 +89,13 @@ export default function AdminPengaturanPage() {
         }
         setTotalUsers(count);
 
-        const themeSettings = await getSourceData('themeSettings', {});
+        const themeSettings = getSourceData('themeSettings', {});
         const loadedThemes: { [key: string]: string } = {};
         userRoles.forEach(role => {
             loadedThemes[role.key] = themeSettings[role.key] || 'default';
         });
         setSelectedThemes(loadedThemes);
 
-        // This calculation is fine with localStorage, as it's a browser-specific metric.
         let total = 0;
         for (let x in localStorage) {
             if (!localStorage.hasOwnProperty(x)) continue;
@@ -132,24 +131,24 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = async () => {
-      const savedData = await getSourceData('teachersData', {});
+  const handleSaveChanges = () => {
+      const savedData = getSourceData('teachersData', {});
       const updatedData = { ...savedData, schoolInfo: schoolInfo };
-      await updateSourceData('teachersData', updatedData);
+      updateSourceData('teachersData', updatedData);
       
       toast({
           title: "Pengaturan Disimpan",
-          description: "Informasi sekolah telah berhasil diperbarui di server.",
+          description: "Informasi sekolah telah berhasil diperbarui.",
       });
   };
 
-  const handleThemeChange = async (roleKey: string, themeKey: string) => {
+  const handleThemeChange = (roleKey: string, themeKey: string) => {
     const newSelectedThemes = { ...selectedThemes, [roleKey]: themeKey };
     setSelectedThemes(newSelectedThemes);
 
-    const currentThemeSettings = await getSourceData('themeSettings', {});
+    const currentThemeSettings = getSourceData('themeSettings', {});
     currentThemeSettings[roleKey] = themeKey;
-    await updateSourceData('themeSettings', currentThemeSettings);
+    updateSourceData('themeSettings', currentThemeSettings);
     
     toast({
         title: "Tema Diperbarui",

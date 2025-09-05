@@ -1,5 +1,4 @@
 
-
 import { format, subDays, eachDayOfInterval, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { getSourceData } from "./data-manager";
 
@@ -14,9 +13,9 @@ interface Kelas { id: number; nama: string; }
 
 /**
  * Mengambil dan menghitung statistik kunci untuk ditampilkan di dasbor.
- * @returns {Promise<object>} Objek berisi statistik kunci.
+ * @returns {object} Objek berisi statistik kunci.
  */
-export const getDashboardStats = async () => {
+export const getDashboardStats = () => {
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
     const totalSiswa = Array.isArray(allSiswa) ? allSiswa.length : 0;
 
@@ -50,7 +49,7 @@ export const getDashboardStats = async () => {
 
 /**
  * Menghitung jumlah siswa di setiap kelas.
- * @returns {Promise<Array<object>>} Data untuk diagram batang jumlah siswa per kelas.
+ * @returns {Array<object>} Data untuk diagram batang jumlah siswa per kelas.
  */
 export const getSiswaPerKelasData = () => {
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
@@ -71,7 +70,7 @@ export const getSiswaPerKelasData = () => {
 
 /**
  * Menghitung statistik pelanggaran berdasarkan tingkatannya.
- * @returns {Promise<Array<object>>} Data untuk diagram lingkaran proporsi pelanggaran.
+ * @returns {Array<object>} Data untuk diagram lingkaran proporsi pelanggaran.
  */
 export const getPelanggaranStats = () => {
     const riwayatPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
@@ -95,7 +94,7 @@ export const getPelanggaranStats = () => {
 /**
  * Menghitung tren kehadiran selama 30 hari terakhir.
  * @param filterKelas Opsional, array nama kelas untuk memfilter data kehadiran.
- * @returns {Promise<Array<object>>} Data untuk diagram garis tren kehadiran.
+ * @returns {Array<object>} Data untuk diagram garis tren kehadiran.
  */
 export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
     let allRecords: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
@@ -143,7 +142,7 @@ export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
 /**
  * Mengambil dan mengolah semua data yang dibutuhkan untuk halaman Administrasi Wali Kelas.
  * @param selectedKelas Kelas yang dipilih untuk filtering data.
- * @returns {Promise<object>} Objek berisi semua data yang telah diolah.
+ * @returns {object} Objek berisi semua data yang telah diolah.
  */
 export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     const currentUser = getSourceData('currentUser', null);

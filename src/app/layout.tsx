@@ -34,11 +34,10 @@ export default function RootLayout({
   const [pageTitle, setPageTitle] = useState("SMK Student Hub");
   const [schoolLogo, setSchoolLogo] = useState("");
 
-  const applyThemeForRole = useCallback(async () => {
-    // This function can run on first load, so we guard against localStorage access
+  const applyThemeForRole = useCallback(() => {
     if (typeof window !== 'undefined') {
         const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-        const themeSettings = await getSourceData('themeSettings', {});
+        const themeSettings = getSourceData('themeSettings', {});
         const themeKey = themeSettings[userRole] || 'default';
         const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
         
@@ -48,8 +47,8 @@ export default function RootLayout({
     }
   }, []);
   
-  const loadSchoolInfo = useCallback(async () => {
-    const teachersData = await getSourceData('teachersData', {});
+  const loadSchoolInfo = useCallback(() => {
+    const teachersData = getSourceData('teachersData', {});
     if (teachersData && teachersData.schoolInfo) {
         setPageTitle(teachersData.schoolInfo.schoolName || "SMK Student Hub");
         setSchoolLogo(teachersData.schoolInfo.logo || "");

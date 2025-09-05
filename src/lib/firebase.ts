@@ -21,6 +21,7 @@ if (firebaseConfig.databaseURL === "DATABASE_URL" && firebaseConfig.projectId) {
   firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}.firebaseio.com`;
 }
 
+
 // Initialize Firebase for client side
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getDatabase(app);

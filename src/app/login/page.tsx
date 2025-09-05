@@ -44,10 +44,10 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadInitialData = useCallback(async () => {
+  const loadInitialData = useCallback(() => {
       setIsLoading(true);
       try {
-          const savedData = await getSourceData('teachersData', {});
+          const savedData = getSourceData('teachersData', {});
           if (savedData && savedData.schoolInfo) {
               setSchoolInfo(savedData.schoolInfo);
           }

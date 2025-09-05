@@ -113,10 +113,10 @@ export default function AdminManajemenPenggunaPage() {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [activeDialogRole, setActiveDialogRole] = useState<AllRoles>('wali_kelas');
 
-  const loadDataFromStorage = async () => {
+  const loadDataFromStorage = () => {
     setIsLoading(true);
     try {
-        const teachersData = await getSourceData('teachersData', { ...initialData });
+        const teachersData = getSourceData('teachersData', { ...initialData });
         const usersData = { ...initialData } as { [key in AllRoles]: User[] };
         
         const { schoolInfo, ...roles } = teachersData;
@@ -159,13 +159,13 @@ export default function AdminManajemenPenggunaPage() {
       setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
       if (!formData.nama) {
           toast({ title: "Gagal", description: "Nama pengguna harus diisi.", variant: "destructive" });
           return;
       }
 
-      const teachersData = await getSourceData('teachersData', { ...initialData });
+      const teachersData = getSourceData('teachersData', { ...initialData });
       const currentList = teachersData[activeDialogRole] || [];
       
       if (editingUser) {
@@ -185,40 +185,40 @@ export default function AdminManajemenPenggunaPage() {
           teachersData[activeDialogRole] = [...currentList, newUser];
       }
 
-      await updateSourceData('teachersData', teachersData);
+      updateSourceData('teachersData', teachersData);
       
-      await loadDataFromStorage(); 
+      loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
   
-  const handleDelete = async (role: AllRoles) => {
+  const handleDelete = (role: AllRoles) => {
       if (!userToDelete) return;
       
-      const teachersData = await getSourceData('teachersData', initialData);
+      const teachersData = getSourceData('teachersData', initialData);
       const updatedList = (teachersData[role] || []).filter((t: Guru) => t.id !== userToDelete.id);
       
       const { schoolInfo, ...roles } = teachersData;
       const updatedTeachers = { ...roles, [role]: updatedList };
       const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
-      await updateSourceData('teachersData', finalDataToSave);
+      updateSourceData('teachersData', finalDataToSave);
       
-      await loadDataFromStorage(); 
+      loadDataFromStorage(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
-  const handleDeleteAll = async (role: AllRoles) => {
-    const teachersData = await getSourceData('teachersData', { ...initialData });
+  const handleDeleteAll = (role: AllRoles) => {
+    const teachersData = getSourceData('teachersData', { ...initialData });
     
     const { schoolInfo, ...roles } = teachersData;
     const updatedTeachers = { ...roles, [role]: [] };
     const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
-    await updateSourceData('teachersData', finalDataToSave);
+    updateSourceData('teachersData', finalDataToSave);
     
-    await loadDataFromStorage();
+    loadDataFromStorage();
     toast({
       title: `Semua Pengguna Dihapus`,
       description: `Semua pengguna dari peran ${getRoleName(role)} telah dihapus.`,
@@ -275,21 +275,21 @@ export default function AdminManajemenPenggunaPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
         try {
             let text = e.target?.result as string;
             text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
 
             const delimiter = ';';
             const rows = text.split('\n').filter(row => row.trim() !== '');
-            const header = rows.shift(); // Hapus baris header
+            rows.shift(); // Hapus baris header
 
             if (rows.length === 0) {
                 toast({ title: "Gagal Impor", description: "File CSV kosong atau tidak memiliki data.", variant: "destructive" });
                 return;
             }
 
-            const teachersData = await getSourceData('teachersData', { ...initialData });
+            const teachersData = getSourceData('teachersData', { ...initialData });
             const { schoolInfo, ...currentRoles } = teachersData;
             
             const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
@@ -326,9 +326,9 @@ export default function AdminManajemenPenggunaPage() {
             });
 
             const finalDataToSave = { ...teachersData, ...updatedRoles };
-            await updateSourceData('teachersData', finalDataToSave);
+            updateSourceData('teachersData', finalDataToSave);
             
-            await loadDataFromStorage();
+            loadDataFromStorage();
             toast({ 
                 title: "Impor Selesai", 
                 description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
