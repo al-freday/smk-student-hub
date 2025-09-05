@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Users, ShieldAlert, Trophy, Loader2, ArrowRight, Contact } from "lucide-react";
 import { getSourceData } from "@/lib/data-manager";
 import StatCard from "./stat-card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 interface Siswa {
   id: number;
@@ -69,7 +69,7 @@ export default function GuruPendampingDashboard() {
           : "Belum ada catatan pelanggaran.";
 
         return { ...siswa, totalPoin, totalPrestasi, catatanTerakhir };
-      });
+      }).sort((a, b) => b.totalPoin - a.totalPoin);
       
       setSiswaBinaan(detailSiswaBinaan);
 
@@ -132,41 +132,41 @@ export default function GuruPendampingDashboard() {
         <CardHeader>
             <CardTitle>Pemantauan Siswa Binaan</CardTitle>
             <CardDescription>
-                Fokus pada perkembangan setiap siswa yang menjadi tanggung jawab Anda.
+                Daftar siswa diurutkan berdasarkan poin pelanggaran tertinggi untuk pemantauan proaktif.
             </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardContent>
             {siswaBinaan.length > 0 ? (
-                siswaBinaan.map(siswa => (
-                    <Card key={siswa.id} className="hover:bg-muted/50 transition-colors">
-                        <CardHeader className="flex flex-row items-center gap-4">
-                           <Avatar>
-                                <AvatarFallback>{siswa.nama.split(' ').map(n=>n[0]).join('')}</AvatarFallback>
-                           </Avatar>
-                           <div>
-                                <p className="font-semibold">{siswa.nama}</p>
-                                <p className="text-sm text-muted-foreground">{siswa.kelas}</p>
-                           </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex justify-around text-center">
-                                <div>
-                                    <p className="text-2xl font-bold">{siswa.totalPoin}</p>
-                                    <p className="text-xs text-muted-foreground">Poin Pelanggaran</p>
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold">{siswa.totalPrestasi}</p>
-                                    <p className="text-xs text-muted-foreground">Prestasi</p>
-                                </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground italic text-center p-2 bg-secondary rounded-md h-12">
-                                {siswa.catatanTerakhir}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nama Siswa</TableHead>
+                            <TableHead>Kelas</TableHead>
+                            <TableHead className="text-center">Poin Pelanggaran</TableHead>
+                            <TableHead className="text-center">Jumlah Prestasi</TableHead>
+                            <TableHead>Catatan Terakhir</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {siswaBinaan.map(siswa => (
+                            <TableRow key={siswa.id}>
+                                <TableCell className="font-medium">{siswa.nama}</TableCell>
+                                <TableCell>{siswa.kelas}</TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant={siswa.totalPoin > 0 ? "destructive" : "secondary"}>
+                                        {siswa.totalPoin}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-center">{siswa.totalPrestasi}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground italic">
+                                    {siswa.catatanTerakhir}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             ) : (
-                <div className="md:col-span-2 lg:col-span-3 text-center text-muted-foreground py-10">
+                <div className="text-center text-muted-foreground py-10">
                     <p>Anda belum memiliki siswa binaan. Hubungi Wakasek Kesiswaan untuk penugasan.</p>
                 </div>
             )}
