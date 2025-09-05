@@ -116,13 +116,14 @@ export default function LaporanMasukBkPage() {
         setFormData(pelanggaran.penanganan || {});
         setActiveTab("verifikasi");
         
+        // Automatically change status to "Diproses BK" when a case is selected for the first time
         if(pelanggaran.status === 'Diteruskan ke BK') {
-            handleStatusChange(pelanggaran.id, 'Diproses BK', false);
+            handleStatusChange(pelanggaran.id, 'Diproses BK', false); // Don't reset selection
         }
 
         toast({
             title: "Kasus Dipilih",
-            description: `Anda sedang memproses kasus ${pelanggaran.namaSiswa}.`,
+            description: `Anda sedang memproses kasus ${pelanggaran.namaSiswa}. Status diperbarui menjadi "Diproses BK".`,
         });
     }
   };
