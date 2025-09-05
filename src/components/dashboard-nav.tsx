@@ -47,6 +47,8 @@ import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { getSourceData } from "@/lib/data-manager";
+import { signOutFromFirebase } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
@@ -124,6 +126,7 @@ const navItemsByRole = {
 
 export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
@@ -148,9 +151,11 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     };
   }, [loadData]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutFromFirebase();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
+    router.push('/');
   };
 
   const containerClass = isMobile ? "flex flex-col h-full" : "";
@@ -245,12 +250,12 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
                 </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/" onClick={handleLogout}>
+              <div onClick={handleLogout} className="cursor-pointer">
                 <SidebarMenuButton tooltip="Logout">
                   <LogOut className="size-4" />
                   <span className="group-data-[collapsible=icon]:hidden">Logout</span>
                 </SidebarMenuButton>
-              </Link>
+              </div>
             </SidebarMenuItem>
           </SidebarMenu>
       </SidebarFooter>

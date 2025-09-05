@@ -21,6 +21,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { getSourceData } from "@/lib/data-manager";
+import { signOutFromFirebase } from "@/lib/firebase";
 
 interface UserInfo {
     nama: string;
@@ -45,7 +46,7 @@ export default function DashboardHeader() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({ schoolName: "SMK Student Hub" });
   
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
         try {
@@ -54,7 +55,7 @@ export default function DashboardHeader() {
             console.error("Failed to parse user info from localStorage", e);
         }
     }
-    const savedTeachersData = await getSourceData('teachersData', {});
+    const savedTeachersData = getSourceData('teachersData', {});
     if (savedTeachersData && savedTeachersData.schoolInfo) {
         setSchoolInfo(savedTeachersData.schoolInfo);
     }
@@ -62,23 +63,20 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     loadData();
-    const handleDataChange = (event: Event) => {
-        const customEvent = event as CustomEvent;
-        // Only reload user-specific data if currentUser or teachersData changes
-        if (['currentUser', 'teachersData'].includes(customEvent.detail?.key)) {
-            loadData();
-        }
+    const handleStorageChange = () => {
+        loadData();
     };
-    window.addEventListener('dataUpdated', handleDataChange);
-    window.addEventListener('storage', loadData); // Listen for changes from other tabs
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('dataUpdated', handleStorageChange);
     
     return () => {
-        window.removeEventListener('dataUpdated', handleDataChange);
-        window.removeEventListener('storage', loadData);
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('dataUpdated', handleStorageChange);
     };
   }, [loadData]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutFromFirebase();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     router.push('/');

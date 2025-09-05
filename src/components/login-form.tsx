@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { signInToFirebase } from "@/lib/firebase"; // Import the new function
 
 const formSchema = z.object({
   userId: z.string().min(1, { message: "Silakan pilih pengguna." }),
@@ -44,6 +45,7 @@ const getRoleKeyFromName = (roleName: string) => {
         'Guru Piket': 'guru_piket',
         'Guru Pendamping': 'guru_pendamping',
         'Wakasek Kesiswaan': 'wakasek_kesiswaan',
+        'Tata Usaha': 'tata_usaha',
     };
     return roles[roleName] || 'unknown';
 }
@@ -68,7 +70,7 @@ export function LoginForm({ allUsers }: LoginFormProps) {
       const userForSettings = {
           nama: user.nama,
           role: user.role,
-          email: `${user.id.replace(/-/g, '_')}@schoolemail.com`, // Create a dummy email for profile page
+          email: `${user.id.replace(/-/g, '_')}@schoolemail.com`,
       };
       localStorage.setItem('currentUser', JSON.stringify(userForSettings));
       
@@ -77,27 +79,35 @@ export function LoginForm({ allUsers }: LoginFormProps) {
       router.push("/dashboard");
   };
 
- function onSubmit(values: z.infer<typeof formSchema>) {
+ async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    // Fallback password logic for seeded data
     const idPart = String(selectedUser?.id).split('-').pop();
     const expectedPassword = selectedUser?.password || `password${idPart}`;
 
-    setTimeout(() => {
+    if (selectedUser && values.password === expectedPassword) {
+        try {
+            await signInToFirebase(); // Sign in to Firebase anonymously
+            toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
+            handleLoginSuccess(selectedUser);
+        } catch (error) {
+            toast({
+                title: "Login Gagal",
+                description: "Gagal menghubungkan ke server. Silakan coba lagi.",
+                variant: "destructive",
+            });
+            setIsLoading(false);
+        }
+    } else {
+       toast({
+        title: "Login Gagal",
+        description: "Nama pengguna atau password salah.",
+        variant: "destructive",
+      });
       setIsLoading(false);
-      if (selectedUser && values.password === expectedPassword) {
-          handleLoginSuccess(selectedUser);
-      } else {
-         toast({
-          title: "Login Gagal",
-          description: "Nama pengguna atau password salah.",
-          variant: "destructive",
-        });
-      }
-    }, 1000);
+    }
   }
 
   return (
