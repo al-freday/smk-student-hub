@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Download, Upload } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Download, Upload, ArrowLeft, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -37,7 +37,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 
@@ -56,8 +55,10 @@ interface User extends Guru {
 }
 
 type TeacherRole = 'wali_kelas' | 'guru_bk' | 'guru_mapel' | 'guru_piket' | 'guru_pendamping';
+type SpecialRole = 'wakasek_kesiswaan' | 'tata_usaha';
+type AllRoles = TeacherRole | SpecialRole;
 
-const roleOptions: { value: TeacherRole; label: string }[] = [
+const teacherRoleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'wali_kelas', label: 'Wali Kelas' },
     { value: 'guru_bk', label: 'Guru BK' },
     { value: 'guru_mapel', label: 'Guru Mapel' },
@@ -65,24 +66,32 @@ const roleOptions: { value: TeacherRole; label: string }[] = [
     { value: 'guru_pendamping', label: 'Guru Pendamping' },
 ];
 
-const getRoleName = (roleKey: TeacherRole | string) => {
-    const role = roleOptions.find(r => r.value === roleKey);
+const specialRoleOptions: { value: SpecialRole; label: string }[] = [
+    { value: 'wakasek_kesiswaan', label: 'Wakasek Kesiswaan' },
+    { value: 'tata_usaha', label: 'Tata Usaha' },
+];
+
+const allRoleOptions = [...teacherRoleOptions, ...specialRoleOptions];
+
+const getRoleName = (roleKey: AllRoles | string) => {
+    const role = allRoleOptions.find(r => r.value === roleKey);
     return role ? role.label : 'Pengguna';
 };
 
-const getRoleKey = (roleName: string): TeacherRole | null => {
-    const role = roleOptions.find(r => r.label === roleName);
+const getRoleKey = (roleName: string): AllRoles | null => {
+    const role = allRoleOptions.find(r => r.label === roleName);
     return role ? role.value : null;
 }
 
 
-const createEmailFromName = (name: string, id: number) => {
+const createEmailFromName = (name: string, id: number | string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
     return `${namePart}${id}@schoolemail.com`;
 };
 
-const initialTeachers: { [key in TeacherRole]: Guru[] } = {
+const initialData: { [key in AllRoles]: Guru[] } = {
     wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
+    wakasek_kesiswaan: [], tata_usaha: [],
 };
 
 
@@ -90,28 +99,29 @@ export default function AdminManajemenPenggunaPage() {
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [users, setUsers] = useState<{ [key in TeacherRole]: User[] }>({
-        wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [],
-  });
-  const [activeTab, setActiveTab] = useState<TeacherRole>('wali_kelas');
+  const [users, setUsers] = useState<{ [key in AllRoles]: User[] }>(initialData);
+
+  const [activeTeacherTab, setActiveTeacherTab] = useState<TeacherRole>('wali_kelas');
+  const [activeSpecialTab, setActiveSpecialTab] = useState<SpecialRole>('wakasek_kesiswaan');
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<User>>({});
+  const [activeDialogRole, setActiveDialogRole] = useState<AllRoles>('wali_kelas');
 
   const loadDataFromStorage = () => {
     try {
         const savedData = localStorage.getItem('teachersData');
-        const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
-        const usersData = { wali_kelas: [], guru_bk: [], guru_mapel: [], guru_piket: [], guru_pendamping: [] } as { [key in TeacherRole]: User[] };
+        const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+        const usersData = { ...initialData } as { [key in AllRoles]: User[] };
         
         const { schoolInfo, ...roles } = teachersData;
         
         for (const roleKey in roles) {
             if (usersData.hasOwnProperty(roleKey)) {
-                usersData[roleKey as TeacherRole] = (roles[roleKey] || []).map((guru: Guru) => ({
+                usersData[roleKey as AllRoles] = (roles[roleKey] || []).map((guru: Guru) => ({
                     ...guru,
                     role: getRoleName(roleKey),
                     email: createEmailFromName(guru.nama, guru.id),
@@ -124,7 +134,7 @@ export default function AdminManajemenPenggunaPage() {
         console.error("Failed to parse teachers data from localStorage", error);
         toast({
             title: "Gagal Memuat Data",
-            description: "Data guru tidak dapat dimuat.",
+            description: "Data pengguna tidak dapat dimuat.",
             variant: "destructive"
         })
     }
@@ -138,7 +148,8 @@ export default function AdminManajemenPenggunaPage() {
     loadDataFromStorage();
   }, [router, toast]);
   
-  const handleOpenDialog = (user: User | null = null) => {
+  const handleOpenDialog = (role: AllRoles, user: User | null = null) => {
+      setActiveDialogRole(role);
       setEditingUser(user);
       setFormData(user || {});
       setIsDialogOpen(true);
@@ -151,8 +162,8 @@ export default function AdminManajemenPenggunaPage() {
       }
 
       const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
-      const currentList = teachersData[activeTab] || [];
+      const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+      const currentList = teachersData[activeDialogRole] || [];
       
       if (editingUser) {
           // Editing user
@@ -162,13 +173,13 @@ export default function AdminManajemenPenggunaPage() {
               }
               return t;
           });
-          teachersData[activeTab] = updatedList;
+          teachersData[activeDialogRole] = updatedList;
       } else {
           // Adding new user
           const newId = currentList.length > 0 ? Math.max(...currentList.map((t: Guru) => t.id)) + 1 : 1;
           const newPassword = formData.password || `password${newId}`;
           const newUser = { id: newId, nama: formData.nama, password: newPassword };
-          teachersData[activeTab] = [...currentList, newUser];
+          teachersData[activeDialogRole] = [...currentList, newUser];
       }
 
       localStorage.setItem('teachersData', JSON.stringify(teachersData));
@@ -177,16 +188,16 @@ export default function AdminManajemenPenggunaPage() {
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
-
-  const handleDelete = () => {
+  
+  const handleDelete = (role: AllRoles) => {
       if (!userToDelete) return;
       
       const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : initialTeachers;
-      const updatedList = (teachersData[activeTab] || []).filter((t: Guru) => t.id !== userToDelete.id);
+      const teachersData = savedData ? JSON.parse(savedData) : initialData;
+      const updatedList = (teachersData[role] || []).filter((t: Guru) => t.id !== userToDelete.id);
       
       const { schoolInfo, ...roles } = teachersData;
-      const updatedTeachers = { ...roles, [activeTab]: updatedList };
+      const updatedTeachers = { ...roles, [role]: updatedList };
       const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
       localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
@@ -195,14 +206,14 @@ export default function AdminManajemenPenggunaPage() {
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
-
-  const handleDeleteAll = () => {
+  
+  const handleDeleteAll = (role: AllRoles) => {
     const savedData = localStorage.getItem('teachersData');
-    const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
+    const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
     
     // Hapus semua pengguna untuk peran yang aktif
     const { schoolInfo, ...roles } = teachersData;
-    const updatedTeachers = { ...roles, [activeTab]: [] };
+    const updatedTeachers = { ...roles, [role]: [] };
     const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
     localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
@@ -210,16 +221,16 @@ export default function AdminManajemenPenggunaPage() {
     loadDataFromStorage();
     toast({
       title: `Semua Pengguna Dihapus`,
-      description: `Semua pengguna dari peran ${getRoleName(activeTab)} telah dihapus.`,
+      description: `Semua pengguna dari peran ${getRoleName(role)} telah dihapus.`,
       variant: "destructive"
     });
     setIsDeleteAllDialogOpen(false);
   };
   
-  const handleExportData = () => {
-    const usersToExport = users[activeTab];
+  const handleExportData = (role: AllRoles) => {
+    const usersToExport = users[role];
     if (!usersToExport || usersToExport.length === 0) {
-        toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(activeTab)}.`, variant: "destructive" });
+        toast({ title: "Gagal", description: `Tidak ada data untuk diekspor di peran ${getRoleName(role)}.`, variant: "destructive" });
         return;
     }
     
@@ -249,13 +260,13 @@ export default function AdminManajemenPenggunaPage() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', `data_${activeTab}.csv`);
+    link.setAttribute('download', `data_${role}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast({ title: "Ekspor Berhasil", description: `Data untuk ${getRoleName(activeTab)} telah diunduh.` });
+    toast({ title: "Ekspor Berhasil", description: `Data untuk ${getRoleName(role)} telah diunduh.` });
   };
 
 
@@ -279,7 +290,7 @@ export default function AdminManajemenPenggunaPage() {
             }
 
             const savedData = localStorage.getItem('teachersData');
-            const teachersData = savedData ? JSON.parse(savedData) : { ...initialTeachers };
+            const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
             const { schoolInfo, ...currentRoles } = teachersData;
             
             const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
@@ -351,16 +362,16 @@ export default function AdminManajemenPenggunaPage() {
         
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Pengguna</CardTitle>
+          <CardTitle>Daftar Pengguna Guru</CardTitle>
           <CardDescription>
-            Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna.
+            Gunakan tombol di setiap tab untuk menambah, mengubah, atau menghapus pengguna guru.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TeacherRole)}>
+          <Tabs value={activeTeacherTab} onValueChange={(value) => setActiveTeacherTab(value as TeacherRole)}>
             <ScrollArea className="w-full whitespace-nowrap">
                 <TabsList>
-                {roleOptions.map(role => (
+                {teacherRoleOptions.map(role => (
                     <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
                 ))}
                 </TabsList>
@@ -369,7 +380,7 @@ export default function AdminManajemenPenggunaPage() {
 
             <div className="flex flex-col sm:flex-row justify-between my-4 gap-2">
                 <p className="text-sm text-muted-foreground self-center">
-                    Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeTab)}</span>
+                    Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeTeacherTab)}</span>
                 </p>
                 <div className="flex gap-2 flex-wrap justify-end">
                     <input type="file" ref={fileInputRef} className="hidden" onChange={handleImportData} accept=".csv" />
@@ -377,11 +388,11 @@ export default function AdminManajemenPenggunaPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         Impor Data
                     </Button>
-                    <Button variant="outline" onClick={handleExportData}>
+                    <Button variant="outline" onClick={() => handleExportData(activeTeacherTab)}>
                         <Download className="mr-2 h-4 w-4" />
                         Ekspor Data
                     </Button>
-                    <Button onClick={() => handleOpenDialog()}>
+                    <Button onClick={() => handleOpenDialog(activeTeacherTab)}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Tambah Pengguna
                     </Button>
@@ -392,7 +403,7 @@ export default function AdminManajemenPenggunaPage() {
                 </div>
             </div>
             
-            {Object.keys(users).map((key) => (
+            {teacherRoleOptions.map(({ value: key }) => (
               <TabsContent value={key} key={key} className="mt-4">
                 <div className="overflow-x-auto">
                     <Table>
@@ -405,17 +416,89 @@ export default function AdminManajemenPenggunaPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users[key as TeacherRole].length > 0 ? (
-                        users[key as TeacherRole].map((user) => (
+                        {users[key].length > 0 ? (
+                        users[key].map((user) => (
                             <TableRow key={user.id}>
                             <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
                             <TableCell className="whitespace-nowrap">{user.email}</TableCell>
                             <TableCell className="whitespace-nowrap">{user.role}</TableCell>
                             <TableCell className="text-right whitespace-nowrap">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(user)}>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(key, user)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                                <Button variant="ghost" size="icon" onClick={() => { setActiveDialogRole(key); setUserToDelete(user);}}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                        ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                            Belum ada data pengguna untuk peran ini.
+                            </TableCell>
+                        </TableRow>
+                        )}
+                    </TableBody>
+                    </Table>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </CardContent>
+      </Card>
+
+       <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Building /> Daftar Pengguna Khusus</CardTitle>
+            <CardDescription>
+                Kelola pengguna dengan peran administratif seperti Wakasek atau Tata Usaha.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeSpecialTab} onValueChange={(value) => setActiveSpecialTab(value as SpecialRole)}>
+            <TabsList>
+            {specialRoleOptions.map(role => (
+                <TabsTrigger key={role.value} value={role.value}>{role.label}</TabsTrigger>
+            ))}
+            </TabsList>
+
+            <div className="flex flex-col sm:flex-row justify-between my-4 gap-2">
+                <p className="text-sm text-muted-foreground self-center">
+                    Mengelola pengguna untuk peran: <span className="font-semibold text-primary">{getRoleName(activeSpecialTab)}</span>
+                </p>
+                 <div className="flex gap-2 flex-wrap justify-end">
+                    <Button onClick={() => handleOpenDialog(activeSpecialTab)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Tambah Pengguna
+                    </Button>
+                </div>
+            </div>
+            
+            {specialRoleOptions.map(({ value: key }) => (
+              <TabsContent value={key} key={key} className="mt-4">
+                <div className="overflow-x-auto">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Nama</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Peran</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {users[key].length > 0 ? (
+                        users[key].map((user) => (
+                            <TableRow key={user.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{user.nama}</TableCell>
+                            <TableCell className="whitespace-nowrap">{user.email}</TableCell>
+                            <TableCell className="whitespace-nowrap">{user.role}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(key, user)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => { setActiveDialogRole(key); setUserToDelete(user);}}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </TableCell>
@@ -442,7 +525,7 @@ export default function AdminManajemenPenggunaPage() {
               <DialogHeader>
                   <DialogTitle>{editingUser ? 'Edit' : 'Tambah'} Pengguna</DialogTitle>
                   <DialogDescription>
-                      Lengkapi form di bawah untuk {editingUser ? 'mengubah' : 'menambahkan'} data pengguna ke peran <span className="font-semibold">{getRoleName(activeTab)}</span>.
+                      Lengkapi form untuk {editingUser ? 'mengubah' : 'menambahkan'} data ke peran <span className="font-semibold">{getRoleName(activeDialogRole)}</span>.
                   </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -479,7 +562,7 @@ export default function AdminManajemenPenggunaPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Hapus</AlertDialogAction>
+                  <AlertDialogAction onClick={() => handleDelete(activeDialogRole)}>Hapus</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
@@ -489,12 +572,12 @@ export default function AdminManajemenPenggunaPage() {
               <AlertDialogHeader>
                   <AlertDialogTitle>Hapus Semua Pengguna?</AlertDialogTitle>
                   <AlertDialogDescription>
-                     Anda akan menghapus semua pengguna dari peran <span className="font-semibold">{getRoleName(activeTab)}</span>. Tindakan ini tidak dapat dibatalkan.
+                     Anda akan menghapus semua pengguna dari peran <span className="font-semibold">{getRoleName(activeTeacherTab)}</span>. Tindakan ini tidak dapat dibatalkan.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive hover:bg-destructive/90">Ya, Hapus Semua</AlertDialogAction>
+                  <AlertDialogAction onClick={() => handleDeleteAll(activeTeacherTab)} className="bg-destructive hover:bg-destructive/90">Ya, Hapus Semua</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
@@ -502,3 +585,4 @@ export default function AdminManajemenPenggunaPage() {
   );
 
     
+
