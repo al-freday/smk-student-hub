@@ -1,3 +1,4 @@
+
 import { initialKurikulumData } from './kurikulum-data';
 import { tataTertibData } from './tata-tertib-data';
 import { pklData } from './pklData';
@@ -46,7 +47,8 @@ const seedInitialData = () => {
       poin: 5,
       guruPelapor: "Indah Permata",
       tindakanAwal: "Diberi teguran lisan.",
-      status: 'Dilaporkan'
+      status: 'Dilaporkan',
+      catatanWaliKelas: ""
     }
   ];
   updateSourceData('riwayatPelanggaran', riwayatPelanggaran);
