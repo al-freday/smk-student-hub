@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
-import { getAuth, signInAnonymously, onAuthStateChanged, User, Auth } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, User, Auth, signOut } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "API_KEY",
@@ -64,5 +64,16 @@ const initializeAuth = (): Promise<User | null> => {
 export const ensureAuthenticated = (): Promise<User | null> => {
   return initializeAuth();
 };
+
+export const signOutFromFirebase = async () => {
+  try {
+    await signOut(auth);
+    // Reset the auth promise to allow for re-authentication
+    authReadyPromise = null; 
+  } catch (error) {
+    console.error("Error signing out from Firebase:", error);
+  }
+};
+
 
 export { app, db, auth };
