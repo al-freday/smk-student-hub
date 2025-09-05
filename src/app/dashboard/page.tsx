@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Users, UserCog, Loader2, ShieldAlert } from "lucide-react";
+import { Activity, Users, UserCog, Loader2, ShieldAlert, Inbox, FileText, ArrowRight } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardStats } from "@/lib/data";
@@ -52,11 +52,12 @@ const getWelcomeMessage = (role: string, name: string) => {
 };
 
 const WakasekDashboard = () => {
+    const router = useRouter();
     const [stats, setStats] = useState({
         totalSiswa: 0,
         totalGuru: 0,
-        kehadiranHariIni: "0%",
         totalPelanggaran: 0,
+        laporanEskalasi: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -78,31 +79,45 @@ const WakasekDashboard = () => {
                     title="Total Siswa Aktif"
                     value={stats.totalSiswa.toLocaleString()}
                     icon={<Users className="h-4 w-4 text-muted-foreground" />}
-                    description="Data dari Manajemen Siswa"
                     isLoading={isLoading}
                 />
                 <StatCard
                     title="Total Guru & Staf"
                     value={stats.totalGuru.toLocaleString()}
                     icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
-                    description="Jumlah seluruh pengguna terdaftar"
-                    isLoading={isLoading}
-                />
-                <StatCard
-                    title="Kehadiran Hari Ini"
-                    value={stats.kehadiranHariIni}
-                    icon={<Activity className="h-4 w-4 text-muted-foreground" />}
-                    description="Rata-rata absensi per sesi"
                     isLoading={isLoading}
                 />
                 <StatCard
                     title="Total Pelanggaran"
                     value={stats.totalPelanggaran.toLocaleString()}
                     icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />}
-                    description="Jumlah pelanggaran tercatat"
+                    isLoading={isLoading}
+                />
+                 <StatCard
+                    title="Laporan Eskalasi Aktif"
+                    value={stats.laporanEskalasi.toLocaleString()}
+                    icon={<Inbox className="h-4 w-4 text-muted-foreground" />}
+                    isNegative={stats.laporanEskalasi > 0}
                     isLoading={isLoading}
                 />
             </div>
+            
+            <Card className="bg-primary text-primary-foreground">
+                <CardHeader>
+                    <CardTitle>Akses Cepat</CardTitle>
+                    <CardDescription className="text-primary-foreground/80">Langsung ke halaman tugas utama Anda.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button variant="secondary" className="w-full justify-between py-6" onClick={() => router.push('/dashboard/laporan-masuk-wakasek')}>
+                        <span><Inbox className="inline-block mr-2"/>Proses Laporan Eskalasi</span>
+                        <ArrowRight/>
+                    </Button>
+                    <Button variant="secondary" className="w-full justify-between py-6" onClick={() => router.push('/dashboard/laporan-wakasek')}>
+                        <span><FileText className="inline-block mr-2"/>Periksa Laporan Tugas Guru</span>
+                        <ArrowRight/>
+                    </Button>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-4 lg:grid-cols-3">
                 <Card className="lg:col-span-2">

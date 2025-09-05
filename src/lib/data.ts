@@ -5,7 +5,7 @@ import { getSourceData } from "./data-manager";
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
 interface KehadiranPerSesi { tanggal: string; status: string; nis: string; kelas: string; }
-interface CatatanPelanggaran { id: number; poin: number; pelanggaran: string; nis: string; }
+interface CatatanPelanggaran { id: number; poin: number; pelanggaran: string; nis: string; status: string; }
 interface Prestasi { nis: string; }
 interface Kelas { id: number; nama: string; }
 
@@ -31,27 +31,18 @@ export const getDashboardStats = () => {
         });
     }
 
-    const kehadiranSiswaPerSesi: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
-    const today = format(new Date(), "yyyy-MM-dd");
-    
-    const recordsToday = Array.isArray(kehadiranSiswaPerSesi) 
-        ? kehadiranSiswaPerSesi.filter(k => k.tanggal === today) 
-        : [];
-    
-    const hadirToday = recordsToday.filter(k => k.status === 'Hadir').length;
-    
-    const kehadiranPercentage = recordsToday.length > 0 
-        ? ((hadirToday / recordsToday.length) * 100).toFixed(0) + "%" 
-        : "N/A";
-
     const riwayatPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
     const totalPelanggaran = Array.isArray(riwayatPelanggaran) ? riwayatPelanggaran.length : 0;
+    
+    const laporanEskalasi = Array.isArray(riwayatPelanggaran)
+        ? riwayatPelanggaran.filter(p => ['Diteruskan ke Wakasek', 'Diproses Wakasek'].includes(p.status)).length
+        : 0;
 
     return {
         totalSiswa,
         totalGuru,
-        kehadiranHariIni: kehadiranPercentage,
         totalPelanggaran,
+        laporanEskalasi,
     };
 };
 
