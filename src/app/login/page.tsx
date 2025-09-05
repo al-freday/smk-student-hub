@@ -42,12 +42,16 @@ export default function LoginPage() {
   });
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("Menghubungkan ke server...");
 
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          const teachersData = await fetchDataFromFirebase('teachersData');
+          setLoadingMessage("Mengautentikasi koneksi...");
+          // This call now correctly waits for auth before proceeding.
+          const teachersData = await fetchDataFromFirebase('teachersData'); 
           
+          setLoadingMessage("Memuat data pengguna...");
           if (teachersData && teachersData.schoolInfo) {
               setSchoolInfo(teachersData.schoolInfo);
           }
@@ -76,7 +80,8 @@ export default function LoginPage() {
           }
           setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
       } catch (e) {
-          console.error("Failed to load initial data from Firebase", e)
+          console.error("Failed to load initial data from Firebase", e);
+          setLoadingMessage("Gagal memuat data. Periksa koneksi Anda.");
       } finally {
           setIsLoading(false);
       }
@@ -90,7 +95,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-2 text-muted-foreground">Menghubungkan ke server...</p>
+        <p className="mt-2 text-muted-foreground">{loadingMessage}</p>
       </div>
     );
   }

@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSignOut, User, Auth } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, User, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "API_KEY",
@@ -36,21 +36,24 @@ const initializeAuth = (): Promise<User | null> => {
   }
 
   authReadyPromise = new Promise((resolve, reject) => {
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        unsubscribe();
         resolve(user);
       } else {
         signInAnonymously(auth)
           .then((userCredential) => {
-            resolve(userCredential.user);
+             // User is signed in, we don't need to resolve here as the listener will trigger again
           })
           .catch(error => {
             console.error("Firebase anonymous sign-in failed:", error);
+            unsubscribe();
             reject(error);
           });
       }
     }, (error) => {
       console.error("Auth state change error:", error);
+      unsubscribe();
       reject(error);
     });
   });
@@ -60,15 +63,6 @@ const initializeAuth = (): Promise<User | null> => {
 
 export const ensureAuthenticated = (): Promise<User | null> => {
   return initializeAuth();
-};
-
-export const signOutFromFirebase = async () => {
-    try {
-        await firebaseSignOut(auth);
-        authReadyPromise = null; // Reset promise so it can be re-initialized on next login
-    } catch (error) {
-        console.error("Firebase sign-out failed:", error);
-    }
 };
 
 export { app, db, auth };

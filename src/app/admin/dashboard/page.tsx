@@ -48,6 +48,7 @@ export default function AdminDashboardPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Use the reliable fetchDataFromFirebase function
       const teachersData = await fetchDataFromFirebase('teachersData');
       const users: User[] = [];
       if (teachersData) {
