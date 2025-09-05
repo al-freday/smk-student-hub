@@ -27,6 +27,7 @@ import {
   Briefcase,
   Folders,
   Award,
+  Inbox,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -61,6 +62,7 @@ const navItemsByRole = {
   ],
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/laporan-masuk", icon: Inbox, label: "Laporan Masuk" },
     { type: 'divider', label: 'Manajemen Kelas' },
     { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },

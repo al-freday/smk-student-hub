@@ -7,9 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Users, ShieldAlert, Activity, UserCheck, MessageSquare, CheckCircle, Loader2 } from "lucide-react";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { Users, ShieldAlert, Activity, ArrowRight, Loader2 } from "lucide-react";
+import { getSourceData } from "@/lib/data-manager";
 import StatCard from "./stat-card";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -90,15 +89,6 @@ export default function WaliKelasDashboard() {
     return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
   
-  const handleStatusChange = (id: number, status: StatusLaporan) => {
-    const allPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
-    const updatedRiwayat = allPelanggaran.map(item =>
-      item.id === id ? { ...item, status: status } : item
-    );
-    updateSourceData('riwayatPelanggaran', updatedRiwayat);
-    toast({ title: "Status Diperbarui", description: `Status laporan telah diubah menjadi "${status}".` });
-  };
-
   if (isLoading) {
     return (
       <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
@@ -127,12 +117,19 @@ export default function WaliKelasDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <Card className="lg:col-span-2">
             <CardHeader>
-                <CardTitle>Laporan Pelanggaran Baru (Perlu Ditindaklanjuti)</CardTitle>
-                <CardDescription>Tindak lanjuti laporan yang masuk untuk siswa binaan Anda.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Laporan Pelanggaran Baru</CardTitle>
+                        <CardDescription>Pratinjau laporan yang masuk untuk siswa binaan Anda.</CardDescription>
+                    </div>
+                    <Button onClick={() => router.push('/dashboard/laporan-masuk')}>
+                        Proses Laporan <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <Table>
-                    <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                     <TableBody>
                         {pelanggaranDiKelas.length > 0 ? pelanggaranDiKelas.slice(0, 5).map((p, index) => (
                              <TableRow key={`${p.id}-${index}`}>
@@ -144,19 +141,10 @@ export default function WaliKelasDashboard() {
                                     <p>{p.pelanggaran}</p>
                                     <Badge variant="destructive">{p.poin} Poin</Badge>
                                 </TableCell>
-                                <TableCell><Badge variant={p.status === 'Dilaporkan' ? 'destructive' : 'secondary'}>{p.status}</Badge></TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Ditindaklanjuti Wali Kelas')}><UserCheck className="mr-2 h-4 w-4" />Tandai ditindaklanjuti</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(p.id, 'Diteruskan ke BK')}><MessageSquare className="mr-2 h-4 w-4" />Teruskan ke BK</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
+                                <TableCell><Badge variant='destructive'>{p.status}</Badge></TableCell>
                             </TableRow>
                         )) : (
-                            <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan pelanggaran baru di kelas Anda.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={3} className="text-center h-24">Tidak ada laporan pelanggaran baru di kelas Anda.</TableCell></TableRow>
                         )}
                     </TableBody>
                 </Table>
