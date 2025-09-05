@@ -95,7 +95,6 @@ const navItemsByRole = {
   guru_pendamping: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/bimbingan-siswa", icon: Contact, label: "Bimbingan Siswa" },
-    { href: "/dashboard/ekskul-prestasi", icon: Award, label: "Ekskul & Prestasi" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
   ],
