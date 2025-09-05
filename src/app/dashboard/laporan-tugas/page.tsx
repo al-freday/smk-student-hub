@@ -7,47 +7,51 @@ import { Button } from "@/components/ui/button";
 import { FileText, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
-import ReportPreview from "@/components/report-preview";
+import TeacherReportContent from "@/components/teacher-report-content";
 
 export default function LaporanTugasPage() {
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<{ nama: string, role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string | number, nama: string, role: string, roleKey: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const reportStorageKey = 'waliKelasReportsStatus'; // Using a shared key for simplicity
+  const reportStorageKey = 'waliKelasReportsStatus';
+
+  const getRoleKeyFromName = (roleName: string) => {
+    const roles: { [key: string]: string } = {
+        'Wali Kelas': 'wali_kelas',
+        'Guru BK': 'guru_bk',
+        'Guru Mapel': 'guru_mapel',
+        'Guru Piket': 'guru_piket',
+        'Guru Pendamping': 'guru_pendamping',
+        'Wakasek Kesiswaan': 'wakasek_kesiswaan',
+    };
+    return roles[roleName] || 'unknown';
+  }
 
   useEffect(() => {
     const user = getSourceData('currentUser', null);
-    setCurrentUser(user);
+    if (user) {
+        const roleKey = getRoleKeyFromName(user.role);
+        const teachersData = getSourceData('teachersData', {});
+        const guruData = (teachersData[roleKey] || []).find((g: any) => g.nama === user.nama);
+        setCurrentUser({ ...user, roleKey, id: guruData?.id || 0 });
+    }
     setIsLoading(false);
   }, []);
 
   const handleSubmitReport = () => {
     if (!currentUser) return;
     
-    // In a real app, this would be a database operation.
-    // Here, we simulate it by updating a status in localStorage.
     const savedStatuses = getSourceData(reportStorageKey, {});
-    const teachersData = getSourceData('teachersData', {});
-    const usersInRole = teachersData[currentUser.role] || [];
-    const currentUserData = usersInRole.find((u: any) => u.nama === currentUser.nama);
+    savedStatuses[currentUser.id] = 'Terkirim';
+    updateSourceData(reportStorageKey, savedStatuses);
 
-    if (currentUserData) {
-        savedStatuses[currentUserData.id] = 'Terkirim';
-        updateSourceData(reportStorageKey, savedStatuses);
-        toast({
-            title: "Laporan Terkirim",
-            description: "Laporan tugas Anda telah berhasil dikirim ke Wakasek Kesiswaan.",
-        });
-    } else {
-         toast({
-            title: "Gagal Mengirim",
-            description: "Data pengguna tidak ditemukan. Laporan tidak dapat dikirim.",
-            variant: "destructive"
-        });
-    }
+    toast({
+        title: "Laporan Terkirim",
+        description: "Laporan tugas Anda telah berhasil dikirim ke Wakasek Kesiswaan.",
+    });
   };
 
-  if (isLoading) {
+  if (isLoading || !currentUser) {
     return (
       <div className="flex-1 space-y-6 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -83,7 +87,9 @@ export default function LaporanTugasPage() {
           </div>
         </CardHeader>
         <CardContent>
-            <ReportPreview role={currentUser?.role || ''} />
+            <div className="p-4 md:p-8 border rounded-lg bg-muted/50">
+                <TeacherReportContent guruId={currentUser.id} roleKey={currentUser.roleKey} />
+            </div>
         </CardContent>
       </Card>
     </div>
