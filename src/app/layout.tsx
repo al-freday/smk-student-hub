@@ -8,39 +8,34 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Head from "next/head";
 import { getSourceData } from "@/lib/data-manager";
 
-const applyTheme = () => {
-    const userRole = localStorage.getItem("userRole");
-    // Ensure we have a default role if none is set, e.g., for the login page
-    const roleToUse = userRole || 'wakasek_kesiswaan'; 
-    
-    const themeSettings = getSourceData('themeSettings', {});
-    const themeKey = themeSettings[roleToUse] || 'default';
+// A static themes object to avoid dependency issues on initial load
+const themes = {
+    default: { name: "Default (Oranye & Biru)", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
+    green: { name: "Hutan (Hijau)", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
+    blue: { name: "Samudera (Biru)", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
+    purple: { name: "Lavender (Ungu)", colors: { "--primary": "262 83% 58%", "--accent": "250 70% 75%" } },
+    pink: { name: "Fajar (Merah Muda)", colors: { "--primary": "340 82% 52%", "--accent": "340 70% 70%" } },
+    teal: { name: "Toska", colors: { "--primary": "173 80% 40%", "--accent": "173 70% 60%" } },
+    red: { name: "Bara (Merah & Oranye)", colors: { "--primary": "0 72% 51%", "--accent": "24 96% 53%" } },
+    yellow: { name: "Senja (Kuning & Coklat)", colors: { "--primary": "45 93% 47%", "--accent": "28 80% 50%" } },
+    gray: { name: "Grafit (Abu-abu & Biru)", colors: { "--primary": "220 9% 46%", "--accent": "217 91% 60%" } },
+    ruby: { name: "Ruby (Merah Anggur & Pink)", colors: { "--primary": "350 75% 45%", "--accent": "340 82% 70%" } },
+    mint: { name: "Mint & Sage", colors: { "--primary": "160 60% 45%", "--accent": "150 40% 60%" } },
+    indigo: { name: "Indigo & Violet", colors: { "--primary": "225 70% 55%", "--accent": "250 80% 65%" } },
+    coral: { name: "Coral & Peach", colors: { "--primary": "10 90% 60%", "--accent": "25 90% 70%" } },
+    slate: { name: "Slate & Sky", colors: { "--primary": "215 30% 50%", "--accent": "200 100% 75%" } },
+};
 
-    // A static themes object to avoid dependency issues on initial load
-    const themes = {
-      default: { name: "Default (Oranye & Biru)", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
-      green: { name: "Hutan (Hijau)", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
-      blue: { name: "Samudera (Biru)", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
-      purple: { name: "Lavender (Ungu)", colors: { "--primary": "262 83% 58%", "--accent": "250 70% 75%" } },
-      pink: { name: "Fajar (Merah Muda)", colors: { "--primary": "340 82% 52%", "--accent": "340 70% 70%" } },
-      teal: { name: "Toska", colors: { "--primary": "173 80% 40%", "--accent": "173 70% 60%" } },
-      red: { name: "Bara (Merah & Oranye)", colors: { "--primary": "0 72% 51%", "--accent": "24 96% 53%" } },
-      yellow: { name: "Senja (Kuning & Coklat)", colors: { "--primary": "45 93% 47%", "--accent": "28 80% 50%" } },
-      gray: { name: "Grafit (Abu-abu & Biru)", colors: { "--primary": "220 9% 46%", "--accent": "217 91% 60%" } },
-      ruby: { name: "Ruby (Merah Anggur & Pink)", colors: { "--primary": "350 75% 45%", "--accent": "340 82% 70%" } },
-      mint: { name: "Mint & Sage", colors: { "--primary": "160 60% 45%", "--accent": "150 40% 60%" } },
-      indigo: { name: "Indigo & Violet", colors: { "--primary": "225 70% 55%", "--accent": "250 80% 65%" } },
-      coral: { name: "Coral & Peach", colors: { "--primary": "10 90% 60%", "--accent": "25 90% 70%" } },
-      slate: { name: "Slate & Sky", colors: { "--primary": "215 30% 50%", "--accent": "200 100% 75%" } },
-    };
-
+const applyThemeForRole = async () => {
+    const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
+    const themeSettings = await getSourceData('themeSettings', {});
+    const themeKey = themeSettings[userRole] || 'default';
     const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
     
     Object.entries(themeToApply.colors).forEach(([property, value]) => {
         document.documentElement.style.setProperty(property, value as string);
     });
 };
-
 
 export default function RootLayout({
   children,
@@ -49,31 +44,28 @@ export default function RootLayout({
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
-  const loadSchoolInfoAndTheme = useCallback(() => {
-      const savedData = getSourceData('teachersData', null);
+  const loadSchoolInfoAndTheme = useCallback(async () => {
+      const savedData = await getSourceData('teachersData', {});
       if (savedData && savedData.schoolInfo) {
           setSchoolInfo(savedData.schoolInfo);
       }
-      applyTheme();
+      await applyThemeForRole();
   }, []);
   
   useEffect(() => {
     loadSchoolInfoAndTheme();
 
-    const handleDataChange = (event: Event) => {
-        loadSchoolInfoAndTheme();
+    const handleDataChange = () => {
+      loadSchoolInfoAndTheme();
     };
 
-    // Listen for custom data updates and also for changes from other tabs
+    // Listen for custom events that signify data has changed
     window.addEventListener('dataUpdated', handleDataChange);
-    window.addEventListener('storage', handleDataChange);
-    // Listen for role changes on login/impersonation
-    window.addEventListener('roleChanged', applyTheme);
-
+    window.addEventListener('roleChanged', handleDataChange);
+    
     return () => {
       window.removeEventListener('dataUpdated', handleDataChange);
-      window.removeEventListener('storage', handleDataChange);
-      window.removeEventListener('roleChanged', applyTheme);
+      window.removeEventListener('roleChanged', handleDataChange);
     };
   }, [loadSchoolInfoAndTheme]);
   

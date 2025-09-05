@@ -1,50 +1,79 @@
 
 "use client";
 
-// This file is a mock data manager. In a real application, you would
-// use a proper database like Firestore to manage your data. For this
-// prototype, we are using localStorage to simulate a persistent data store.
+import { db } from './firebase';
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 
 const isServer = typeof window === 'undefined';
+const COLLECTION_NAME = 'app_data';
 
 /**
- * Saves or updates data in localStorage.
- * Dispatches a custom event to notify other components of the update.
- * @param key The key under which the data is stored in localStorage.
- * @param data The data to be saved.
+ * Updates or creates a document in a specific Firestore collection.
+ * This function now handles all server-side data persistence.
+ * @param key The document ID in Firestore.
+ * @param data The data object to be saved.
  */
-export const updateSourceData = (key: string, data: any) => {
+export const updateSourceData = async (key: string, data: any): Promise<void> => {
   if (isServer) return;
   try {
-    const jsonData = JSON.stringify(data);
-    localStorage.setItem(key, jsonData);
-    // Dispatch a custom event to notify components of the update
-    window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key } }));
+    const docRef = doc(db, COLLECTION_NAME, key);
+    await setDoc(docRef, { data: JSON.stringify(data) });
   } catch (error) {
-    console.error(`Failed to save data to localStorage for key "${key}":`, error);
+    console.error(`Failed to save data to Firestore for key "${key}":`, error);
   }
 };
 
 /**
- * Retrieves data from localStorage.
- * @param key The key of the data to retrieve.
- * @param defaultValue The value to return if the key doesn't exist in localStorage.
+ * Retrieves a document from a specific Firestore collection.
+ * If the document doesn't exist, it initializes it with a default value.
+ * @param key The document ID to retrieve.
+ * @param defaultValue The value to return and save if the document doesn't exist.
  * @returns The retrieved data or the default value.
  */
-export const getSourceData = (key: string, defaultValue: any) => {
+export const getSourceData = async (key: string, defaultValue: any): Promise<any> => {
     if (isServer) return defaultValue;
     try {
-        const item = localStorage.getItem(key);
-        if (item === null) {
-            // If data doesn't exist, seed it with the default value
-            updateSourceData(key, defaultValue);
+        const docRef = doc(db, COLLECTION_NAME, key);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const serverData = docSnap.data();
+            // Handle potential empty data field from Firestore
+            if (serverData && serverData.data) {
+                return JSON.parse(serverData.data);
+            }
+            return defaultValue; // Return default if data field is missing
+        } else {
+            // Document doesn't exist, so we initialize it with the default value
+            await updateSourceData(key, defaultValue);
             return defaultValue;
         }
-        return JSON.parse(item);
     } catch (error) {
-        console.error(`Error retrieving data for key "${key}" from localStorage:`, error);
-        // Seed with default value in case of parsing error
-        updateSourceData(key, defaultValue);
+        console.error(`Error retrieving data for key "${key}" from Firestore:`, error);
+        // Fallback to default value in case of an error
         return defaultValue;
     }
 };
+
+/**
+ * Loads all data required for the application initialization.
+ * This is useful for fetching multiple documents at once on app load.
+ */
+export const loadAllInitialData = async () => {
+    if (isServer) return {};
+    const data: { [key: string]: any } = {};
+    try {
+        const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+        querySnapshot.forEach((doc) => {
+            const serverData = doc.data();
+            if (serverData && serverData.data) {
+                data[doc.id] = JSON.parse(serverData.data);
+            }
+        });
+        return data;
+    } catch (error) {
+        console.error("Failed to load all initial data from Firestore:", error);
+        return {};
+    }
+};
+

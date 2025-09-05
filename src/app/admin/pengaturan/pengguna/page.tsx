@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PlusCircle, Download, Upload, ArrowLeft, Building } from "lucide-react";
+import { Edit, Trash2, PlusCircle, Download, Upload, ArrowLeft, Building, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 
 interface Guru {
@@ -100,6 +101,7 @@ export default function AdminManajemenPenggunaPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [users, setUsers] = useState<{ [key in AllRoles]: User[] }>(initialData);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [activeTeacherTab, setActiveTeacherTab] = useState<TeacherRole>('wali_kelas');
   const [activeSpecialTab, setActiveSpecialTab] = useState<SpecialRole>('wakasek_kesiswaan');
@@ -111,10 +113,10 @@ export default function AdminManajemenPenggunaPage() {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [activeDialogRole, setActiveDialogRole] = useState<AllRoles>('wali_kelas');
 
-  const loadDataFromStorage = () => {
+  const loadDataFromStorage = async () => {
+    setIsLoading(true);
     try {
-        const savedData = localStorage.getItem('teachersData');
-        const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+        const teachersData = await getSourceData('teachersData', { ...initialData });
         const usersData = { ...initialData } as { [key in AllRoles]: User[] };
         
         const { schoolInfo, ...roles } = teachersData;
@@ -131,12 +133,14 @@ export default function AdminManajemenPenggunaPage() {
         }
         setUsers(usersData);
     } catch (error) {
-        console.error("Failed to parse teachers data from localStorage", error);
+        console.error("Failed to parse teachers data from storage", error);
         toast({
             title: "Gagal Memuat Data",
             description: "Data pengguna tidak dapat dimuat.",
             variant: "destructive"
         })
+    } finally {
+        setIsLoading(false);
     }
   };
   
@@ -155,14 +159,13 @@ export default function AdminManajemenPenggunaPage() {
       setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
       if (!formData.nama) {
           toast({ title: "Gagal", description: "Nama pengguna harus diisi.", variant: "destructive" });
           return;
       }
 
-      const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+      const teachersData = await getSourceData('teachersData', { ...initialData });
       const currentList = teachersData[activeDialogRole] || [];
       
       if (editingUser) {
@@ -182,43 +185,40 @@ export default function AdminManajemenPenggunaPage() {
           teachersData[activeDialogRole] = [...currentList, newUser];
       }
 
-      localStorage.setItem('teachersData', JSON.stringify(teachersData));
+      await updateSourceData('teachersData', teachersData);
       
-      loadDataFromStorage(); 
+      await loadDataFromStorage(); 
       toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
   
-  const handleDelete = (role: AllRoles) => {
+  const handleDelete = async (role: AllRoles) => {
       if (!userToDelete) return;
       
-      const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : initialData;
+      const teachersData = await getSourceData('teachersData', initialData);
       const updatedList = (teachersData[role] || []).filter((t: Guru) => t.id !== userToDelete.id);
       
       const { schoolInfo, ...roles } = teachersData;
       const updatedTeachers = { ...roles, [role]: updatedList };
       const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
-      localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+      await updateSourceData('teachersData', finalDataToSave);
       
-      loadDataFromStorage(); 
+      await loadDataFromStorage(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
-  const handleDeleteAll = (role: AllRoles) => {
-    const savedData = localStorage.getItem('teachersData');
-    const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+  const handleDeleteAll = async (role: AllRoles) => {
+    const teachersData = await getSourceData('teachersData', { ...initialData });
     
-    // Hapus semua pengguna untuk peran yang aktif
     const { schoolInfo, ...roles } = teachersData;
     const updatedTeachers = { ...roles, [role]: [] };
     const finalDataToSave = { ...teachersData, ...updatedTeachers };
 
-    localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+    await updateSourceData('teachersData', finalDataToSave);
     
-    loadDataFromStorage();
+    await loadDataFromStorage();
     toast({
       title: `Semua Pengguna Dihapus`,
       description: `Semua pengguna dari peran ${getRoleName(role)} telah dihapus.`,
@@ -275,7 +275,7 @@ export default function AdminManajemenPenggunaPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             let text = e.target?.result as string;
             text = text.replace(/^\uFEFF/, '').replace(/^sep=;\r?\n/, '');
@@ -289,8 +289,7 @@ export default function AdminManajemenPenggunaPage() {
                 return;
             }
 
-            const savedData = localStorage.getItem('teachersData');
-            const teachersData = savedData ? JSON.parse(savedData) : { ...initialData };
+            const teachersData = await getSourceData('teachersData', { ...initialData });
             const { schoolInfo, ...currentRoles } = teachersData;
             
             const updatedRoles = JSON.parse(JSON.stringify(currentRoles));
@@ -327,9 +326,9 @@ export default function AdminManajemenPenggunaPage() {
             });
 
             const finalDataToSave = { ...teachersData, ...updatedRoles };
-            localStorage.setItem('teachersData', JSON.stringify(finalDataToSave));
+            await updateSourceData('teachersData', finalDataToSave);
             
-            loadDataFromStorage();
+            await loadDataFromStorage();
             toast({ 
                 title: "Impor Selesai", 
                 description: `${importedCount} pengguna baru ditambahkan dan ${updatedCount} pengguna diperbarui.` 
@@ -345,6 +344,13 @@ export default function AdminManajemenPenggunaPage() {
     reader.readAsText(file);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
@@ -583,6 +589,4 @@ export default function AdminManajemenPenggunaPage() {
       </AlertDialog>
     </div>
   );
-
-    
-
+}

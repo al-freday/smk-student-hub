@@ -90,20 +90,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     loadInitialData();
-    
-    // Listen for custom data update events
-    const handleDataChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      if (customEvent.detail.key === 'teachersData') {
-        loadInitialData();
-      }
-    };
-    
-    window.addEventListener('dataUpdated', handleDataChange);
-
-    return () => {
-        window.removeEventListener('dataUpdated', handleDataChange);
-    };
   }, [loadInitialData]);
 
   if (isLoading) {

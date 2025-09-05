@@ -62,15 +62,10 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     loadData();
-    
-    // Listen for custom event when admin saves school info
     window.addEventListener('dataUpdated', loadData as EventListener);
-    // Listen for storage changes from other tabs
-    window.addEventListener('storage', loadData as EventListener);
     
     return () => {
         window.removeEventListener('dataUpdated', loadData as EventListener);
-        window.removeEventListener('storage', loadData as EventListener);
     };
   }, [loadData]);
 

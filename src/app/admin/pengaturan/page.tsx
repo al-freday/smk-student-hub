@@ -61,7 +61,7 @@ export default function AdminPengaturanPage() {
   });
   
   const [totalUsers, setTotalUsers] = useState(0);
-  const [storageSize, setStorageSize] = useState("0 MB");
+  const [storageSize, setStorageSize] = useState("Calculating...");
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function AdminPengaturanPage() {
           return;
         }
           
-        const teachersData = getSourceData('teachersData', {});
+        const teachersData = await getSourceData('teachersData', {});
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -89,26 +89,22 @@ export default function AdminPengaturanPage() {
         }
         setTotalUsers(count);
 
-        const themeSettings = getSourceData('themeSettings', {});
+        const themeSettings = await getSourceData('themeSettings', {});
         const loadedThemes: { [key: string]: string } = {};
         userRoles.forEach(role => {
             loadedThemes[role.key] = themeSettings[role.key] || 'default';
         });
         setSelectedThemes(loadedThemes);
 
-
+        // This calculation is fine with localStorage, as it's a browser-specific metric.
         let total = 0;
         for (let x in localStorage) {
-            if (!localStorage.hasOwnProperty(x)) {
-                continue;
-            }
+            if (!localStorage.hasOwnProperty(x)) continue;
             let item = localStorage.getItem(x);
-            if (item) {
-                total += item.length;
-            }
+            if (item) total += item.length;
         }
-        const totalMB = (total / 1024 / 1024).toFixed(2);
-        setStorageSize(`${totalMB} MB`);
+        setStorageSize(`${(total / 1024 / 1024).toFixed(2)} MB`);
+        
         setIsLoading(false);
     }
     loadData();
@@ -136,10 +132,10 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = () => {
-      const savedData = getSourceData('teachersData', {});
+  const handleSaveChanges = async () => {
+      const savedData = await getSourceData('teachersData', {});
       const updatedData = { ...savedData, schoolInfo: schoolInfo };
-      updateSourceData('teachersData', updatedData);
+      await updateSourceData('teachersData', updatedData);
       
       toast({
           title: "Pengaturan Disimpan",
@@ -147,13 +143,13 @@ export default function AdminPengaturanPage() {
       });
   };
 
-  const handleThemeChange = (roleKey: string, themeKey: string) => {
+  const handleThemeChange = async (roleKey: string, themeKey: string) => {
     const newSelectedThemes = { ...selectedThemes, [roleKey]: themeKey };
     setSelectedThemes(newSelectedThemes);
 
-    const currentThemeSettings = getSourceData('themeSettings', {});
+    const currentThemeSettings = await getSourceData('themeSettings', {});
     currentThemeSettings[roleKey] = themeKey;
-    updateSourceData('themeSettings', currentThemeSettings);
+    await updateSourceData('themeSettings', currentThemeSettings);
     
     toast({
         title: "Tema Diperbarui",
