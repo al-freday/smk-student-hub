@@ -84,6 +84,11 @@
   }
 }
 
+@page {
+  size: 215mm 297mm; /* A4s size */
+  margin: 20mm;
+}
+
 @media print {
   .print\:hidden {
     display: none;
@@ -94,17 +99,24 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  header, [data-sidebar="sidebar"], .peer {
+  .printable-content {
+    display: block;
+  }
+  .printable-letter {
+    width: 100%;
+    height: 100%;
+    page-break-after: always;
+  }
+  header, [data-sidebar="sidebar"], .peer, .non-printable {
     display: none !important;
   }
   main {
-    padding: 1rem !important;
+    padding: 0 !important;
     margin: 0 !important;
   }
   .card, .accordion-item {
-    border: 1px solid #ccc !important;
+    border: none !important;
     box-shadow: none !important;
-    page-break-inside: avoid;
   }
   .card-header, .card-content, .accordion-content {
     padding-top: 1rem !important;

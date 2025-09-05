@@ -35,7 +35,7 @@ const LetterPreview = ({ children, onPrint }: { children: React.ReactNode, onPri
     <div className="mt-6">
         <div className="flex justify-between items-center mb-4 print:hidden">
             <h3 className="font-semibold">Pratinjau Surat</h3>
-            <Button onClick={onPrint}><Printer className="mr-2 h-4 w-4" /> Cetak Surat</Button>
+            <Button onClick={onPrint}><Printer className="mr-2 h-4 w-4" /> Cetak & Arsipkan</Button>
         </div>
         <div id="print-area" className="p-8 border rounded-lg bg-white text-black font-serif text-sm">
             {children}
@@ -45,7 +45,7 @@ const LetterPreview = ({ children, onPrint }: { children: React.ReactNode, onPri
 
 // --- Template Surat ---
 const SuratKomitmenTemplate = ({ data, schoolInfo }: { data: any, schoolInfo: SchoolInfo | null }) => (
-    <div>
+    <div className="printable-letter">
         <div className="text-center mb-6">
             <h2 className="text-lg font-bold uppercase">SURAT PERNYATAAN KOMITMEN SISWA</h2>
         </div>
@@ -82,7 +82,7 @@ const SuratKomitmenTemplate = ({ data, schoolInfo }: { data: any, schoolInfo: Sc
 );
 
 const SuratPanggilanTemplate = ({ data, schoolInfo }: { data: any, schoolInfo: SchoolInfo | null }) => (
-    <div>
+    <div className="printable-letter">
         <div className="flex items-center gap-4 mb-4 border-b-2 border-black pb-4">
              {schoolInfo?.logo && <img src={schoolInfo.logo} alt="Logo" className="h-20 w-20 object-contain" />}
              <div className="text-center flex-1">
@@ -150,7 +150,9 @@ export default function SuratPage() {
         setIsLoading(true);
         try {
             const user = getSourceData('currentUser', null);
-            if (!user || localStorage.getItem('userRole') !== 'wali_kelas') {
+            const userRole = localStorage.getItem('userRole');
+            if (!user || userRole !== 'wali_kelas') {
+                toast({ title: "Akses Ditolak", description: "Halaman ini khusus untuk Wali Kelas.", variant: "destructive" });
                 router.push('/dashboard');
                 return;
             }
@@ -229,14 +231,11 @@ export default function SuratPage() {
         const currentArsip = getSourceData('arsipSuratData', []);
         updateSourceData('arsipSuratData', [arsipBaru, ...currentArsip]);
         
-        const printContents = document.getElementById("print-area")?.innerHTML;
-        if (printContents) {
-            const originalContents = document.body.innerHTML;
-            document.body.innerHTML = `<style>body { font-family: 'Times New Roman', serif; color: black; } table { width: 100%; } td { vertical-align: top; } .print-only { display: block !important; }</style>` + printContents;
+        toast({ title: "Surat Diarsipkan", description: "Membuka dialog cetak..." });
+        
+        setTimeout(() => {
             window.print();
-            document.body.innerHTML = originalContents;
-            window.location.reload();
-        }
+        }, 500);
     };
     
     if (isLoading) {
@@ -251,7 +250,7 @@ export default function SuratPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-4 print:hidden">
                     <TabsTrigger value="komitmen"><FileSignature className="mr-2 h-4 w-4" />Komitmen Siswa</TabsTrigger>
                     <TabsTrigger value="panggilan"><Phone className="mr-2 h-4 w-4" />Panggilan Orang Tua</TabsTrigger>
                     <TabsTrigger value="kesepakatan"><Users className="mr-2 h-4 w-4" />Kesepakatan Bersama</TabsTrigger>
@@ -259,7 +258,7 @@ export default function SuratPage() {
                 </TabsList>
                 
                 {/* --- FORM SURAT KOMITMEN SISWA --- */}
-                <TabsContent value="komitmen">
+                <TabsContent value="komitmen" className="print:hidden">
                     <Card>
                         <CardHeader><CardTitle>Formulir Surat Komitmen Siswa</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -283,13 +282,12 @@ export default function SuratPage() {
                                 <Textarea id="komitmen-janji" onChange={(e) => setFormData(p => ({...p, janji: e.target.value}))} placeholder="Tuliskan janji yang diucapkan siswa, misal:&#10;1. Tidak akan mengulangi perbuatan tersebut.&#10;2. Akan datang ke sekolah tepat waktu." rows={4}/>
                              </div>
                              <Button onClick={() => generateLetter('Komitmen Siswa')}>Buat Surat Komitmen</Button>
-                             {previewData && previewData.tipe === 'Komitmen Siswa' && <LetterPreview onPrint={handlePrintAndArchive}><SuratKomitmenTemplate data={previewData} schoolInfo={schoolInfo} /></LetterPreview>}
                         </CardContent>
                     </Card>
                 </TabsContent>
                 
                  {/* --- FORM SURAT PANGGILAN ORTU --- */}
-                <TabsContent value="panggilan">
+                <TabsContent value="panggilan" className="print:hidden">
                      <Card>
                         <CardHeader><CardTitle>Formulir Surat Panggilan Orang Tua</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -317,13 +315,12 @@ export default function SuratPage() {
                                 <Textarea id="panggilan-alasan" onChange={(e) => setFormData(p => ({...p, alasan: e.target.value}))} placeholder="Terkait dengan masalah kedisiplinan dan kehadiran Ananda..." rows={3}/>
                              </div>
                              <Button onClick={() => generateLetter('Panggilan Orang Tua')}>Buat Surat Panggilan</Button>
-                             {previewData && previewData.tipe === 'Panggilan Orang Tua' && <LetterPreview onPrint={handlePrintAndArchive}><SuratPanggilanTemplate data={previewData} schoolInfo={schoolInfo} /></LetterPreview>}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
                 {/* --- FORM SURAT KESEPAKATAN --- */}
-                <TabsContent value="kesepakatan">
+                <TabsContent value="kesepakatan" className="print:hidden">
                      <Card>
                         <CardHeader><CardTitle>Formulir Surat Kesepakatan Bersama</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
@@ -333,7 +330,7 @@ export default function SuratPage() {
                 </TabsContent>
                 
                 {/* --- ARSIP SURAT --- */}
-                <TabsContent value="arsip">
+                <TabsContent value="arsip" className="print:hidden">
                      <Card>
                         <CardHeader><CardTitle>Arsip Surat Tercetak</CardTitle><CardDescription>Riwayat semua surat yang telah dibuat dan dicetak.</CardDescription></CardHeader>
                         <CardContent>
@@ -356,6 +353,15 @@ export default function SuratPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {previewData && (
+                <div className="printable-content">
+                    <LetterPreview onPrint={handlePrintAndArchive}>
+                        {previewData.tipe === 'Komitmen Siswa' && <SuratKomitmenTemplate data={previewData} schoolInfo={schoolInfo} />}
+                        {previewData.tipe === 'Panggilan Orang Tua' && <SuratPanggilanTemplate data={previewData} schoolInfo={schoolInfo} />}
+                    </LetterPreview>
+                </div>
+            )}
         </div>
     );
 }
