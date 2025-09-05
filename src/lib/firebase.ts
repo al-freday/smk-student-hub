@@ -1,4 +1,6 @@
 
+"use client";
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
@@ -29,52 +31,41 @@ if (getApps().length === 0) {
 auth = getAuth(app);
 db = getDatabase(app);
 
-let firebaseUser: User | null = null;
-
 let authReadyPromise: Promise<User | null>;
-let resolveAuthReady: (user: User | null) => void;
 
-const initializeAuthPromise = () => {
+const initializeAuth = () => {
   authReadyPromise = new Promise(resolve => {
-    resolveAuthReady = resolve;
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      if (user) {
+        resolve(user);
+        unsubscribe();
+      } else {
+        // If not signed in, attempt anonymous sign-in
+        signInAnonymously(auth).then(userCredential => {
+          resolve(userCredential.user);
+          unsubscribe();
+        }).catch(error => {
+          console.error("Firebase anonymous sign-in failed:", error);
+          resolve(null); // Resolve with null on failure
+          unsubscribe();
+        });
+      }
+    });
   });
 };
 
-initializeAuthPromise(); // Initialize for the first time
+initializeAuth();
 
-onAuthStateChanged(auth, user => {
-    firebaseUser = user;
-    if (resolveAuthReady) {
-        resolveAuthReady(user);
-    }
-});
-
-export const signInToFirebase = async () => {
-    if (firebaseUser) {
-        return firebaseUser;
-    }
-
-    const user = await authReadyPromise;
-    if (user) {
-        return user;
-    }
-
-    try {
-        const userCredential = await signInAnonymously(auth);
-        firebaseUser = userCredential.user;
-        return firebaseUser;
-    } catch (error) {
-        console.error("Firebase anonymous sign-in failed:", error);
-        initializeAuthPromise(); // Reset promise on failure
-        throw error;
-    }
+export const ensureAuthenticated = (): Promise<User | null> => {
+  return authReadyPromise;
 };
+
 
 export const signOutFromFirebase = async () => {
     try {
         await firebaseSignOut(auth);
-        firebaseUser = null;
-        initializeAuthPromise(); // Reset promise for the next login
+        // Re-initialize auth promise for next login sequence
+        initializeAuth(); 
     } catch (error) {
         console.error("Firebase sign-out failed:", error);
     }

@@ -19,7 +19,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { signInToFirebase } from "@/lib/firebase";
+import { ensureAuthenticated, signOutFromFirebase } from "@/lib/firebase";
 import { updateSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
@@ -73,13 +73,12 @@ export function LoginForm({ allUsers }: LoginFormProps) {
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
     // Fallback password logic for users without an explicit password set.
-    // This MUST match the logic in the admin user management page.
     const idPart = String(selectedUser?.id).split('-').pop() || "0";
     const expectedPassword = selectedUser?.password || `password${idPart}`;
 
     if (selectedUser && values.password === expectedPassword) {
         try {
-            await signInToFirebase(); 
+            await ensureAuthenticated(); 
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             handleLoginSuccess(selectedUser);
         } catch (error) {

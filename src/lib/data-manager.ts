@@ -1,7 +1,7 @@
 
 "use client";
 
-import { db, signInToFirebase } from './firebase';
+import { db, ensureAuthenticated } from './firebase';
 import { ref, get, set, child } from 'firebase/database';
 
 const isServer = typeof window === 'undefined';
@@ -56,7 +56,10 @@ export const updateSourceData = (key: string, data: any): void => {
 export async function fetchDataFromFirebase(path: string) {
   try {
     // Ensure we are authenticated before trying to fetch data
-    await signInToFirebase();
+    const user = await ensureAuthenticated();
+    if (!user) {
+        throw new Error("Authentication failed. Cannot fetch data.");
+    }
     
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, path));
@@ -65,13 +68,13 @@ export async function fetchDataFromFirebase(path: string) {
       const data = snapshot.val();
       // Cache the fetched data in localStorage for performance
       if (!isServer) {
-        localStorage.setItem(path, JSON.stringify(data));
+        updateSourceData(path, data);
       }
       return data;
     } else {
       console.log(`No data available at path: ${path}`);
       if (!isServer) {
-        localStorage.setItem(path, JSON.stringify(null));
+        updateSourceData(path, null);
       }
       return null;
     }
@@ -79,8 +82,7 @@ export async function fetchDataFromFirebase(path: string) {
     console.error(`Firebase Read Error for path "${path}":`, error);
     // As a fallback, try to return data from cache if network fails
     if (!isServer) {
-      const cachedData = localStorage.getItem(path);
-      if (cachedData) return JSON.parse(cachedData);
+      return getSourceData(path, null);
     }
     throw error;
   }
@@ -94,16 +96,18 @@ export async function fetchDataFromFirebase(path: string) {
  */
 export async function saveDataToFirebase(path: string, data: any) {
   try {
-    await signInToFirebase(); // Ensure auth is ready
+    const user = await ensureAuthenticated(); // Ensure auth is ready
+    if (!user) {
+        throw new Error("Authentication failed. Cannot save data.");
+    }
+
     const dbRef = ref(db, path);
     await set(dbRef, data);
     
     // After saving, re-fetch the root object to update the local cache correctly
     if (!isServer) {
       const rootPath = path.split('/')[0];
-      const rootData = await fetchDataFromFirebase(rootPath); // This already updates cache
-      // Dispatch event to notify components of the update
-      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: rootPath, value: rootData } }));
+      await fetchDataFromFirebase(rootPath); // This re-fetches and updates cache
     }
   } catch (error) {
     console.error(`Firebase Write Error for path "${path}":`, error);
