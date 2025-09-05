@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData, fetchDataFromFirebase, saveDataToFirebase } from "@/lib/data-manager";
 
 
 interface SchoolInfo {
@@ -38,7 +38,6 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
 };
 
 const userRoles = [
-    { key: "admin", name: "Administrator" },
     { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
     { key: "tata_usaha", name: "Tata Usaha" },
     { key: "wali_kelas", name: "Wali Kelas" },
@@ -65,13 +64,13 @@ export default function AdminPengaturanPage() {
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    function loadData() {
+    async function loadData() {
         if (sessionStorage.getItem("admin_logged_in") !== "true") {
-          router.push("/admin");
+          router.push("/");
           return;
         }
-          
-        const teachersData = getSourceData('teachersData', {});
+        
+        const teachersData = await fetchDataFromFirebase('teachersData');
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -131,15 +130,20 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = () => {
-      const savedData = getSourceData('teachersData', {});
-      const updatedData = { ...savedData, schoolInfo: schoolInfo };
-      updateSourceData('teachersData', updatedData);
-      
-      toast({
-          title: "Pengaturan Disimpan",
-          description: "Informasi sekolah telah berhasil diperbarui.",
-      });
+  const handleSaveChanges = async () => {
+      try {
+        await saveDataToFirebase('teachersData/schoolInfo', schoolInfo);
+        toast({
+            title: "Pengaturan Disimpan",
+            description: "Informasi sekolah telah berhasil diperbarui di server.",
+        });
+      } catch (error) {
+         toast({
+            title: "Gagal Menyimpan",
+            description: "Tidak dapat menyimpan informasi sekolah ke server.",
+            variant: "destructive"
+        });
+      }
   };
 
   const handleThemeChange = (roleKey: string, themeKey: string) => {
@@ -155,7 +159,7 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
-    if (roleKey === 'admin') {
+    if (roleKey === localStorage.getItem('userRole')) {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);
         });

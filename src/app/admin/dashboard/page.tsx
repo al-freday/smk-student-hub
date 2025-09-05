@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
+import { signOutFromFirebase } from "@/lib/firebase";
 
 interface User {
   id: string;
@@ -34,7 +35,7 @@ const getRoleName = (roleKey: string) => {
 
 const createEmailFromName = (name: string, id: string) => {
     const namePart = name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '');
-    const idPart = id.split('-').pop(); // Ambil bagian numerik dari ID
+    const idPart = id.split('-').pop();
     return `${namePart}${idPart}@schoolemail.com`;
 };
 
@@ -48,14 +49,13 @@ export default function AdminDashboardPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      // fetchDataFromFirebase handles authentication internally
       const teachersData = await fetchDataFromFirebase('teachersData');
       const users: User[] = [];
       
-      // Hardcoded Wakasek Kesiswaan
+      // Add Wakasek Kesiswaan to the list for self-view
       users.push({
           id: 'wakasek_kesiswaan-0',
-          nama: 'Wakasek Kesiswaan',
+          nama: 'Wakasek Kesiswaan (Admin View)',
           roleKey: 'wakasek_kesiswaan',
           roleName: 'Wakasek Kesiswaan'
       });
@@ -63,6 +63,7 @@ export default function AdminDashboardPage() {
       if (teachersData) {
         const { schoolInfo, ...roles } = teachersData;
         Object.keys(roles).forEach(roleKey => {
+            if (roleKey === 'wakasek_kesiswaan') return; // Skip original wakasek entry
             if (Array.isArray(roles[roleKey])) {
               roles[roleKey].forEach((guru: any) => {
                 if (guru && guru.id !== undefined && guru.nama) {
@@ -94,20 +95,10 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/admin");
+      router.push("/");
       return;
     }
-    
     loadUsers();
-
-    // Add event listener to reload users when the window gets focus
-    const handleFocus = () => loadUsers();
-    window.addEventListener('focus', handleFocus);
-
-    // Cleanup listener on component unmount
-    return () => {
-        window.removeEventListener('focus', handleFocus);
-    };
   }, [router, loadUsers]);
   
   const handleImpersonate = () => {
@@ -117,7 +108,6 @@ export default function AdminDashboardPage() {
     }
     const userToImpersonate = allUsers.find(u => u.id === selectedUser);
     if (userToImpersonate) {
-        // Use the new updateSourceData to cache session info locally
         updateSourceData('userRole', userToImpersonate.roleKey);
 
         const userForSettings = {
@@ -132,27 +122,27 @@ export default function AdminDashboardPage() {
             description: `Anda sekarang login sebagai ${userToImpersonate.nama} (${userToImpersonate.roleName}).`,
         });
         
-        // Memicu event kustom untuk memberitahu layout bahwa peran telah berubah
         window.dispatchEvent(new Event('roleChanged'));
         
         router.push('/dashboard');
     }
   };
   
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOutFromFirebase();
     sessionStorage.removeItem("admin_logged_in");
     localStorage.removeItem('currentUser');
     localStorage.removeItem('userRole');
-    router.push("/admin");
+    router.push("/");
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
-          <CardTitle>Dasbor Admin</CardTitle>
+          <CardTitle>Dasbor Administrator</CardTitle>
           <CardDescription>
-            Pilih pengguna di bawah ini untuk melihat dasbor dari sudut pandang mereka.
+            Pilih pengguna di bawah ini untuk melihat dasbor dari sudut pandang mereka (impersonasi).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -193,7 +183,7 @@ export default function AdminDashboardPage() {
             </Button>
             <Button variant="destructive" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout Admin
+                Logout
             </Button>
           </div>
         </CardContent>

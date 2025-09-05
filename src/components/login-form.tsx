@@ -19,7 +19,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ensureAuthenticated, signOutFromFirebase } from "@/lib/firebase";
+import { ensureAuthenticated } from "@/lib/firebase";
 import { updateSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
@@ -53,18 +53,30 @@ export function LoginForm({ allUsers }: LoginFormProps) {
   });
   
   const handleLoginSuccess = (user: User) => {
-      updateSourceData('userRole', user.roleKey);
-      
-      const userForSettings = {
-          nama: user.nama,
-          role: user.role,
-          email: `${user.id.replace(/-/g, '_')}@schoolemail.com`,
-      };
-      updateSourceData('currentUser', userForSettings);
-      
+      // If Wakasek Kesiswaan logs in, they are treated as an admin.
+      if (user.roleKey === 'wakasek_kesiswaan') {
+        sessionStorage.setItem("admin_logged_in", "true");
+        updateSourceData('userRole', 'wakasek_kesiswaan');
+        // Wakasek also has a normal user profile for their own tasks
+        const userProfile = {
+            nama: user.nama,
+            role: user.role,
+            email: 'wakasek@schoolemail.com',
+        };
+        updateSourceData('currentUser', userProfile);
+        router.push("/admin/dashboard");
+      } else {
+        sessionStorage.removeItem("admin_logged_in");
+        updateSourceData('userRole', user.roleKey);
+        const userProfile = {
+            nama: user.nama,
+            role: user.role,
+            email: `${user.id.replace(/-/g, '_')}@schoolemail.com`,
+        };
+        updateSourceData('currentUser', userProfile);
+        router.push("/dashboard");
+      }
       window.dispatchEvent(new Event('roleChanged'));
-      
-      router.push("/dashboard");
   };
 
  async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -73,8 +85,8 @@ export function LoginForm({ allUsers }: LoginFormProps) {
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
     // Fallback password logic for users without an explicit password set.
-    const idPart = String(selectedUser?.id).split('-').pop() || "0";
-    const expectedPassword = selectedUser?.password || `password${idPart}`;
+    const defaultPassword = `password${String(selectedUser?.id).split('-').pop() || "0"}`;
+    const expectedPassword = selectedUser?.password || defaultPassword;
 
     if (selectedUser && values.password === expectedPassword) {
         try {

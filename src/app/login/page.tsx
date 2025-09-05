@@ -5,9 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Shield, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { fetchDataFromFirebase } from '@/lib/data-manager';
 
@@ -36,15 +34,6 @@ const getRoleName = (roleKey: string) => {
     return roles[roleKey] || 'Guru';
 };
 
-const getRoleKey = (roleName: string) => {
-    const roleMap: { [key: string]: string } = {
-      'Wali Kelas': 'wali_kelas', 'Guru BK': 'guru_bk', 'Guru Mapel': 'guru_mapel',
-      'Guru Piket': 'guru_piket', 'Guru Pendamping': 'guru_pendamping',
-      'Wakasek Kesiswaan': 'wakasek_kesiswaan', 'Tata Usaha': 'tata_usaha',
-    };
-    return roleMap[roleName] || 'unknown';
-}
-
 export default function LoginPage() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMK Student Hub",
@@ -56,7 +45,6 @@ export default function LoginPage() {
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          // fetchDataFromFirebase now handles sign-in internally
           const teachersData = await fetchDataFromFirebase('teachersData');
           
           if (teachersData && teachersData.schoolInfo) {
@@ -67,6 +55,7 @@ export default function LoginPage() {
           if (teachersData) {
             const { schoolInfo, ...roles } = teachersData;
             
+            // Hardcoded Wakasek Kesiswaan as the main admin entry point
             users.push({
               id: 'wakasek_kesiswaan-0',
               nama: 'Wakasek Kesiswaan',
@@ -76,6 +65,7 @@ export default function LoginPage() {
             });
 
             Object.keys(roles).forEach(roleKey => {
+                if (roleKey === 'wakasek_kesiswaan') return; // Skip since it's hardcoded
                 const roleArray = roles[roleKey as keyof typeof roles];
                 if (Array.isArray(roleArray)) {
                     roleArray.forEach((guru: any) => {
@@ -86,7 +76,7 @@ export default function LoginPage() {
                                 id: uniqueId,
                                 nama: guru.nama,
                                 role: roleName,
-                                roleKey: getRoleKey(roleName),
+                                roleKey: roleKey,
                                 password: guru.password,
                             });
                         }
@@ -139,14 +129,6 @@ export default function LoginPage() {
             <LoginForm allUsers={allUsers} />
           </CardContent>
         </Card>
-        <div className="mt-6 text-center">
-           <Link href="/admin">
-                <Button variant="link" className="text-muted-foreground">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Login sebagai Administrator
-                </Button>
-            </Link>
-        </div>
       </div>
     </main>
   );
