@@ -189,7 +189,7 @@ export default function LaporanMasukPage() {
                 <TableBody>
                     {pelanggaranDiKelas.length > 0 ? pelanggaranDiKelas.map(p => (
                          <TableRow key={p.id} className={cn(selectedPelanggaran?.id === p.id && "bg-secondary hover:bg-secondary")}>
-                            <TableCell><p className="font-medium">{p.namaSiswa}</p><p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yyyy", { locale: id })}</p></TableCell>
+                            <TableCell><p className="font-medium">{p.namaSiswa}</p><p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMMM yyyy", { locale: id })}</p></TableCell>
                             <TableCell><p>{p.pelanggaran}</p><Badge variant="destructive">{p.poin} Poin</Badge></TableCell>
                             <TableCell>{p.guruPelapor}</TableCell>
                             <TableCell className="text-right"><Button size="sm" variant={selectedPelanggaran?.id === p.id ? "default" : "outline"} onClick={() => handleSelectKasus(p)}>{selectedPelanggaran?.id === p.id ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />} {selectedPelanggaran?.id === p.id ? 'Dipilih' : 'Pilih Kasus'}</Button></TableCell>
@@ -211,12 +211,12 @@ export default function LaporanMasukPage() {
             <div className={cn(!selectedPelanggaran && "opacity-50 pointer-events-none")}>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
-                    <TabsTrigger value="verifikasi">Verifikasi</TabsTrigger>
-                    <TabsTrigger value="panggil">Panggil Siswa</TabsTrigger>
-                    <TabsTrigger value="solusi">Pembinaan</TabsTrigger>
-                    <TabsTrigger value="ortu">Panggil Ortu</TabsTrigger>
-                    <TabsTrigger value="monitor">Monitoring</TabsTrigger>
-                    <TabsTrigger value="catat">Catat &amp; Selesaikan</TabsTrigger>
+                    <TabsTrigger value="verifikasi">A. Verifikasi</TabsTrigger>
+                    <TabsTrigger value="panggil">B. Panggil Siswa</TabsTrigger>
+                    <TabsTrigger value="solusi">C. Pembinaan</TabsTrigger>
+                    <TabsTrigger value="ortu">D. Panggil Ortu</TabsTrigger>
+                    <TabsTrigger value="monitor">E. Monitoring</TabsTrigger>
+                    <TabsTrigger value="catat">F. Catat &amp; Selesaikan</TabsTrigger>
                   </TabsList>
                   
                   {/* VERIFIKASI */}
@@ -274,3 +274,5 @@ export default function LaporanMasukPage() {
     </div>
   );
 }
+
+    
