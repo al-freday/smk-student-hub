@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getSourceData } from "@/lib/data-manager";
-import { format } from "date-fns";
+import { format, getMonth, getYear } from "date-fns";
 import { id } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Archive, Filter } from "lucide-react";
+import { Loader2, ArrowLeft, Archive, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
 
 // Tipe Data
 type StatusLaporan = 'Diteruskan ke Wakasek' | 'Diproses Wakasek' | 'Selesai' | 'Ditolak';
@@ -29,6 +31,8 @@ interface CatatanPelanggaran {
 }
 
 const statusOptions: StatusLaporan[] = ['Diteruskan ke Wakasek', 'Diproses Wakasek', 'Selesai', 'Ditolak'];
+const daftarBulan = Array.from({ length: 12 }, (_, i) => ({ value: i, label: new Date(0, i).toLocaleString('id-ID', { month: 'long' }) }));
+const daftarTahun = [getYear(new Date()) - 1, getYear(new Date()), getYear(new Date()) + 1];
 
 export default function RekapLaporanEskalasiPage() {
   const router = useRouter();
@@ -39,6 +43,9 @@ export default function RekapLaporanEskalasiPage() {
   // State Filter
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Semua");
+  const [selectedMonth, setSelectedMonth] = useState<number>(getMonth(new Date()));
+  const [selectedYear, setSelectedYear] = useState<number>(getYear(new Date()));
+
 
   useEffect(() => {
     setIsLoading(true);
@@ -62,14 +69,17 @@ export default function RekapLaporanEskalasiPage() {
   const filteredData = useMemo(() => {
     return semuaPelanggaran
       .filter(p => {
+        const date = new Date(p.tanggal);
         const termMatch = searchTerm === "" || 
           p.namaSiswa.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.pelanggaran.toLowerCase().includes(searchTerm.toLowerCase());
         const statusMatch = statusFilter === "Semua" || p.status === statusFilter;
-        return termMatch && statusMatch;
+        const monthMatch = getMonth(date) === selectedMonth;
+        const yearMatch = getYear(date) === selectedYear;
+        return termMatch && statusMatch && monthMatch && yearMatch;
       })
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-  }, [semuaPelanggaran, searchTerm, statusFilter]);
+  }, [semuaPelanggaran, searchTerm, statusFilter, selectedMonth, selectedYear]);
   
   const getStatusBadgeVariant = (status: StatusLaporan) => {
     switch (status) {
@@ -79,6 +89,42 @@ export default function RekapLaporanEskalasiPage() {
       case 'Ditolak': return 'destructive';
       default: return 'outline';
     }
+  };
+
+  const handleDownload = () => {
+    if (filteredData.length === 0) {
+        toast({ title: "Tidak Ada Data", description: "Tidak ada data untuk diunduh sesuai filter yang dipilih.", variant: "destructive" });
+        return;
+    }
+    
+    const headers = ['ID', 'Tanggal', 'NIS', 'Nama Siswa', 'Kelas', 'Pelanggaran', 'Poin', 'Status'];
+    const delimiter = ';';
+
+    const formatCell = (value: any) => {
+        const stringValue = String(value || '');
+        if (stringValue.includes(delimiter) || stringValue.includes('"') || stringValue.includes('\n')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+    };
+    
+    const csvRows = filteredData.map(p => 
+        [p.id, p.tanggal, p.nis, p.namaSiswa, p.kelas, p.pelanggaran, p.poin, p.status].map(formatCell).join(delimiter)
+    );
+
+    const csvContent = [headers.join(delimiter), ...csvRows].join('\n');
+    
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `rekap_eskalasi_${daftarBulan[selectedMonth].label}_${selectedYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Unduh Berhasil", description: "Laporan telah diunduh sebagai file CSV." });
   };
 
 
@@ -111,22 +157,40 @@ export default function RekapLaporanEskalasiPage() {
                     <CardTitle className="flex items-center gap-2"><Archive /> Arsip Laporan</CardTitle>
                     <CardDescription>Gunakan filter untuk mencari data spesifik.</CardDescription>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-2 w-full sm:w-auto">
                     <Input 
                         placeholder="Cari nama siswa..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full sm:w-auto"
                     />
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[200px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Semua">Semua Status</SelectItem>
-                            {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                     <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+                        <div className="space-y-1">
+                            <Label htmlFor="filter-bulan" className="text-xs">Bulan</Label>
+                            <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
+                                <SelectTrigger id="filter-bulan" className="w-full"><SelectValue /></SelectTrigger>
+                                <SelectContent>{daftarBulan.map(b => <SelectItem key={b.value} value={String(b.value)}>{b.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-1">
+                            <Label htmlFor="filter-tahun" className="text-xs">Tahun</Label>
+                            <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+                                <SelectTrigger id="filter-tahun" className="w-full"><SelectValue /></SelectTrigger>
+                                <SelectContent>{daftarTahun.map(t => <SelectItem key={t} value={String(t)}>{t}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="filter-status" className="text-xs">Status</Label>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger id="filter-status" className="w-full"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Semua">Semua Status</SelectItem>
+                                    {statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <Button onClick={handleDownload} variant="outline"><Download className="mr-2 h-4 w-4" /> Unduh</Button>
                 </div>
             </div>
         </CardHeader>
