@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users, Palette, Database } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette, Database, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -52,6 +52,7 @@ export default function AdminPengaturanPage() {
   const router = useRouter();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMKN 2 Tana Toraja",
@@ -64,49 +65,60 @@ export default function AdminPengaturanPage() {
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/admin");
-      return;
-    }
-      
-    const teachersData = getSourceData('teachersData', {});
-    
-    if (teachersData.schoolInfo) {
-        setSchoolInfo(teachersData.schoolInfo);
-    }
+    async function loadData() {
+        if (sessionStorage.getItem("admin_logged_in") !== "true") {
+          router.push("/admin");
+          return;
+        }
+          
+        const teachersData = await getSourceData('teachersData', {});
+        
+        if (teachersData && teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+        }
 
-    let count = 1; // Start with 1 for wakasek
-    if (teachersData && typeof teachersData === 'object') {
-        const { schoolInfo, ...roles } = teachersData;
-        Object.keys(roles).forEach((key) => {
-            const roleArray = roles[key as keyof typeof roles];
-             if (Array.isArray(roleArray)) {
-                count += roleArray.length;
+        let count = 1; // Start with 1 for wakasek
+        if (teachersData && typeof teachersData === 'object') {
+            const { schoolInfo, ...roles } = teachersData;
+            Object.keys(roles).forEach((key) => {
+                const roleArray = roles[key as keyof typeof roles];
+                 if (Array.isArray(roleArray)) {
+                    count += roleArray.length;
+                }
+            });
+        }
+        setTotalUsers(count);
+
+        const loadedThemes: { [key: string]: string } = {};
+        userRoles.forEach(role => {
+            const themeItem = localStorage.getItem(`appTheme_${role.key}`);
+            if (themeItem) {
+              try {
+                loadedThemes[role.key] = JSON.parse(themeItem).key;
+              } catch (e) {
+                loadedThemes[role.key] = 'default';
+              }
+            } else {
+              loadedThemes[role.key] = 'default';
             }
         });
-    }
-    setTotalUsers(count);
+        setSelectedThemes(loadedThemes);
 
-    const loadedThemes: { [key: string]: string } = {};
-    userRoles.forEach(role => {
-        const theme = localStorage.getItem(`appTheme_${role.key}`);
-        loadedThemes[role.key] = theme ? JSON.parse(theme).key : 'default';
-    });
-    setSelectedThemes(loadedThemes);
-
-    let total = 0;
-    for (let x in localStorage) {
-        if (!localStorage.hasOwnProperty(x)) {
-            continue;
+        let total = 0;
+        for (let x in localStorage) {
+            if (!localStorage.hasOwnProperty(x)) {
+                continue;
+            }
+            let item = localStorage.getItem(x);
+            if (item) {
+                total += item.length;
+            }
         }
-        let item = localStorage.getItem(x);
-        if (item) {
-            total += item.length;
-        }
+        const totalMB = (total / 1024 / 1024).toFixed(2);
+        setStorageSize(`${totalMB} MB`);
+        setIsLoading(false);
     }
-    const totalMB = (total / 1024 / 1024).toFixed(2);
-    setStorageSize(`${totalMB} MB`);
-
+    loadData();
   }, [router]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,14 +143,14 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = () => {
-      const savedData = getSourceData('teachersData', {});
+  const handleSaveChanges = async () => {
+      const savedData = await getSourceData('teachersData', {});
       const updatedData = { ...savedData, schoolInfo: schoolInfo };
-      updateSourceData('teachersData', updatedData);
+      await updateSourceData('teachersData', updatedData);
       
       toast({
           title: "Pengaturan Disimpan",
-          description: "Informasi sekolah telah berhasil diperbarui.",
+          description: "Informasi sekolah telah berhasil diperbarui di server.",
       });
   };
 
@@ -154,13 +166,21 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
-    // Apply theme immediately for the admin
     if (roleKey === 'admin') {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);
         });
     }
   };
+  
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
@@ -280,15 +300,15 @@ export default function AdminPengaturanPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Penyimpanan Data</CardTitle>
-                    <CardDescription>Total ukuran data yang tersimpan di browser.</CardDescription>
+                    <CardTitle>Penyimpanan Lokal</CardTitle>
+                    <CardDescription>Total ukuran data cache di browser ini.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
                         <div className="flex items-center gap-4">
                             <Database className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font-bold">{storageSize}</p>
+                                <p className="text-2xl font.bold">{storageSize}</p>
                                 <p className="text-sm text-muted-foreground">Total Ukuran Data</p>
                             </div>
                         </div>

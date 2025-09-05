@@ -39,9 +39,9 @@ export default function RootLayout({
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
-  const loadSchoolInfoAndTheme = useCallback(() => {
+  const loadSchoolInfoAndTheme = useCallback(async () => {
       let currentSchoolInfo = { schoolName: "SMK Student Hub", logo: "" };
-      const savedData = getSourceData('teachersData', null);
+      const savedData = await getSourceData('teachersData', null);
       if (savedData && savedData.schoolInfo) {
           currentSchoolInfo = savedData.schoolInfo;
           setSchoolInfo(currentSchoolInfo);

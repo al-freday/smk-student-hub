@@ -45,12 +45,16 @@ export default function DashboardHeader() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({ schoolName: "SMK Student Hub" });
   
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
-        setUserInfo(JSON.parse(storedUser));
+        try {
+            setUserInfo(JSON.parse(storedUser));
+        } catch (e) {
+            console.error("Failed to parse user info from localStorage", e);
+        }
     }
-    const savedTeachersData = getSourceData('teachersData', {});
+    const savedTeachersData = await getSourceData('teachersData', {});
     if (savedTeachersData && savedTeachersData.schoolInfo) {
         setSchoolInfo(savedTeachersData.schoolInfo);
     }
@@ -60,13 +64,13 @@ export default function DashboardHeader() {
     loadData();
     
     // Listen for custom event when admin saves school info
-    window.addEventListener('dataUpdated', loadData);
+    window.addEventListener('dataUpdated', loadData as EventListener);
     // Listen for storage changes from other tabs
-    window.addEventListener('storage', loadData);
+    window.addEventListener('storage', loadData as EventListener);
     
     return () => {
-        window.removeEventListener('dataUpdated', loadData);
-        window.removeEventListener('storage', loadData);
+        window.removeEventListener('dataUpdated', loadData as EventListener);
+        window.removeEventListener('storage', loadData as EventListener);
     };
   }, [loadData]);
 

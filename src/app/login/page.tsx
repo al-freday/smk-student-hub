@@ -44,40 +44,42 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadInitialData = useCallback(() => {
+  const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          const savedData = getSourceData('teachersData', {});
-          if (savedData.schoolInfo) {
+          const savedData = await getSourceData('teachersData', {});
+          if (savedData && savedData.schoolInfo) {
               setSchoolInfo(savedData.schoolInfo);
           }
 
           const users: User[] = [];
-          const { schoolInfo, ...roles } = savedData;
-          
-          users.push({
-            id: 'wakasek_kesiswaan-0',
-            nama: 'Wakasek Kesiswaan',
-            role: 'Wakasek Kesiswaan',
-            password: 'password123',
-          });
+          if (savedData) {
+            const { schoolInfo, ...roles } = savedData;
+            
+            users.push({
+              id: 'wakasek_kesiswaan-0',
+              nama: 'Wakasek Kesiswaan',
+              role: 'Wakasek Kesiswaan',
+              password: 'password123',
+            });
 
-          Object.keys(roles).forEach(roleKey => {
-              const roleArray = roles[roleKey as keyof typeof roles];
-              if (Array.isArray(roleArray)) {
-                  roleArray.forEach((guru: any) => {
-                      if(guru && guru.id !== undefined && guru.nama) {
-                          const uniqueId = `${roleKey}-${guru.id}`;
-                          users.push({
-                              id: uniqueId,
-                              nama: guru.nama,
-                              role: getRoleName(roleKey),
-                              password: guru.password,
-                          });
-                      }
-                  });
-              }
-          });
+            Object.keys(roles).forEach(roleKey => {
+                const roleArray = roles[roleKey as keyof typeof roles];
+                if (Array.isArray(roleArray)) {
+                    roleArray.forEach((guru: any) => {
+                        if(guru && guru.id !== undefined && guru.nama) {
+                            const uniqueId = `${roleKey}-${guru.id}`;
+                            users.push({
+                                id: uniqueId,
+                                nama: guru.nama,
+                                role: getRoleName(roleKey),
+                                password: guru.password,
+                            });
+                        }
+                    });
+                }
+            });
+          }
           setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
       } catch (e) {
           console.error("Failed to load initial data", e)
@@ -89,6 +91,7 @@ export default function LoginPage() {
   useEffect(() => {
     loadInitialData();
     
+    // Listen for custom data update events
     const handleDataChange = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail.key === 'teachersData') {
@@ -107,6 +110,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="mt-2 text-muted-foreground">Memuat data sekolah...</p>
       </div>
     );
   }
