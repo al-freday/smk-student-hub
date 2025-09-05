@@ -166,6 +166,31 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
         data = { ...data, rekapAbsensiGuru, laporanPelanggaran };
     }
 
+    if (roleKey === 'guru_bk') {
+        const allSiswa = getSourceData('siswaData', []);
+        const layananBimbingan = getSourceData('layananBimbinganData', []);
+        const rencanaIndividual = getSourceData('rencanaIndividualData', []);
+        const riwayatPelanggaran = getSourceData('riwayatPelanggaran', []);
+        
+        const layananBimbinganData = layananBimbingan
+            .filter((l: any) => l.guruPencatat === guru.nama && isWithinInterval(new Date(l.tanggal), monthInterval))
+            .map((l: any) => [l.topik, l.sasaran, l.catatan]);
+
+        const layananResponsifData = riwayatPelanggaran
+            .filter((p: any) => ['Diteruskan ke BK', 'Selesai'].includes(p.status) && isWithinInterval(new Date(p.tanggal), monthInterval))
+            .map((p: any) => [p.namaSiswa, p.kelas, p.pelanggaran, p.status]);
+            
+        const perencanaanIndividualData = rencanaIndividual
+            .filter((r: any) => r.guruPencatat === guru.nama && isWithinInterval(new Date(r.tanggal), monthInterval))
+            .map((r: any) => {
+                const siswa = allSiswa.find((s: any) => s.nis === r.nis);
+                return [siswa ? siswa.nama : r.nis, r.kategori, r.catatan];
+            });
+
+        data = { ...data, layananBimbinganData, layananResponsifData, perencanaanIndividualData };
+    }
+
+
     setReportData(data);
     setIsLoading(false);
   }, [guruId, roleKey]);
@@ -213,8 +238,22 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
             </>
         )}
 
+        {roleKey === 'guru_bk' && (
+            <>
+                <Section title="Rekapitulasi Layanan Dasar Bimbingan">
+                    <ReportTable headers={["Topik Bimbingan", "Sasaran", "Catatan"]} data={reportData.layananBimbinganData} />
+                </Section>
+                <Section title="Rekapitulasi Layanan Responsif (Kasus Siswa)">
+                    <ReportTable headers={["Nama Siswa", "Kelas", "Pelanggaran", "Status"]} data={reportData.layananResponsifData} />
+                </Section>
+                <Section title="Rekapitulasi Perencanaan Individual">
+                    <ReportTable headers={["Nama Siswa", "Kategori", "Catatan"]} data={reportData.perencanaanIndividualData} />
+                </Section>
+            </>
+        )}
+
         {/* Placeholder for other roles */}
-        {['guru_bk', 'guru_mapel'].includes(roleKey) && (
+        {['guru_mapel'].includes(roleKey) && (
              <Section title="Ringkasan Aktivitas">
                 <p className="text-gray-600">Laporan detail untuk peran ini sedang dalam pengembangan. Data aktivitas Anda telah tercatat dalam sistem.</p>
             </Section>
