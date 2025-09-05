@@ -32,38 +32,42 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [pageTitle, setPageTitle] = useState("SMK Student Hub");
+  const [schoolLogo, setSchoolLogo] = useState("");
 
   const applyThemeForRole = useCallback(async () => {
-    const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-    const themeSettings = await getSourceData('themeSettings', {});
-    const themeKey = themeSettings[userRole] || 'default';
-    const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
-    
-    Object.entries(themeToApply.colors).forEach(([property, value]) => {
-        document.documentElement.style.setProperty(property, value as string);
-    });
+    // This function can run on first load, so we guard against localStorage access
+    if (typeof window !== 'undefined') {
+        const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
+        const themeSettings = await getSourceData('themeSettings', {});
+        const themeKey = themeSettings[userRole] || 'default';
+        const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
+        
+        Object.entries(themeToApply.colors).forEach(([property, value]) => {
+            document.documentElement.style.setProperty(property, value as string);
+        });
+    }
   }, []);
   
-  useEffect(() => {
-    applyThemeForRole();
-    window.addEventListener('roleChanged', applyThemeForRole);
-    return () => {
-      window.removeEventListener('roleChanged', applyThemeForRole);
-    };
-  }, [applyThemeForRole]);
+  const loadSchoolInfo = useCallback(async () => {
+    const teachersData = await getSourceData('teachersData', {});
+    if (teachersData && teachersData.schoolInfo) {
+        setPageTitle(teachersData.schoolInfo.schoolName || "SMK Student Hub");
+        setSchoolLogo(teachersData.schoolInfo.logo || "");
+    }
+  }, []);
 
   useEffect(() => {
-    // This effect now only handles dynamic page title updates
-    const handleDataUpdate = async () => {
-        const teachersData = await getSourceData('teachersData', {});
-        if (teachersData && teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
-            setPageTitle(teachersData.schoolInfo.schoolName);
-        }
+    applyThemeForRole();
+    loadSchoolInfo();
+
+    window.addEventListener('roleChanged', applyThemeForRole);
+    window.addEventListener('dataUpdated', loadSchoolInfo);
+
+    return () => {
+      window.removeEventListener('roleChanged', applyThemeForRole);
+      window.removeEventListener('dataUpdated', loadSchoolInfo);
     };
-    handleDataUpdate();
-    window.addEventListener('dataUpdated', handleDataUpdate);
-    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
-  }, []);
+  }, [applyThemeForRole, loadSchoolInfo]);
   
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${pageTitle}.`;
 
@@ -72,6 +76,7 @@ export default function RootLayout({
       <Head>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
+        {schoolLogo && <link rel="icon" href={schoolLogo} type="image/png" />}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
