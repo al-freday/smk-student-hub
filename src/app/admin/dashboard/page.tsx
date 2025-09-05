@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,51 +45,50 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const teachersData = await fetchDataFromFirebase('teachersData');
+      const users: User[] = [];
+      if (teachersData) {
+        const { schoolInfo, ...roles } = teachersData;
+        Object.keys(roles).forEach(roleKey => {
+            const roleArray = roles[roleKey as keyof typeof roles];
+            if (Array.isArray(roleArray)) {
+              roleArray.forEach((guru: any) => {
+                if (guru && guru.id !== undefined && guru.nama) {
+                  const uniqueId = `${roleKey}-${guru.id}`;
+                  users.push({
+                    id: uniqueId,
+                    nama: guru.nama,
+                    roleKey: roleKey,
+                    roleName: getRoleName(roleKey),
+                  });
+                }
+              });
+            }
+        });
+      }
+      setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+    } catch (error) {
+      console.error("Gagal memuat data pengguna:", error);
+      toast({
+        title: "Gagal Memuat",
+        description: "Tidak dapat memuat data pengguna. Pastikan Anda memiliki koneksi.",
+        variant: "destructive",
+      });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
       router.push("/admin");
       return;
     }
-
-    const loadUsers = async () => {
-        setIsLoading(true);
-        try {
-          const teachersData = await fetchDataFromFirebase('teachersData');
-          const users: User[] = [];
-          if (teachersData) {
-            const { schoolInfo, ...roles } = teachersData;
-            Object.keys(roles).forEach(roleKey => {
-                const roleArray = roles[roleKey as keyof typeof roles];
-                if (Array.isArray(roleArray)) {
-                  roleArray.forEach((guru: any) => {
-                    if (guru && guru.id !== undefined && guru.nama) {
-                      const uniqueId = `${roleKey}-${guru.id}`;
-                      users.push({
-                        id: uniqueId,
-                        nama: guru.nama,
-                        roleKey: roleKey,
-                        roleName: getRoleName(roleKey),
-                      });
-                    }
-                  });
-                }
-            });
-          }
-          setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
-        } catch (error) {
-          console.error("Gagal memuat data pengguna:", error);
-          toast({
-            title: "Gagal Memuat",
-            description: "Tidak dapat memuat data pengguna. Pastikan Anda memiliki koneksi.",
-            variant: "destructive",
-          });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     loadUsers();
-  }, [router, toast]);
+  }, [router, loadUsers]);
   
   const handleImpersonate = () => {
     if (!selectedUser) {

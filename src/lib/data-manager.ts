@@ -6,12 +6,6 @@ import { ref, get, set, child } from 'firebase/database';
 
 const isServer = typeof window === 'undefined';
 
-/**
- * Retrieves data from localStorage. Used for session-related info like user role.
- * @param key The key to retrieve from localStorage.
- * @param defaultValue The value to return if no data exists.
- * @returns The data from localStorage or the default value.
- */
 export const getSourceData = (key: string, defaultValue: any): any => {
   if (isServer) {
     return defaultValue;
@@ -28,12 +22,6 @@ export const getSourceData = (key: string, defaultValue: any): any => {
   }
 };
 
-/**
- * Updates data in localStorage and dispatches a local event for UI updates.
- * Used for session-related info.
- * @param key The key for the data.
- * @param data The data object to be saved locally.
- */
 export const updateSourceData = (key: string, data: any): void => {
   if (isServer) {
     return;
@@ -47,15 +35,8 @@ export const updateSourceData = (key: string, data: any): void => {
   }
 };
 
-/**
- * Fetches a specific dataset directly from Firebase Realtime Database.
- * Ensures authentication is complete before fetching.
- * @param path The path to the data in Firebase (e.g., 'teachersData').
- * @returns The data from Firebase, or null if it doesn't exist.
- */
 export async function fetchDataFromFirebase(path: string) {
   try {
-    // Ensure we are authenticated before trying to fetch data
     await ensureAuthenticated();
     
     const dbRef = ref(db);
@@ -63,7 +44,6 @@ export async function fetchDataFromFirebase(path: string) {
     
     if (snapshot.exists()) {
       const data = snapshot.val();
-      // Cache the fetched data in localStorage for performance
       if (!isServer) {
         updateSourceData(path, data);
       }
@@ -77,7 +57,6 @@ export async function fetchDataFromFirebase(path: string) {
     }
   } catch (error) {
     console.error(`Firebase Read Error for path "${path}":`, error);
-    // As a fallback, try to return data from cache if network fails
     if (!isServer) {
       return getSourceData(path, null);
     }
@@ -85,23 +64,16 @@ export async function fetchDataFromFirebase(path: string) {
   }
 }
 
-/**
- * Saves or updates a specific dataset in Firebase Realtime Database.
- * Also updates the local cache.
- * @param path The path to the data in Firebase (e.g., 'teachersData/wali_kelas').
- * @param data The data to save.
- */
 export async function saveDataToFirebase(path: string, data: any) {
   try {
-    await ensureAuthenticated(); // Ensure auth is ready
+    await ensureAuthenticated();
 
     const dbRef = ref(db, path);
     await set(dbRef, data);
     
-    // After saving, re-fetch the root object to update the local cache correctly
     if (!isServer) {
       const rootPath = path.split('/')[0];
-      await fetchDataFromFirebase(rootPath); // This re-fetches and updates cache
+      await fetchDataFromFirebase(rootPath);
     }
   } catch (error) {
     console.error(`Firebase Write Error for path "${path}":`, error);
