@@ -40,6 +40,7 @@ export default function RencanaIndividualBkPage() {
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<CatatanRencana>>({});
+  const [isSiswaPopoverOpen, setIsSiswaPopoverOpen] = useState(false);
 
   const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
@@ -179,9 +180,9 @@ export default function RencanaIndividualBkPage() {
               <div className="grid gap-4 py-4">
                   <div className="space-y-2">
                     <Label>Pilih Siswa</Label>
-                    <Popover>
+                    <Popover open={isSiswaPopoverOpen} onOpenChange={setIsSiswaPopoverOpen}>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between">
+                            <Button variant="outline" role="combobox" aria-expanded={isSiswaPopoverOpen} className="w-full justify-between">
                                 {formData.nis ? siswa.find(s => s.nis === formData.nis)?.nama : "Cari dan pilih siswa..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
                             </Button>
@@ -193,7 +194,10 @@ export default function RencanaIndividualBkPage() {
                                     <CommandEmpty>Siswa tidak ditemukan.</CommandEmpty>
                                     <CommandGroup>
                                         {siswa.map(s => (
-                                            <CommandItem key={s.nis} value={s.nama} onSelect={() => setFormData({...formData, nis: s.nis})}>
+                                            <CommandItem key={s.nis} value={s.nama} onSelect={() => {
+                                                setFormData({...formData, nis: s.nis});
+                                                setIsSiswaPopoverOpen(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", formData.nis === s.nis ? "opacity-100" : "opacity-0")}/>
                                                 {s.nama} ({s.kelas})
                                             </CommandItem>
