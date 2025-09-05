@@ -16,6 +16,7 @@ import KonselingBkPage from "./konseling-bk/page";
 import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 import GuruPiketDashboard from "@/components/guru-piket-dashboard";
 import GuruPendampingDashboard from "@/components/guru-pendamping-dashboard";
+import RekapPembayaranKomitePage from "./rekap-pembayaran-komite/page";
 
 const getRoleDisplayName = (role: string) => {
     const roles: { [key: string]: string } = {
@@ -25,6 +26,7 @@ const getRoleDisplayName = (role: string) => {
         guru_piket: 'Guru Piket',
         guru_pendamping: 'Guru Pendamping',
         wakasek_kesiswaan: 'Wakasek Kesiswaan',
+        tata_usaha: 'Tata Usaha',
         admin: 'Administrator'
     };
     return roles[role] || 'Pengguna';
@@ -44,6 +46,8 @@ const getWelcomeMessage = (role: string, name: string) => {
             return `Selamat datang, ${name}. Pantau kehadiran guru dan kelancaran KBM hari ini.`;
         case 'guru_pendamping':
             return `Selamat datang, ${name}. Kelola dan catat perkembangan setiap siswa binaan Anda.`;
+        case 'tata_usaha':
+            return `Selamat datang, ${name}. Anda dapat memantau rekapitulasi pembayaran komite di sini.`;
         case 'admin':
             return `Anda sedang login sebagai Administrator. Gunakan panel admin untuk mengelola sistem.`;
         default:
@@ -188,6 +192,8 @@ const renderDashboardByRole = (role: string) => {
             return <GuruPiketDashboard />;
         case 'guru_pendamping':
             return <GuruPendampingDashboard />;
+        case 'tata_usaha':
+            return <RekapPembayaranKomitePage />;
         case 'admin':
             return <AdminDashboard />;
         default:

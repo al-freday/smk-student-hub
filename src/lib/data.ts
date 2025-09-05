@@ -1,4 +1,5 @@
 
+
 import { format, subDays, eachDayOfInterval, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { getSourceData } from "./data-manager";
 
@@ -22,6 +23,7 @@ export const getDashboardStats = () => {
     const teachersData = getSourceData('teachersData', {});
     let totalGuru = 0;
     if (teachersData && typeof teachersData === 'object' && !Array.isArray(teachersData)) {
+        // Start with 1 for wakasek, then iterate roles
         totalGuru = 1; 
         const { schoolInfo, ...roles } = teachersData;
         Object.values(roles).forEach((roleArray: any) => {
@@ -150,7 +152,8 @@ export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     const teachersData = getSourceData('teachersData', {});
     const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
     const kelasBinaan = waliKelasData?.kelas || [];
-    const filterKelas = selectedKelas ? [selectedKelas] : kelasBinaan;
+    const filterKelas = selectedKelas ? [selectedKelas] : kelasBinaan.length > 0 ? [kelasBinaan[0]] : [];
+
 
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
     const siswaBinaan = allSiswa.filter(s => filterKelas.includes(s.kelas));

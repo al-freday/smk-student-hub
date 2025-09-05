@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -29,7 +30,7 @@ import {
   Inbox,
   DollarSign,
   FileSignature,
-  Archive, // Ditambahkan
+  Archive,
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -107,6 +108,10 @@ const navItemsByRole = {
     { href: "/dashboard/rekap-bimbingan", icon: Archive, label: "Rekap Bimbingan" },
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
     { href: "/dashboard/laporan-tugas", icon: FileText, label: "Laporan Tugas" },
+  ],
+  tata_usaha: [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard/rekap-pembayaran-komite", icon: DollarSign, label: "Rekap Pembayaran" },
   ],
   admin: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
