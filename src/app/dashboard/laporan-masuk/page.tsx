@@ -31,6 +31,7 @@ type TindakanPembinaan = 'Kerja Bakti' | 'Sanksi' | 'Denda' | 'Skorsing' | '';
 type DurasiPemantauan = '1 Minggu' | '1 Bulan' | '';
 
 interface DetailPenanganan {
+  kronologiKejadian?: string;
   catatanPembicaraan?: string;
   kategoriPelanggaran?: KategoriPelanggaran;
   rekomendasiBK?: boolean;
@@ -51,6 +52,7 @@ interface CatatanPelanggaran {
     pelanggaran: string; 
     poin: number; 
     guruPelapor: string;
+    tindakanAwal: string;
     status: StatusLaporan;
     penanganan?: DetailPenanganan;
 }
@@ -211,7 +213,35 @@ export default function LaporanMasukPage() {
                   <TabsList className="grid w-full grid-cols-3 md:grid-cols-6"><TabsTrigger value="verifikasi">Verifikasi</TabsTrigger><TabsTrigger value="panggil">Panggil Siswa</TabsTrigger><TabsTrigger value="catat">Catat</TabsTrigger><TabsTrigger value="ortu">Panggil Ortu</TabsTrigger><TabsTrigger value="solusi">Pembinaan</TabsTrigger><TabsTrigger value="monitor">Monitoring</TabsTrigger></TabsList>
                   
                   {/* VERIFIKASI */}
-                  <TabsContent value="verifikasi" className="pt-4"><div className="p-4 border rounded-lg space-y-4"><div className="flex items-center gap-3"><FileSignature className="h-5 w-5 text-primary"/><h3 className="font-semibold">Verifikasi Laporan</h3></div><p className="text-sm text-muted-foreground">Pastikan laporan valid dan jelas sumbernya sebelum melanjutkan.</p>{selectedPelanggaran && (<div className="text-sm p-3 bg-secondary rounded-md"><p><strong>Pelapor:</strong> {selectedPelanggaran.guruPelapor}</p><p><strong>Waktu Laporan:</strong> {format(new Date(selectedPelanggaran.tanggal), "EEEE, dd MMMM yyyy", { locale: id })}</p><p><strong>Poin Pelanggaran:</strong> <Badge variant="destructive">{selectedPelanggaran.poin}</Badge></p></div>)}<div className="flex items-start space-x-3"><p className="text-sm font-medium">1.</p><p className="text-sm text-muted-foreground leading-snug">Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.</p></div><div className="flex items-start space-x-3"><p className="text-sm font-medium">2.</p><p className="text-sm text-muted-foreground leading-snug">Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.</p></div><div className="flex justify-end gap-2 pt-4 border-t"><Button variant="destructive" onClick={() => setPelanggaranToTolak(selectedPelanggaran)}>Tolak Laporan (Tidak Valid)</Button><Button onClick={() => setActiveTab('panggil')}>Laporan Valid, Lanjutkan <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div></TabsContent>
+                  <TabsContent value="verifikasi" className="pt-4">
+                    <div className="p-4 border rounded-lg space-y-4">
+                      <div className="flex items-center gap-3"><FileSignature className="h-5 w-5 text-primary"/><h3 className="font-semibold">Verifikasi Laporan</h3></div>
+                      <p className="text-sm text-muted-foreground">Pastikan laporan valid dan jelas sumbernya sebelum melanjutkan.</p>
+                      
+                      {selectedPelanggaran && (
+                        <div className="text-sm p-3 bg-secondary rounded-md space-y-1">
+                          <p><strong>Pelapor:</strong> {selectedPelanggaran.guruPelapor}</p>
+                          <p><strong>Waktu Laporan:</strong> {format(new Date(selectedPelanggaran.tanggal), "EEEE, dd MMMM yyyy", { locale: id })}</p>
+                          <p><strong>Poin Pelanggaran:</strong> <Badge variant="destructive">{selectedPelanggaran.poin}</Badge></p>
+                          <p><strong>Tindakan Awal Pelapor:</strong> {selectedPelanggaran.tindakanAwal || "Tidak ada"}</p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                          <Label htmlFor="kronologi-kejadian">1. Catatan Kronologi Kejadian (oleh Wali Kelas)</Label>
+                          <Textarea id="kronologi-kejadian" placeholder="Tuliskan kronologi kejadian setelah bertanya pada saksi atau siswa terkait..." value={formData.kronologiKejadian || ''} onChange={(e) => handleFormDataChange('kronologiKejadian', e.target.value)} />
+                      </div>
+                      <div className="flex items-start space-x-3">
+                          <p className="text-sm font-medium pt-1">2.</p>
+                          <p className="text-sm text-muted-foreground leading-snug">Pastikan laporan valid dan jelas sumbernya, bukan sekadar gosip kelas. Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.</p>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button variant="destructive" onClick={() => setPelanggaranToTolak(selectedPelanggaran)}>Tolak Laporan (Tidak Valid)</Button>
+                        <Button onClick={() => setActiveTab('panggil')}>Laporan Valid, Lanjutkan <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  </TabsContent>
                   
                   {/* PANGGIL SISWA */}
                   <TabsContent value="panggil" className="pt-4"><div className="p-4 border rounded-lg space-y-4"><div className="flex items-center gap-3"><Users className="h-5 w-5 text-primary"/><h3 className="font-semibold">Panggil & Ajak Bicara Siswa</h3></div><p className="text-sm text-muted-foreground">Lakukan pembinaan awal sebagai wali kelas. Catat hasil pembicaraan sebagai bukti.</p><div className="space-y-2"><Label htmlFor="catatan-pembicaraan">1. Catatan Pembicaraan (Ringkasan)</Label><Textarea id="catatan-pembicaraan" placeholder="Tulis ringkasan pembicaraan, pengakuan siswa, atau komitmen yang dibuat..." value={formData.catatanPembicaraan || ''} onChange={(e) => handleFormDataChange('catatanPembicaraan', e.target.value)} /></div><div className="space-y-2"><Label>2. Kategori Pelanggaran</Label><RadioGroup value={formData.kategoriPelanggaran} onValueChange={(v: KategoriPelanggaran) => handleFormDataChange('kategoriPelanggaran', v)} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="Sengaja" id="sengaja" /><Label htmlFor="sengaja">Sengaja</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="Tidak Sengaja" id="tidak-sengaja" /><Label htmlFor="tidak-sengaja">Tidak Sengaja/Lalai</Label></div></RadioGroup></div></div></TabsContent>
@@ -237,5 +267,3 @@ export default function LaporanMasukPage() {
     </div>
   );
 }
-
-    
