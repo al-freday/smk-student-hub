@@ -57,6 +57,7 @@ const navItemsByRole = {
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Kehadiran Siswa" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru"},
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
+    { href: "/dashboard/laporan-masuk-wakasek", icon: Inbox, label: "Laporan Eskalasi" },
     { type: 'divider', label: 'Laporan & Notifikasi' },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
@@ -238,5 +239,3 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     </div>
   );
 }
-
-    

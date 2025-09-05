@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
 // --- Tipe Data ---
-type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diproses BK' | 'Diteruskan ke Wakasek' | 'Selesai' | 'Ditolak';
+type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Diproses BK' | 'Diteruskan ke Wakasek' | 'Diproses Wakasek' | 'Selesai' | 'Ditolak';
 type KategoriPelanggaran = 'Sengaja' | 'Tidak Sengaja' | '';
 type MetodePanggilanOrtu = 'Telepon' | 'Kunjungan Rumah' | 'Surat Panggilan' | '';
 type TindakanPembinaan = 'Kerja Bakti' | 'Sanksi' | 'Denda' | 'Skorsing' | '';
