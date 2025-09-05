@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
 
   const handleLogin = () => {
     setIsLoading(true);
-    // This is a simple, non-secure check.
+    // This is a simple, non-secure check for the special admin role.
     if (password === 'admin123') {
       toast({
         title: "Login Berhasil",
