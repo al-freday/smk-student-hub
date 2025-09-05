@@ -1,6 +1,7 @@
 
 import { initialKurikulumData } from './kurikulum-data';
 import { tataTertibData } from './tata-tertib-data';
+import { pklData } from './pklData';
 
 const seedInitialData = () => {
   // Data Master: Siswa, Kelas, Guru
@@ -56,7 +57,7 @@ const initializeData = () => {
         'prestasiData', 'kurikulumData', 'kehadiranSiswaPerSesi',
         'teacherAttendanceData', 'logBimbinganData', 'layananBimbinganData', 
         'rencanaIndividualData', 'assignmentLogData', 'waliKelasReportsStatus',
-        'tataTertibData'
+        'tataTertibData', 'pklData'
     ];
 
     let needsSeeding = false;
@@ -78,6 +79,9 @@ const initializeData = () => {
     }
     if (localStorage.getItem('tataTertibData') === null) {
         localStorage.setItem('tataTertibData', JSON.stringify(tataTertibData));
+    }
+     if (localStorage.getItem('pklData') === null) {
+        localStorage.setItem('pklData', JSON.stringify(pklData));
     }
   }
 };
@@ -117,3 +121,5 @@ export const updateSourceData = (key: string, data: any) => {
 
 // Panggil inisialisasi saat script dimuat
 initializeData();
+
+    
