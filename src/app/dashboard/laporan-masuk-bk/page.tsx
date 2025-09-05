@@ -11,7 +11,7 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { id } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, ArrowRight, FileSignature, Users, Phone, Handshake, Search, Save } from "lucide-react";
+import { Loader2, Check, ArrowRight, FileSignature, Users, Phone, Handshake, Search, Save, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
