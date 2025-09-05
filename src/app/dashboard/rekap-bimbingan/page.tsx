@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -9,11 +10,11 @@ import { getSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch, Download, Printer } from "lucide-react";
+import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import autoTable from 'jspdf-autotable';
 
 
 // Tipe Data
@@ -26,6 +27,7 @@ interface Log {
   catatan: string;
   tipe: 'Akademik' | 'Kompetensi' | 'Karakter';
 }
+interface SchoolInfo { schoolName: string; headmasterName: string; logo: string; }
 
 const getTipeIcon = (tipe: Log['tipe']) => {
     switch (tipe) {
@@ -45,6 +47,7 @@ export default function RekapBimbinganPage() {
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [siswaBinaan, setSiswaBinaan] = useState<Siswa[]>([]);
   const [selectedNis, setSelectedNis] = useState<string>("");
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -62,6 +65,7 @@ export default function RekapBimbinganPage() {
       const allSiswa: Siswa[] = getSourceData('siswaData', []);
       const siswaPendampingan = allSiswa.filter(s => daftarNamaSiswaBinaan.includes(s.nama));
       setSiswaBinaan(siswaPendampingan.sort((a,b) => a.nama.localeCompare(b.nama)));
+      setSchoolInfo(teachersData.schoolInfo || null);
       
       const logAkademik = getSourceData('logAkademikData', {});
       const logKompetensi = getSourceData('logKompetensiData', {});
@@ -103,40 +107,61 @@ export default function RekapBimbinganPage() {
     return siswaBinaan.find(s => s.nis === selectedNis);
   }, [siswaBinaan, selectedNis]);
 
-  const handleDownloadPdf = async () => {
-    if (!selectedSiswa) return;
-    const reportElement = document.getElementById('report-table-area');
-    if (!reportElement) {
-        toast({ title: "Gagal", description: "Tidak dapat menemukan konten laporan.", variant: "destructive" });
+  const handleDownloadPdf = () => {
+    if (!selectedSiswa) {
+        toast({ title: "Gagal", description: "Pilih siswa terlebih dahulu.", variant: "destructive" });
         return;
     }
-    
     setIsGeneratingPdf(true);
     toast({ title: "Membuat PDF...", description: "Harap tunggu sebentar." });
-    
-    try {
-        const canvas = await html2canvas(reportElement, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        pdf.setFontSize(16);
-        pdf.text(`Rekap Bimbingan - ${selectedSiswa.nama}`, 14, 15);
-        pdf.setFontSize(10);
-        pdf.text(`Kelas: ${selectedSiswa.kelas}`, 14, 22);
 
-        pdf.addImage(imgData, 'PNG', 10, 30, pdfWidth - 20, imgHeight > 250 ? 250 : imgHeight);
-        
-        pdf.save(`Rekap_Bimbingan_${selectedSiswa.nama.replace(/\s/g, '_')}.pdf`);
-        toast({ title: "Berhasil!", description: "Laporan PDF telah diunduh." });
-    } catch (error) {
-        console.error("Gagal membuat PDF:", error);
-        toast({ title: "Gagal", description: "Terjadi kesalahan saat membuat PDF.", variant: "destructive" });
-    } finally {
-        setIsGeneratingPdf(false);
-    }
+    setTimeout(() => {
+        try {
+            const doc = new jsPDF();
+            
+            // Header
+            if (schoolInfo?.logo) {
+                // Catatan: jsPDF membutuhkan gambar dari URL yang sama atau CORS-enabled. 
+                // Jika logo dari 'data:image/...', ini akan bekerja.
+                try {
+                    doc.addImage(schoolInfo.logo, 'PNG', 15, 10, 20, 20);
+                } catch(e){ console.error("Gagal menambahkan logo:", e); }
+            }
+            doc.setFontSize(16);
+            doc.text(schoolInfo?.schoolName || 'Laporan Bimbingan Siswa', 40, 18);
+            doc.setFontSize(10);
+            doc.text(`Rekapitulasi Bimbingan Siswa`, 40, 24);
+            
+            // Info Siswa
+            doc.setFontSize(12);
+            doc.text(`Nama Siswa: ${selectedSiswa.nama}`, 15, 40);
+            doc.text(`Kelas: ${selectedSiswa.kelas}`, 15, 46);
+            doc.text(`NIS: ${selectedSiswa.nis}`, 15, 52);
+
+            const tableData = filteredLogs.map(log => [
+                format(new Date(log.tanggal), "dd MMM yyyy", { locale: id }),
+                log.tipe,
+                log.kategori,
+                log.catatan
+            ]);
+
+            autoTable(doc, {
+                startY: 60,
+                head: [['Tanggal', 'Tipe', 'Kategori', 'Catatan']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185] }, // Warna biru
+            });
+
+            doc.save(`Rekap_Bimbingan_${selectedSiswa.nama.replace(/\s/g, '_')}.pdf`);
+            toast({ title: "Berhasil!", description: "Laporan PDF telah diunduh." });
+        } catch (error) {
+            console.error("Gagal membuat PDF:", error);
+            toast({ title: "Gagal", description: "Terjadi kesalahan saat membuat PDF.", variant: "destructive" });
+        } finally {
+            setIsGeneratingPdf(false);
+        }
+    }, 500); // Penundaan singkat untuk memastikan UI responsif
   };
 
   if (isLoading) {
