@@ -29,6 +29,7 @@ const getRoleName = (roleKey: string) => {
         guru_mapel: 'Guru Mapel',
         guru_piket: 'Guru Piket',
         guru_pendamping: 'Guru Pendamping',
+        wakasek_kesiswaan: 'Wakasek Kesiswaan',
         tata_usaha: 'Tata Usaha',
     };
     return roles[roleKey] || 'Guru';
@@ -45,6 +46,7 @@ export default function LoginPage() {
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
+          // This call now waits for auth to be ready
           const teachersData = await fetchDataFromFirebase('teachersData');
           
           if (teachersData && teachersData.schoolInfo) {
@@ -54,18 +56,7 @@ export default function LoginPage() {
           const users: User[] = [];
           if (teachersData) {
             const { schoolInfo, ...roles } = teachersData;
-            
-            // Hardcoded Wakasek Kesiswaan as the main admin entry point
-            users.push({
-              id: 'wakasek_kesiswaan-0',
-              nama: 'Wakasek Kesiswaan',
-              role: 'Wakasek Kesiswaan',
-              roleKey: 'wakasek_kesiswaan',
-              password: 'password123',
-            });
-
             Object.keys(roles).forEach(roleKey => {
-                if (roleKey === 'wakasek_kesiswaan') return; // Skip since it's hardcoded
                 const roleArray = roles[roleKey as keyof typeof roles];
                 if (Array.isArray(roleArray)) {
                     roleArray.forEach((guru: any) => {

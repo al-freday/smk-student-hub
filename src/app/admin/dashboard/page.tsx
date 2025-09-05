@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
-import { signOutFromFirebase } from "@/lib/firebase";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -28,7 +27,6 @@ const getRoleName = (roleKey: string) => {
         guru_piket: 'Guru Piket',
         guru_pendamping: 'Guru Pendamping',
         wakasek_kesiswaan: 'Wakasek Kesiswaan',
-        tata_usaha: 'Tata Usaha'
     };
     return roles[roleKey] || 'Guru';
 };
@@ -46,60 +44,52 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const loadUsers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const teachersData = await fetchDataFromFirebase('teachersData');
-      const users: User[] = [];
-      
-      // Add Wakasek Kesiswaan to the list for self-view
-      users.push({
-          id: 'wakasek_kesiswaan-0',
-          nama: 'Wakasek Kesiswaan (Admin View)',
-          roleKey: 'wakasek_kesiswaan',
-          roleName: 'Wakasek Kesiswaan'
-      });
-
-      if (teachersData) {
-        const { schoolInfo, ...roles } = teachersData;
-        Object.keys(roles).forEach(roleKey => {
-            if (roleKey === 'wakasek_kesiswaan') return; // Skip original wakasek entry
-            if (Array.isArray(roles[roleKey])) {
-              roles[roleKey].forEach((guru: any) => {
-                if (guru && guru.id !== undefined && guru.nama) {
-                  const uniqueId = `${roleKey}-${guru.id}`;
-                  users.push({
-                    id: uniqueId,
-                    nama: guru.nama,
-                    roleKey: roleKey,
-                    roleName: getRoleName(roleKey),
-                  });
-                }
-              });
-            }
-        });
-      }
-      setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
-    } catch (error) {
-      console.error("Gagal memuat data pengguna dari Firebase:", error);
-      toast({
-        title: "Gagal Memuat",
-        description: "Tidak dapat memuat data pengguna dari server. Periksa koneksi atau coba lagi.",
-        variant: "destructive",
-      });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
-
-
   useEffect(() => {
     if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/");
+      router.push("/admin");
       return;
     }
+
+    const loadUsers = async () => {
+        setIsLoading(true);
+        try {
+          // In an admin context, we assume we can get data directly.
+          // This part fails if not authenticated properly.
+          const teachersData = getSourceData('teachersData', null);
+          const users: User[] = [];
+          if (teachersData) {
+            const { schoolInfo, ...roles } = teachersData;
+            Object.keys(roles).forEach(roleKey => {
+                if (Array.isArray(roles[roleKey])) {
+                  roles[roleKey].forEach((guru: any) => {
+                    if (guru && guru.id !== undefined && guru.nama) {
+                      const uniqueId = `${roleKey}-${guru.id}`;
+                      users.push({
+                        id: uniqueId,
+                        nama: guru.nama,
+                        roleKey: roleKey,
+                        roleName: getRoleName(roleKey),
+                      });
+                    }
+                  });
+                }
+            });
+          }
+          setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+        } catch (error) {
+          console.error("Gagal memuat data pengguna:", error);
+          toast({
+            title: "Gagal Memuat",
+            description: "Tidak dapat memuat data pengguna. Pastikan Anda memiliki koneksi.",
+            variant: "destructive",
+          });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     loadUsers();
-  }, [router, loadUsers]);
+  }, [router, toast]);
   
   const handleImpersonate = () => {
     if (!selectedUser) {
@@ -128,8 +118,7 @@ export default function AdminDashboardPage() {
     }
   };
   
-  const handleLogout = async () => {
-    await signOutFromFirebase();
+  const handleLogout = () => {
     sessionStorage.removeItem("admin_logged_in");
     localStorage.removeItem('currentUser');
     localStorage.removeItem('userRole');

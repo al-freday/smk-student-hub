@@ -51,33 +51,6 @@ export function LoginForm({ allUsers }: LoginFormProps) {
       password: "",
     },
   });
-  
-  const handleLoginSuccess = (user: User) => {
-      // If Wakasek Kesiswaan logs in, they are treated as an admin.
-      if (user.roleKey === 'wakasek_kesiswaan') {
-        sessionStorage.setItem("admin_logged_in", "true");
-        updateSourceData('userRole', 'wakasek_kesiswaan');
-        // Wakasek also has a normal user profile for their own tasks
-        const userProfile = {
-            nama: user.nama,
-            role: user.role,
-            email: 'wakasek@schoolemail.com',
-        };
-        updateSourceData('currentUser', userProfile);
-        router.push("/admin/dashboard");
-      } else {
-        sessionStorage.removeItem("admin_logged_in");
-        updateSourceData('userRole', user.roleKey);
-        const userProfile = {
-            nama: user.nama,
-            role: user.role,
-            email: `${user.id.replace(/-/g, '_')}@schoolemail.com`,
-        };
-        updateSourceData('currentUser', userProfile);
-        router.push("/dashboard");
-      }
-      window.dispatchEvent(new Event('roleChanged'));
-  };
 
  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -92,7 +65,19 @@ export function LoginForm({ allUsers }: LoginFormProps) {
         try {
             await ensureAuthenticated(); 
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
-            handleLoginSuccess(selectedUser);
+            
+            sessionStorage.removeItem("admin_logged_in");
+            updateSourceData('userRole', selectedUser.roleKey);
+            const userProfile = {
+                nama: selectedUser.nama,
+                role: selectedUser.role,
+                email: `${selectedUser.id.replace(/-/g, '_')}@schoolemail.com`,
+            };
+            updateSourceData('currentUser', userProfile);
+            window.dispatchEvent(new Event('roleChanged'));
+            
+            router.push("/dashboard");
+
         } catch (error) {
             console.error("Firebase sign-in error:", error);
             toast({
