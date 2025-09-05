@@ -39,19 +39,6 @@ interface LoginFormProps {
     allUsers: User[];
 }
 
-const getRoleKeyFromName = (roleName: string) => {
-    const roles: { [key: string]: string } = {
-        'Wali Kelas': 'wali_kelas',
-        'Guru BK': 'guru_bk',
-        'Guru Mapel': 'guru_mapel',
-        'Guru Piket': 'guru_piket',
-        'Guru Pendamping': 'guru_pendamping',
-        'Wakasek Kesiswaan': 'wakasek_kesiswaan',
-        'Tata Usaha': 'tata_usaha',
-    };
-    return roles[roleName] || 'unknown';
-}
-
 export function LoginForm({ allUsers }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -66,7 +53,6 @@ export function LoginForm({ allUsers }: LoginFormProps) {
   });
   
   const handleLoginSuccess = (user: User) => {
-      // Use the new updateSourceData for local session caching
       updateSourceData('userRole', user.roleKey);
       
       const userForSettings = {
@@ -86,13 +72,12 @@ export function LoginForm({ allUsers }: LoginFormProps) {
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    // The logic to derive the password remains the same as it's part of the user data structure
     const idPart = String(selectedUser?.id).split('-').pop();
     const expectedPassword = selectedUser?.password || `password${idPart}`;
 
     if (selectedUser && values.password === expectedPassword) {
         try {
-            await signInToFirebase(); // This must succeed to proceed
+            await signInToFirebase(); 
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             handleLoginSuccess(selectedUser);
         } catch (error) {

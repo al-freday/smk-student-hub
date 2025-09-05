@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Shield, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { signInToFirebase } from '@/lib/firebase';
 import { fetchDataFromFirebase } from '@/lib/data-manager';
 
 interface SchoolInfo {
@@ -46,7 +45,6 @@ const getRoleKey = (roleName: string) => {
     return roleMap[roleName] || 'unknown';
 }
 
-
 export default function LoginPage() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMK Student Hub",
@@ -58,10 +56,7 @@ export default function LoginPage() {
   const loadInitialData = useCallback(async () => {
       setIsLoading(true);
       try {
-          // First, sign in anonymously to get permission to read the database.
-          await signInToFirebase();
-
-          // Now that we're authenticated, we can fetch data.
+          // fetchDataFromFirebase now handles sign-in internally
           const teachersData = await fetchDataFromFirebase('teachersData');
           
           if (teachersData && teachersData.schoolInfo) {

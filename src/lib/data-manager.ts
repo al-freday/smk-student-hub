@@ -1,8 +1,8 @@
 
 "use client";
 
-import { db } from './firebase';
-import { ref, get, set, child, remove } from 'firebase/database';
+import { db, signInToFirebase } from './firebase';
+import { ref, get, set, child } from 'firebase/database';
 
 const isServer = typeof window === 'undefined';
 
@@ -47,22 +47,23 @@ export const updateSourceData = (key: string, data: any): void => {
   }
 };
 
-
-// --- FIREBASE-CENTRIC FUNCTIONS ---
-
 /**
  * Fetches a specific dataset directly from Firebase Realtime Database.
- * This is the primary function for loading application data.
+ * Ensures authentication is complete before fetching.
  * @param path The path to the data in Firebase (e.g., 'teachersData').
  * @returns The data from Firebase, or null if it doesn't exist.
  */
 export async function fetchDataFromFirebase(path: string) {
   try {
+    // Ensure we are authenticated before trying to fetch data
+    await signInToFirebase();
+    
     const dbRef = ref(db);
     const snapshot = await get(child(dbRef, path));
+    
     if (snapshot.exists()) {
       const data = snapshot.val();
-      // Also cache the fetched data in localStorage for performance and offline access
+      // Cache the fetched data in localStorage for performance
       if (!isServer) {
         localStorage.setItem(path, JSON.stringify(data));
       }
@@ -76,6 +77,7 @@ export async function fetchDataFromFirebase(path: string) {
     }
   } catch (error) {
     console.error(`Firebase Read Error for path "${path}":`, error);
+    // As a fallback, try to return data from cache if network fails
     if (!isServer) {
       const cachedData = localStorage.getItem(path);
       if (cachedData) return JSON.parse(cachedData);
@@ -92,49 +94,19 @@ export async function fetchDataFromFirebase(path: string) {
  */
 export async function saveDataToFirebase(path: string, data: any) {
   try {
+    await signInToFirebase(); // Ensure auth is ready
     const dbRef = ref(db, path);
     await set(dbRef, data);
+    
+    // After saving, re-fetch the root object to update the local cache correctly
     if (!isServer) {
-      // Manually update the local cache for the root object if a sub-path is changed
       const rootPath = path.split('/')[0];
-      const rootData = await fetchDataFromFirebase(rootPath);
-      if (rootData) {
-        updateSourceData(rootPath, rootData);
-      } else {
-         // If root data is complex, just update the specific path
-         // This is a simplification; a more robust solution might merge data
-         const existingData = getSourceData(rootPath, {});
-         const pathParts = path.split('/');
-         let current = existingData;
-         for (let i = 1; i < pathParts.length - 1; i++) {
-            current = current[pathParts[i]] = current[pathParts[i]] || {};
-         }
-         current[pathParts[pathParts.length-1]] = data;
-         updateSourceData(rootPath, existingData);
-      }
+      const rootData = await fetchDataFromFirebase(rootPath); // This already updates cache
+      // Dispatch event to notify components of the update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: rootPath, value: rootData } }));
     }
   } catch (error) {
     console.error(`Firebase Write Error for path "${path}":`, error);
     throw error;
   }
-}
-
-
-/**
- * Removes data from a specific path in Firebase Realtime Database.
- * Also removes from local cache.
- * @param path The path to the data to remove.
- */
-export async function removeDataFromFirebase(path: string) {
-    try {
-        const dbRef = ref(db, path);
-        await remove(dbRef);
-        if (!isServer) {
-            localStorage.removeItem(path);
-             window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key: path, value: null } }));
-        }
-    } catch (error) {
-        console.error(`Firebase Remove Error for path "${path}":`, error);
-        throw error;
-    }
 }

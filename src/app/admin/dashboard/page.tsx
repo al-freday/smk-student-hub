@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
-import { signInToFirebase } from "@/lib/firebase";
 
 interface User {
   id: string;
@@ -49,8 +48,7 @@ export default function AdminDashboardPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Ensure we are authenticated with Firebase before fetching data
-      await signInToFirebase();
+      // fetchDataFromFirebase handles authentication internally
       const teachersData = await fetchDataFromFirebase('teachersData');
       const users: User[] = [];
       
