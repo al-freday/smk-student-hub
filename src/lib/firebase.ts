@@ -31,10 +31,16 @@ db = getDatabase(app);
 
 let firebaseUser: User | null = null;
 
+let authReadyPromise: Promise<User | null>;
 let resolveAuthReady: (user: User | null) => void;
-let authReadyPromise = new Promise<User | null>(resolve => {
+
+const initializeAuthPromise = () => {
+  authReadyPromise = new Promise(resolve => {
     resolveAuthReady = resolve;
-});
+  });
+};
+
+initializeAuthPromise(); // Initialize for the first time
 
 onAuthStateChanged(auth, user => {
     firebaseUser = user;
@@ -44,28 +50,22 @@ onAuthStateChanged(auth, user => {
 });
 
 export const signInToFirebase = async () => {
-    // If we're already signed in, return the user immediately.
     if (firebaseUser) {
         return firebaseUser;
     }
 
-    // Wait for the initial auth state check to complete.
     const user = await authReadyPromise;
     if (user) {
         return user;
     }
 
-    // If still no user, then proceed with anonymous sign-in.
     try {
         const userCredential = await signInAnonymously(auth);
         firebaseUser = userCredential.user;
         return firebaseUser;
     } catch (error) {
         console.error("Firebase anonymous sign-in failed:", error);
-        // Reset the promise on failure to allow retries
-        authReadyPromise = new Promise(resolve => {
-            resolveAuthReady = resolve;
-        });
+        initializeAuthPromise(); // Reset promise on failure
         throw error;
     }
 };
@@ -74,10 +74,7 @@ export const signOutFromFirebase = async () => {
     try {
         await firebaseSignOut(auth);
         firebaseUser = null;
-        // Reset the promise for the next login
-        authReadyPromise = new Promise(resolve => {
-            resolveAuthReady = resolve;
-        });
+        initializeAuthPromise(); // Reset promise for the next login
     } catch (error) {
         console.error("Firebase sign-out failed:", error);
     }
