@@ -6,13 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw } from "lucide-react";
+import { Eye, Loader2, MoreHorizontal, CheckCircle, RefreshCw, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import TeacherReportContent from "@/components/teacher-report-content";
 
 interface Guru {
   id: number | string;
@@ -48,6 +51,7 @@ const reportableRoles = ['wali_kelas', 'guru_bk', 'guru_mapel', 'guru_piket', 'g
 export default function LaporanWakasekPage() {
   const [allReports, setAllReports] = useState<ReceivedReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('wali_kelas');
   
@@ -113,6 +117,69 @@ export default function LaporanWakasekPage() {
         title: "Status Diperbarui",
         description: `Laporan dari ${updatedReports.find(r => r.guruId === guruId)?.namaGuru} telah ditandai sebagai ${status}.`,
     });
+  };
+
+  const handleDownloadPdf = async (report: ReceivedReport) => {
+    setIsGeneratingPdf(true);
+    toast({ title: "Membuat PDF", description: "Harap tunggu, laporan sedang dibuat..." });
+
+    const reportElement = document.getElementById(`report-content-${report.id}`);
+    if (!reportElement) {
+      toast({ title: "Gagal", description: "Konten laporan tidak ditemukan.", variant: "destructive" });
+      setIsGeneratingPdf(false);
+      return;
+    }
+    
+    // Temporarily make the element visible for rendering
+    reportElement.style.position = 'fixed';
+    reportElement.style.left = '-9999px';
+    reportElement.style.top = '0';
+    reportElement.style.display = 'block';
+
+    try {
+      const canvas = await html2canvas(reportElement, {
+          scale: 2,
+          useCORS: true,
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / imgHeight;
+      const newImgHeight = pdfWidth / ratio;
+      
+      let heightLeft = newImgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, newImgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - newImgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, newImgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`Laporan_${report.namaGuru.replace(/\s/g, '_')}_${report.tanggalKirim}.pdf`);
+      toast({ title: "Berhasil", description: "Laporan PDF telah diunduh." });
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast({ title: "Gagal Membuat PDF", description: "Terjadi kesalahan.", variant: "destructive" });
+    } finally {
+        // Hide the element again
+        reportElement.style.display = 'none';
+        reportElement.style.position = 'static';
+        setIsGeneratingPdf(false);
+    }
   };
 
   const getStatusBadgeVariant = (status: ReportStatus) => {
@@ -194,6 +261,10 @@ export default function LaporanWakasekPage() {
                                                 <DropdownMenuItem disabled>
                                                     <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDownloadPdf(report)} disabled={isGeneratingPdf}>
+                                                    {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                                    Unduh PDF
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
                                                     <RefreshCw className="mr-2 h-4 w-4" />
                                                     Tandai Diproses
@@ -223,6 +294,14 @@ export default function LaporanWakasekPage() {
           )}
         </CardContent>
       </Card>
+      {/* Hidden container for PDF generation */}
+      <div className="absolute -z-10 opacity-0">
+          {allReports.filter(r => r.status !== 'Belum Mengirim').map(report => (
+              <div id={`report-content-${report.id}`} key={report.id} className="p-8 bg-white text-black" style={{ display: 'none', width: '800px'}}>
+                  <TeacherReportContent guruId={report.guruId} roleKey={report.roleKey} />
+              </div>
+          ))}
+      </div>
     </div>
   );
 }
