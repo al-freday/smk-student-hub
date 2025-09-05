@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
+import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -53,15 +53,14 @@ export default function AdminDashboardPage() {
     const loadUsers = async () => {
         setIsLoading(true);
         try {
-          // In an admin context, we assume we can get data directly.
-          // This part fails if not authenticated properly.
-          const teachersData = getSourceData('teachersData', null);
+          const teachersData = await fetchDataFromFirebase('teachersData');
           const users: User[] = [];
           if (teachersData) {
             const { schoolInfo, ...roles } = teachersData;
             Object.keys(roles).forEach(roleKey => {
-                if (Array.isArray(roles[roleKey])) {
-                  roles[roleKey].forEach((guru: any) => {
+                const roleArray = roles[roleKey as keyof typeof roles];
+                if (Array.isArray(roleArray)) {
+                  roleArray.forEach((guru: any) => {
                     if (guru && guru.id !== undefined && guru.nama) {
                       const uniqueId = `${roleKey}-${guru.id}`;
                       users.push({
