@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
+interface Kelas { id: number; nama: string; }
 interface CatatanRencana {
   id: string;
   tanggal: string;
@@ -35,9 +36,11 @@ export default function RencanaIndividualBkPage() {
   
   const [catatan, setCatatan] = useState<CatatanRencana[]>([]);
   const [siswa, setSiswa] = useState<Siswa[]>([]);
+  const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<CatatanRencana>>({});
+  const [selectedKelas, setSelectedKelas] = useState('');
 
   const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
@@ -47,6 +50,7 @@ export default function RencanaIndividualBkPage() {
     }
     setCurrentUser(user);
     setSiswa(getSourceData('siswaData', []));
+    setDaftarKelas(getSourceData('kelasData', []));
     setCatatan(getSourceData('rencanaIndividualData', []));
   }, [router]);
 
@@ -66,6 +70,11 @@ export default function RencanaIndividualBkPage() {
         return acc;
     }, {} as Record<string, CatatanRencana[]>);
   }, [catatan]);
+
+  const siswaDiKelas = useMemo(() => {
+    if (!selectedKelas) return [];
+    return siswa.filter(s => s.kelas === selectedKelas);
+  }, [selectedKelas, siswa]);
 
 
   const handleSave = () => {
@@ -120,7 +129,7 @@ export default function RencanaIndividualBkPage() {
             <CardTitle>Riwayat Konseling Perencanaan Individual</CardTitle>
             <CardDescription>Catatan sesi konseling yang telah dilakukan, dikelompokkan per siswa.</CardDescription>
           </div>
-          <Button onClick={() => { setFormData({}); setIsDialogOpen(true); }}>
+          <Button onClick={() => { setFormData({}); setSelectedKelas(''); setIsDialogOpen(true); }}>
             <PlusCircle className="mr-2 h-4 w-4" /> Catat Sesi Baru
           </Button>
         </CardHeader>
@@ -176,19 +185,24 @@ export default function RencanaIndividualBkPage() {
               <DialogHeader><DialogTitle>Catat Sesi Perencanaan Individual</DialogTitle></DialogHeader>
               <div className="grid gap-4 py-4">
                   <div className="space-y-2">
-                    <Label>Pilih Siswa</Label>
-                    <Select value={formData.nis} onValueChange={(value) => setFormData({...formData, nis: value})}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Cari dan pilih siswa..." />
-                        </SelectTrigger>
+                    <Label>Pilih Kelas</Label>
+                    <Select value={selectedKelas} onValueChange={(value) => { setSelectedKelas(value); setFormData({...formData, nis: ''}); }}>
+                        <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
                         <SelectContent>
-                            <SelectGroup>
-                                {siswa.map(s => (
-                                    <SelectItem key={s.nis} value={s.nis}>
-                                        {s.nama} ({s.kelas})
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
+                            {daftarKelas.map(k => (
+                                <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
+                   <div className="space-y-2">
+                    <Label>Pilih Siswa</Label>
+                    <Select value={formData.nis} onValueChange={(value) => setFormData({...formData, nis: value})} disabled={!selectedKelas}>
+                        <SelectTrigger><SelectValue placeholder="Pilih siswa..." /></SelectTrigger>
+                        <SelectContent>
+                            {siswaDiKelas.map(s => (
+                                <SelectItem key={s.nis} value={s.nis}>{s.nama}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                   </div>
