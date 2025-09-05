@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,16 +14,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 // --- Tipe Data ---
 interface LayananBimbingan {
   id: string;
   tanggal: string;
   topik: string;
-  sasaran: string; // Misal: "Kelas X TKJ 1", "Seluruh Kelas X"
+  sasaran: string; // Misal: "Kelas X TKJ 1", "Seluruh Kelas X", atau "Nama Siswa"
   catatan: string;
   guruPencatat: string;
 }
+
+interface Siswa { id: number; nis: string; nama: string; kelas: string; }
+interface Kelas { id: number; nama: string; }
 
 export default function LayananBimbinganBkPage() {
   const router = useRouter();
@@ -31,8 +36,12 @@ export default function LayananBimbinganBkPage() {
   
   const [layanan, setLayanan] = useState<LayananBimbingan[]>([]);
   const [currentUser, setCurrentUser] = useState<{ nama: string } | null>(null);
+  const [tingkatBinaan, setTingkatBinaan] = useState<string | null>(null);
+  const [kelasDiBinaan, setKelasDiBinaan] = useState<Kelas[]>([]);
+  const [siswaDiBinaan, setSiswaDiBinaan] = useState<Siswa[]>([]);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<LayananBimbingan>>({});
+  const [formData, setFormData] = useState<Partial<Omit<LayananBimbingan, 'id' | 'tanggal' | 'guruPencatat'>> & { namaSiswa?: string }>({});
 
   const loadData = useCallback(() => {
     const user = getSourceData('currentUser', null);
@@ -41,6 +50,23 @@ export default function LayananBimbinganBkPage() {
       return;
     }
     setCurrentUser(user);
+
+    const teachersData = getSourceData('teachersData', {});
+    const guruBkData = teachersData.guru_bk?.find((gbk: any) => gbk.nama === user.nama);
+    const binaan = guruBkData?.tugasKelas || null; // e.g., "Kelas X"
+    setTingkatBinaan(binaan);
+    
+    const allKelas: Kelas[] = getSourceData('kelasData', []);
+    const allSiswa: Siswa[] = getSourceData('siswaData', []);
+
+    if (binaan) {
+        const gradePrefix = binaan.split(' ')[1]; // "X", "XI", or "XII"
+        const filteredKelas = allKelas.filter(k => k.nama.startsWith(gradePrefix));
+        const filteredSiswa = allSiswa.filter(s => s.kelas.startsWith(gradePrefix));
+        setKelasDiBinaan(filteredKelas);
+        setSiswaDiBinaan(filteredSiswa);
+    }
+    
     setLayanan(getSourceData('layananBimbinganData', []).sort((a: LayananBimbingan, b: LayananBimbingan) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()));
   }, [router]);
 
@@ -49,18 +75,28 @@ export default function LayananBimbinganBkPage() {
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
+  
+  const siswaDiSasaran = useMemo(() => {
+      if (!formData.sasaran || formData.sasaran === tingkatBinaan) {
+          return siswaDiBinaan;
+      }
+      return siswaDiBinaan.filter(s => s.kelas === formData.sasaran);
+  }, [formData.sasaran, siswaDiBinaan, tingkatBinaan]);
 
   const handleSave = () => {
     if (!formData.topik || !formData.sasaran || !formData.catatan) {
-      toast({ title: "Gagal", description: "Semua kolom harus diisi.", variant: "destructive" });
+      toast({ title: "Gagal", description: "Topik, sasaran, dan catatan harus diisi.", variant: "destructive" });
       return;
     }
+
+    const targetSiswa = siswaDiBinaan.find(s => s.nis === formData.namaSiswa);
+    const finalSasaran = targetSiswa ? `${targetSiswa.nama} (${targetSiswa.kelas})` : formData.sasaran;
 
     const newLayanan: LayananBimbingan = {
       id: `layanan-${Date.now()}`,
       tanggal: format(new Date(), 'yyyy-MM-dd'),
       topik: formData.topik,
-      sasaran: formData.sasaran,
+      sasaran: finalSasaran,
       catatan: formData.catatan,
       guruPencatat: currentUser?.nama || "Guru BK",
     };
@@ -141,7 +177,27 @@ export default function LayananBimbinganBkPage() {
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="sasaran">Sasaran</Label>
-                      <Input id="sasaran" placeholder="Contoh: Kelas X TKJ 1 & X TKJ 2" onChange={e => setFormData({...formData, sasaran: e.target.value})} />
+                      <Select value={formData.sasaran} onValueChange={value => setFormData({...formData, sasaran: value, namaSiswa: ''})}>
+                          <SelectTrigger id="sasaran"><SelectValue placeholder="Pilih sasaran..." /></SelectTrigger>
+                          <SelectContent>
+                              {tingkatBinaan && <SelectItem value={tingkatBinaan}>Semua {tingkatBinaan}</SelectItem>}
+                              {kelasDiBinaan.map(k => (
+                                  <SelectItem key={k.id} value={k.nama}>{k.nama}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                   <div className="space-y-2">
+                      <Label htmlFor="namaSiswa">Nama Siswa (Opsional)</Label>
+                      <Select value={formData.namaSiswa} onValueChange={value => setFormData({...formData, namaSiswa: value})}>
+                          <SelectTrigger id="namaSiswa"><SelectValue placeholder="Pilih siswa spesifik jika perlu..." /></SelectTrigger>
+                          <SelectContent>
+                               <SelectItem value="">-- Seluruh Siswa di Sasaran --</SelectItem>
+                               {siswaDiSasaran.map(s => (
+                                  <SelectItem key={s.id} value={s.nis}>{s.nama} ({s.kelas})</SelectItem>
+                               ))}
+                          </SelectContent>
+                      </Select>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="catatan">Catatan / Ringkasan Materi</Label>
