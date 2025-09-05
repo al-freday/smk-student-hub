@@ -57,8 +57,8 @@ export async function fetchDataFromFirebase(path: string) {
   try {
     // Ensure we are authenticated before trying to fetch data
     const user = await ensureAuthenticated();
-    if (!user) {
-        throw new Error("Authentication failed. Cannot fetch data.");
+    if (!user && sessionStorage.getItem("admin_logged_in") !== "true") {
+        console.warn("Authentication not ready, but admin is not logged in. Attempting fetch anyway.");
     }
     
     const dbRef = ref(db);

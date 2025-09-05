@@ -27,6 +27,7 @@ const getRoleName = (roleKey: string) => {
         guru_piket: 'Guru Piket',
         guru_pendamping: 'Guru Pendamping',
         wakasek_kesiswaan: 'Wakasek Kesiswaan',
+        tata_usaha: 'Tata Usaha',
     };
     return roles[roleKey] || 'Guru';
 };
