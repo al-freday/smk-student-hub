@@ -9,14 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
+import { id } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, MessageSquare, RefreshCw, FileSignature, Users, UserCheck, Phone, Handshake, Search, ArrowRight, Check } from "lucide-react";
+import { Loader2, Check, ArrowRight, FileSignature, Users, UserCheck, Phone, Handshake, Search, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
 
 // --- Tipe Data ---
-type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai';
+type StatusLaporan = 'Dilaporkan' | 'Ditindaklanjuti Wali Kelas' | 'Diteruskan ke BK' | 'Selesai' | 'Ditolak';
 interface CatatanPelanggaran { 
     id: number; 
     tanggal: string; 
@@ -28,33 +31,20 @@ interface CatatanPelanggaran {
     status: StatusLaporan;
 }
 
-const checklistItems = [
-    { id: "verifikasi-valid", label: "Pastikan laporan valid dan jelas sumbernya." },
-    { id: "verifikasi-kronologi", label: "Tanya kronologi kejadian dengan tenang." },
-    { id: "panggil-siswa", label: "Bicara empat mata dengan siswa." },
-    { id: "panggil-analisis", label: "Analisis apakah pelanggaran disengaja atau tidak." },
-    { id: "catat-kejadian", label: "Buat catatan ringkas kejadian." },
-    { id: "catat-koordinasi", label: "Koordinasi dengan Guru BK jika kasusnya serius." },
-    { id: "hubungi-ortu", label: "Hubungi orang tua/wali jika perlu." },
-    { id: "solusi-bersama", label: "Cari solusi bersama orang tua." },
-    { id: "pembinaan-edukatif", label: "Tentukan tindakan pembinaan yang mendidik." },
-    { id: "pembinaan-komitmen", label: "Ajak siswa membuat komitmen perbaikan." },
-    { id: "monitoring-followup", label: "Lakukan follow-up berkala terhadap siswa." },
-    { id: "monitoring-kegiatan", label: "Arahkan siswa ke kegiatan positif." },
-];
-
 const checklistStorageKey = 'laporanChecklistStatus';
 
 export default function LaporanMasukPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("verifikasi");
 
   const [kelasBinaan, setKelasBinaan] = useState<string[]>([]);
   const [pelanggaranDiKelas, setPelanggaranDiKelas] = useState<CatatanPelanggaran[]>([]);
   
   const [selectedPelanggaranId, setSelectedPelanggaranId] = useState<number | null>(null);
   const [checkedItems, setCheckedItems] = useState<Record<number, Record<string, boolean>>>({});
+  const [pelanggaranToTolak, setPelanggaranToTolak] = useState<CatatanPelanggaran | null>(null);
 
   const loadData = useCallback(() => {
     setIsLoading(true);
@@ -82,7 +72,6 @@ export default function LaporanMasukPage() {
         .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
       setPelanggaranDiKelas(pelanggaranBinaan);
 
-      // Load checklist status from storage
       setCheckedItems(getSourceData(checklistStorageKey, {}));
 
     } catch (error) {
@@ -109,11 +98,15 @@ export default function LaporanMasukPage() {
   };
 
   const handleSelectKasus = (pelanggaranId: number) => {
-    setSelectedPelanggaranId(pelanggaranId);
-    toast({
-        title: "Kasus Dipilih",
-        description: `Checklist penanganan untuk ${pelanggaranDiKelas.find(p => p.id === pelanggaranId)?.namaSiswa} kini aktif.`,
-    });
+    if (selectedPelanggaranId === pelanggaranId) {
+        setSelectedPelanggaranId(null); // Batalkan pilihan jika mengklik yang sama
+    } else {
+        setSelectedPelanggaranId(pelanggaranId);
+        toast({
+            title: "Kasus Dipilih",
+            description: `Checklist penanganan untuk ${pelanggaranDiKelas.find(p => p.id === pelanggaranId)?.namaSiswa} kini aktif.`,
+        });
+    }
   };
 
   const handleCheckChange = (itemId: string) => {
@@ -136,6 +129,12 @@ export default function LaporanMasukPage() {
     setCheckedItems(newCheckedItems);
     updateSourceData(checklistStorageKey, newCheckedItems);
     toast({ title: "Checklist Direset", description: "Anda dapat memulai ulang checklist untuk kasus ini." });
+  };
+
+  const handleTolakLaporan = () => {
+    if (!pelanggaranToTolak) return;
+    handleStatusChange(pelanggaranToTolak.id, 'Ditolak');
+    setPelanggaranToTolak(null);
   };
 
   const currentCheckedState = selectedPelanggaranId ? (checkedItems[selectedPelanggaranId] || {}) : {};
@@ -179,7 +178,7 @@ export default function LaporanMasukPage() {
                          <TableRow key={p.id} className={cn(selectedPelanggaranId === p.id && "bg-secondary hover:bg-secondary")}>
                             <TableCell>
                                 <p className="font-medium">{p.namaSiswa}</p>
-                                <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd/MM/yy")}</p>
+                                <p className="text-xs text-muted-foreground">{p.kelas} | {format(new Date(p.tanggal), "dd MMM yyyy", { locale: id })}</p>
                             </TableCell>
                             <TableCell>
                                 <p>{p.pelanggaran}</p>
@@ -217,9 +216,9 @@ export default function LaporanMasukPage() {
             <Button variant="outline" onClick={resetChecklistForSelected} disabled={!selectedPelanggaranId}><RefreshCw className="mr-2 h-4 w-4" /> Atur Ulang Checklist</Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
             <div className={cn(!selectedPelanggaranId && "opacity-50 pointer-events-none")}>
-                <Tabs defaultValue="verifikasi" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
                     <TabsTrigger value="verifikasi">Verifikasi</TabsTrigger>
                     <TabsTrigger value="panggil">Panggil Siswa</TabsTrigger>
@@ -232,8 +231,24 @@ export default function LaporanMasukPage() {
                   <TabsContent value="verifikasi" className="pt-4">
                     <div className="p-4 border rounded-lg space-y-4">
                         <div className="flex items-center gap-3"><FileSignature className="h-5 w-5 text-primary"/><h3 className="font-semibold">Verifikasi Laporan</h3></div>
+                        
+                        {selectedPelanggaran && (
+                            <div className="text-sm p-3 bg-secondary rounded-md">
+                                <p><strong>Pelapor:</strong> {selectedPelanggaran.guruPelapor}</p>
+                                <p><strong>Waktu Laporan:</strong> {format(new Date(selectedPelanggaran.tanggal), "EEEE, dd MMMM yyyy", { locale: id })}</p>
+                                <p><strong>Poin Pelanggaran:</strong> <Badge variant="destructive">{selectedPelanggaran.poin}</Badge></p>
+                            </div>
+                        )}
+
                         <div className="flex items-start space-x-3"><Checkbox id="verifikasi-valid" checked={currentCheckedState["verifikasi-valid"]} onCheckedChange={() => handleCheckChange("verifikasi-valid")} /><label htmlFor="verifikasi-valid" className="text-sm text-muted-foreground leading-snug">Pastikan laporan valid dan jelas sumbernya (guru piket, guru mapel, BK, dll.), bukan sekadar gosip kelas.</label></div>
                         <div className="flex items-start space-x-3"><Checkbox id="verifikasi-kronologi" checked={currentCheckedState["verifikasi-kronologi"]} onCheckedChange={() => handleCheckChange("verifikasi-kronologi")} /><label htmlFor="verifikasi-kronologi" className="text-sm text-muted-foreground leading-snug">Tanya kronologi kejadian dengan tenang, jangan langsung menghakimi atau marah.</label></div>
+
+                         <div className="flex justify-end gap-2 pt-4 border-t">
+                            <Button variant="destructive" onClick={() => setPelanggaranToTolak(selectedPelanggaran)}>Tolak Laporan (Tidak Valid)</Button>
+                            <Button onClick={() => setActiveTab('panggil')} disabled={!currentCheckedState["verifikasi-valid"] || !currentCheckedState["verifikasi-kronologi"]}>
+                                Laporan Valid, Lanjutkan <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                   </TabsContent>
                   <TabsContent value="panggil" className="pt-4">
@@ -271,7 +286,6 @@ export default function LaporanMasukPage() {
                         <div className="flex items-start space-x-3"><Checkbox id="monitoring-kegiatan" checked={currentCheckedState["monitoring-kegiatan"]} onCheckedChange={() => handleCheckChange("monitoring-kegiatan")} /><label htmlFor="monitoring-kegiatan" className="text-sm text-muted-foreground leading-snug">Dorong anak buat lebih aktif di kegiatan positif biar energinya tersalurkan.</label></div>
                      </div>
                   </TabsContent>
-
                 </Tabs>
             </div>
             {!selectedPelanggaranId && (
@@ -281,6 +295,21 @@ export default function LaporanMasukPage() {
             )}
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!pelanggaranToTolak} onOpenChange={() => setPelanggaranToTolak(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tolak Laporan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda yakin ingin menolak laporan untuk <span className="font-bold">{pelanggaranToTolak?.namaSiswa}</span>? Laporan ini akan ditandai sebagai "Ditolak" dan tidak akan diproses lebih lanjut.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleTolakLaporan} className="bg-destructive hover:bg-destructive/90">Ya, Tolak Laporan</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
