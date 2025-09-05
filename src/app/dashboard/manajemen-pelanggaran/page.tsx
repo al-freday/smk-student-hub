@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tataTertibData } from "@/lib/tata-tertib-data";
+import { tataTertibData as initialTataTertibData } from "@/lib/tata-tertib-data";
 import StatCard from "@/components/stat-card";
 import PelanggaranPieChart from "@/components/pelanggaran-pie-chart";
 import { Separator } from "@/components/ui/separator";
@@ -34,7 +34,8 @@ interface Kelas {
     nama: string;
 }
 
-type KategoriKey = keyof typeof tataTertibData;
+type TataTertib = typeof initialTataTertibData;
+type KategoriKey = keyof TataTertib;
 
 const kategoriInfo: { [key in KategoriKey]: { title: string } } = {
   kehadiran: { title: "Pelanggaran Kehadiran & Ketertiban" },
@@ -47,13 +48,13 @@ const kategoriInfo: { [key in KategoriKey]: { title: string } } = {
   hukum: { title: "Pelanggaran Berat Terkait Hukum" },
 };
 
-const flattenTataTertib = () => {
+const flattenTataTertib = (data: TataTertib) => {
     const allRules: { id: number, deskripsi: string, poin: number, kategori: KategoriKey, tingkat: string }[] = [];
     let idCounter = 1;
-    for (const kategori in tataTertibData) {
-        for (const tingkat in tataTertibData[kategori as KategoriKey]) {
+    for (const kategori in data) {
+        for (const tingkat in data[kategori as KategoriKey]) {
             // @ts-ignore
-            tataTertibData[kategori as KategoriKey][tingkat].forEach(rule => {
+            data[kategori as KategoriKey][tingkat].forEach(rule => {
                 allRules.push({ ...rule, id: idCounter++, kategori: kategori as KategoriKey, tingkat });
             });
         }
@@ -80,6 +81,7 @@ export default function ManajemenPelanggaranPage() {
   const { toast } = useToast();
   
   // --- Data States ---
+  const [isLoading, setIsLoading] = useState(true);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<Kelas[]>([]);
   const [daftarTataTertib, setDaftarTataTertib] = useState<{ id: number; deskripsi: string; poin: number; kategori: KategoriKey; tingkat: string; }[]>([]);
@@ -100,36 +102,47 @@ export default function ManajemenPelanggaranPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");
   const [tindakanAwal, setTindakanAwal] = useState("");
 
-  const loadData = useCallback(() => {
-    const user = getSourceData('currentUser', null);
-    const role = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    
-    setCurrentUser(user);
-    setUserRole(role);
-    setDaftarSiswa(getSourceData('siswaData', []));
-    setDaftarKelas(getSourceData('kelasData', []));
-    
-    const pelanggaranData = getSourceData('riwayatPelanggaran', []);
-    
-    if (Array.isArray(pelanggaranData)) {
-      const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
-          ...p,
-          id: `pelanggaran-${p.id}-${p.tanggal}-${index}`,
-          originalId: p.id,
-      }));
-      setRiwayatPelanggaran(pelanggaranFormatted);
-    } else {
-      setRiwayatPelanggaran([]);
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const user = await getSourceData('currentUser', null);
+        const role = localStorage.getItem('userRole');
+        
+        setCurrentUser(user);
+        setUserRole(role);
+        
+        const [siswaData, kelasData, pelanggaranData, tataTertib] = await Promise.all([
+            getSourceData('siswaData', []),
+            getSourceData('kelasData', []),
+            getSourceData('riwayatPelanggaran', []),
+            getSourceData('tataTertibData', initialTataTertibData),
+        ]);
+
+        setDaftarSiswa(siswaData);
+        setDaftarKelas(kelasData);
+
+        if (Array.isArray(pelanggaranData)) {
+            const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p, index) => ({
+                ...p,
+                id: `pelanggaran-${p.id}-${p.tanggal}-${index}`,
+                originalId: p.id,
+            }));
+            setRiwayatPelanggaran(pelanggaranFormatted);
+        } else {
+            setRiwayatPelanggaran([]);
+        }
+
+        setDaftarTataTertib(flattenTataTertib(tataTertib));
+    } catch (error) {
+        toast({ title: "Gagal memuat data", variant: "destructive"});
+        console.error(error);
+    } finally {
+        setIsLoading(false);
     }
-
-    setDaftarTataTertib(flattenTataTertib());
-
-  }, []);
+  }, [toast]);
   
   useEffect(() => {
     loadData();
-    window.addEventListener('dataUpdated', loadData);
-    return () => window.removeEventListener('dataUpdated', loadData);
   }, [loadData]);
   
   const handleOpenDialog = () => {
@@ -141,7 +154,7 @@ export default function ManajemenPelanggaranPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveCatatan = () => {
+  const handleSaveCatatan = async () => {
     const siswa = daftarSiswa.find(s => s.nis === selectedNis);
     const aturan = daftarTataTertib.find(t => t.id.toString() === selectedRuleId);
 
@@ -150,7 +163,7 @@ export default function ManajemenPelanggaranPage() {
       return;
     }
     
-    const currentRiwayat: any[] = getSourceData('riwayatPelanggaran', []);
+    const currentRiwayat: any[] = await getSourceData('riwayatPelanggaran', []);
     const newCatatan = {
       id: currentRiwayat.length > 0 ? Math.max(...currentRiwayat.map((c: any) => c.id)) + 1 : 1,
       tanggal: format(new Date(), "yyyy-MM-dd"),
@@ -164,7 +177,8 @@ export default function ManajemenPelanggaranPage() {
       status: 'Dilaporkan' as const,
     };
 
-    updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
+    await updateSourceData('riwayatPelanggaran', [...currentRiwayat, newCatatan]);
+    await loadData(); // Reload data
     
     toast({ title: "Sukses", description: "Catatan pelanggaran berhasil disimpan." });
     setIsDialogOpen(false);
@@ -206,19 +220,19 @@ export default function ManajemenPelanggaranPage() {
       acc[p.kelas] = (acc[p.kelas] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    const kelasTerbanyak = Object.keys(pelanggaranPerKelas).reduce((a, b) => pelanggaranPerKelas[a] > pelanggaranPerKelas[b] ? a : b, "N/A");
+    const kelasTerbanyak = Object.keys(pelanggaranPerKelas).length > 0 ? Object.keys(pelanggaranPerKelas).reduce((a, b) => pelanggaranPerKelas[a] > pelanggaranPerKelas[b] ? a : b, "N/A") : "N/A";
 
     const poinPerSiswa = riwayatPelanggaran.reduce((acc, p) => {
       acc[p.namaSiswa] = (acc[p.namaSiswa] || 0) + p.poin;
       return acc;
     }, {} as Record<string, number>);
-    const siswaTeratasNama = Object.keys(poinPerSiswa).reduce((a, b) => poinPerSiswa[a] > poinPerSiswa[b] ? a : b, "N/A");
-    const siswaTeratas = `${siswaTeratasNama} (${poinPerSiswa[siswaTeratasNama]} poin)`;
+    const siswaTeratasNama = Object.keys(poinPerSiswa).length > 0 ? Object.keys(poinPerSiswa).reduce((a, b) => poinPerSiswa[a] > poinPerSiswa[b] ? a : b, "N/A") : "N/A";
+    const siswaTeratas = siswaTeratasNama !== "N/A" ? `${siswaTeratasNama} (${poinPerSiswa[siswaTeratasNama]} poin)` : "N/A";
 
     return { kelasTerbanyak, siswaTeratas };
   }, [riwayatPelanggaran]);
 
-  if (!userRole) {
+  if (isLoading) {
     return (
       <div className="flex-1 space-y-6 flex justify-center items-center">
         <Loader2 className="h-8 w-8 animate-spin" />

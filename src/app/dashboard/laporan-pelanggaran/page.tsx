@@ -4,14 +4,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Printer, Download, User, TrendingDown, ShieldAlert } from "lucide-react";
+import { Printer, Download, User, TrendingDown, ShieldAlert, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getSourceData } from "@/lib/data-manager";
 
 // --- Interface Definitions ---
@@ -37,6 +37,7 @@ export default function LaporanPelanggaranPage() {
   const { toast } = useToast();
   
   // --- Data States ---
+  const [isLoading, setIsLoading] = useState(true);
   const [daftarSiswa, setDaftarSiswa] = useState<Siswa[]>([]);
   const [riwayatPelanggaran, setRiwayatPelanggaran] = useState<CatatanPelanggaran[]>([]);
   const [daftarKelas, setDaftarKelas] = useState<string[]>([]);
@@ -45,23 +46,36 @@ export default function LaporanPelanggaranPage() {
   const [selectedKelas, setSelectedKelas] = useState<string>("Semua Kelas");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  useEffect(() => {
-    const siswaData: Siswa[] = getSourceData('siswaData', []);
-    
-    const pelanggaranData: any[] = getSourceData('riwayatPelanggaran', []);
-    const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map(p => ({
-        ...p,
-        id: `pelanggaran-${p.id}`,
-        siswa: p.namaSiswa,
-        pelanggaran: p.pelanggaran,
-    }));
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const [siswaData, pelanggaranData] = await Promise.all([
+            getSourceData('siswaData', []),
+            getSourceData('riwayatPelanggaran', []),
+        ]);
 
-    setDaftarSiswa(siswaData);
-    setRiwayatPelanggaran(pelanggaranFormatted);
-    
-    const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s) => s.kelas)))];
-    setDaftarKelas(kelasUnik.sort());
-  }, []);
+        const pelanggaranFormatted: CatatanPelanggaran[] = pelanggaranData.map((p: any) => ({
+            ...p,
+            id: `pelanggaran-${p.id}`,
+            siswa: p.namaSiswa,
+            pelanggaran: p.pelanggaran,
+        }));
+
+        setDaftarSiswa(siswaData);
+        setRiwayatPelanggaran(pelanggaranFormatted);
+        
+        const kelasUnik = ["Semua Kelas", ...Array.from(new Set(siswaData.map((s: Siswa) => s.kelas)))];
+        setDaftarKelas(kelasUnik.sort());
+    } catch (error) {
+        toast({ title: "Gagal memuat data", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredSiswa = useMemo(() => {
       let siswa = daftarSiswa;
@@ -130,6 +144,14 @@ export default function LaporanPelanggaranPage() {
 
       toast({ title: "Ekspor Berhasil", description: "Laporan telah diunduh sebagai file CSV." });
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 report-container">

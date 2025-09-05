@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { BookCopy, Edit, PlusCircle, Save, Trash2, Book } from "lucide-react";
+import { BookCopy, Edit, PlusCircle, Save, Trash2, Book, Loader2 } from "lucide-react";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { initialKurikulumData } from "@/lib/kurikulum-data";
 
@@ -59,7 +59,8 @@ type KelompokKey = 'A. Kelompok Mata Pelajaran Umum' | 'B. Kelompok Mata Pelajar
 
 export default function MataPelajaranPage() {
   const { toast } = useToast();
-  const [kurikulum, setKurikulum] = useState<Kurikulum>({});
+  const [kurikulum, setKurikulum] = useState<Kurikulum | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // --- Dialog & Form States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -68,16 +69,26 @@ export default function MataPelajaranPage() {
   const [formData, setFormData] = useState<Partial<Subject>>({});
   const [formLocation, setFormLocation] = useState<{ tingkat: TingkatKey | '', kelompok: KelompokKey | '' }>({ tingkat: '', kelompok: '' });
 
-  useEffect(() => {
-    // Load data from localStorage or initialize with default
-    const savedData = getSourceData('kurikulumData', null);
-    if (savedData && Object.keys(savedData).length > 0) {
-      setKurikulum(savedData);
-    } else {
-      setKurikulum(initialKurikulumData);
-      updateSourceData('kurikulumData', initialKurikulumData); // Save initial data
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const savedData = await getSourceData('kurikulumData', null);
+        if (savedData && Object.keys(savedData).length > 0) {
+          setKurikulum(savedData);
+        } else {
+          setKurikulum(initialKurikulumData);
+          await updateSourceData('kurikulumData', initialKurikulumData);
+        }
+    } catch (error) {
+        toast({ title: "Gagal memuat data", variant: "destructive" });
+    } finally {
+        setIsLoading(false);
     }
-  }, []);
+  }, [toast]);
+  
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleOpenDialog = (subject: Subject | null = null, tingkat: TingkatKey | null = null, kelompok: KelompokKey | null = null) => {
     setEditingSubject(subject);
@@ -91,57 +102,62 @@ export default function MataPelajaranPage() {
   };
 
   const handleSaveSubject = () => {
-    if (!formData.nama || !formLocation.tingkat || !formLocation.kelompok) {
+    if (!formData.nama || !formLocation.tingkat || !formLocation.kelompok || !kurikulum) {
       toast({ title: "Gagal", description: "Harap lengkapi semua kolom.", variant: "destructive" });
       return;
     }
     
-    setKurikulum(prevKurikulum => {
-      const newKurikulum = JSON.parse(JSON.stringify(prevKurikulum));
-      const targetKelompok = newKurikulum[formLocation.tingkat!].kelompok.find((k: Kelompok) => k.nama === formLocation.kelompok);
+    const newKurikulum = JSON.parse(JSON.stringify(kurikulum));
+    const targetKelompok = newKurikulum[formLocation.tingkat!].kelompok.find((k: Kelompok) => k.nama === formLocation.kelompok);
 
-      if (targetKelompok) {
-        if (editingSubject) {
-          // Update existing subject
-          const subjectIndex = targetKelompok.subjects.findIndex((s: Subject) => s.id === editingSubject.id);
-          if (subjectIndex > -1) {
-            targetKelompok.subjects[subjectIndex] = { ...editingSubject, ...formData };
-          }
-        } else {
-          // Add new subject
-          const newId = Date.now();
-          targetKelompok.subjects.push({ id: newId, ...formData } as Subject);
+    if (targetKelompok) {
+      if (editingSubject) {
+        // Update existing subject
+        const subjectIndex = targetKelompok.subjects.findIndex((s: Subject) => s.id === editingSubject.id);
+        if (subjectIndex > -1) {
+          targetKelompok.subjects[subjectIndex] = { ...editingSubject, ...formData };
         }
+      } else {
+        // Add new subject
+        const newId = Date.now();
+        targetKelompok.subjects.push({ id: newId, ...formData } as Subject);
       }
-      return newKurikulum;
-    });
+    }
+    setKurikulum(newKurikulum);
 
     toast({ title: "Sukses", description: "Mata pelajaran diperbarui. Jangan lupa simpan perubahan." });
     setIsDialogOpen(false);
   };
 
   const handleDeleteSubject = () => {
-    if (!subjectToDelete) return;
+    if (!subjectToDelete || !kurikulum) return;
     const { subject, tingkat, kelompok } = subjectToDelete;
 
-    setKurikulum(prevKurikulum => {
-        const newKurikulum = JSON.parse(JSON.stringify(prevKurikulum));
-        const targetKelompok = newKurikulum[tingkat].kelompok.find((k: Kelompok) => k.nama === kelompok);
-        if (targetKelompok) {
-            targetKelompok.subjects = targetKelompok.subjects.filter((s: Subject) => s.id !== subject.id);
-        }
-        return newKurikulum;
-    });
+    const newKurikulum = JSON.parse(JSON.stringify(kurikulum));
+    const targetKelompok = newKurikulum[tingkat].kelompok.find((k: Kelompok) => k.nama === kelompok);
+    if (targetKelompok) {
+        targetKelompok.subjects = targetKelompok.subjects.filter((s: Subject) => s.id !== subject.id);
+    }
+    setKurikulum(newKurikulum);
     
     toast({ title: "Mata Pelajaran Dihapus", description: `${subject.nama} telah dihapus dari sesi ini.` });
     setSubjectToDelete(null);
   };
 
-  const handleSaveChanges = () => {
-    updateSourceData('kurikulumData', kurikulum);
+  const handleSaveChanges = async () => {
+    if (!kurikulum) return;
+    await updateSourceData('kurikulumData', kurikulum);
     toast({ title: "Perubahan Disimpan", description: "Struktur kurikulum dan mata pelajaran telah berhasil disimpan." });
   };
   
+  if (isLoading || !kurikulum) {
+    return (
+      <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 space-y-6">
       <div className="flex items-center justify-between">

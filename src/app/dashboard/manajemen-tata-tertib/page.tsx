@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserX, Shirt, Trash2, Speech, GraduationCap, WifiOff, School, ShieldAlert, BookMarked, Printer, PlusCircle, Edit, Save } from "lucide-react";
+import { UserX, Shirt, Trash2, Speech, GraduationCap, WifiOff, School, ShieldAlert, BookMarked, Printer, PlusCircle, Edit, Save, Loader2 } from "lucide-react";
 import { tataTertibData as initialTataTertibData } from "@/lib/tata-tertib-data";
 import { Button } from "@/components/ui/button";
 import { getSourceData, updateSourceData } from "@/lib/data-manager";
@@ -49,8 +49,9 @@ const getPoinBadgeVariant = (poin: number) => {
 
 export default function ManajemenTataTertibPage() {
   const { toast } = useToast();
-  const [tataTertib, setTataTertib] = useState<TataTertib>(initialTataTertibData);
+  const [tataTertib, setTataTertib] = useState<TataTertib | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- Dialog States ---
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -59,18 +60,29 @@ export default function ManajemenTataTertibPage() {
   const [formData, setFormData] = useState<{ deskripsi: string, poin: string | number, tingkat: TingkatPelanggaran | '' }>({});
   const [formCategory, setFormCategory] = useState<KategoriTataTertib | ''>('');
 
-  useEffect(() => {
-    const savedData = getSourceData('tataTertibData', null);
-    if (savedData && Object.keys(savedData).length > 0) {
-      setTataTertib(savedData);
-    } else {
-      updateSourceData('tataTertibData', initialTataTertibData);
-      setTataTertib(initialTataTertibData);
-    }
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const savedData = await getSourceData('tataTertibData', null);
+        if (savedData && Object.keys(savedData).length > 0) {
+          setTataTertib(savedData);
+        } else {
+          await updateSourceData('tataTertibData', initialTataTertibData);
+          setTataTertib(initialTataTertibData);
+        }
 
-    const role = localStorage.getItem('userRole');
-    setUserRole(role);
-  }, []);
+        const role = localStorage.getItem('userRole');
+        setUserRole(role);
+    } catch (error) {
+        toast({ title: "Gagal memuat data", variant: "destructive"});
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleOpenDialog = (kategori: KategoriTataTertib, rule: Aturan | null = null, tingkat: TingkatPelanggaran | null = null) => {
     setFormCategory(kategori);
@@ -84,7 +96,7 @@ export default function ManajemenTataTertibPage() {
   };
   
   const handleSaveRule = () => {
-    if (!formCategory || !formData.deskripsi || !formData.poin || !formData.tingkat) {
+    if (!formCategory || !formData.deskripsi || !formData.poin || !formData.tingkat || !tataTertib) {
       toast({ title: "Gagal", description: "Semua field harus diisi.", variant: "destructive" });
       return;
     }
@@ -95,45 +107,42 @@ export default function ManajemenTataTertibPage() {
        return;
     }
 
-    setTataTertib(prev => {
-      const newState = JSON.parse(JSON.stringify(prev)); // Deep copy
-      const categoryRules = newState[formCategory];
-      const targetTingkat = categoryRules[formData.tingkat!];
+    const newState = JSON.parse(JSON.stringify(tataTertib)); // Deep copy
+    const categoryRules = newState[formCategory];
+    const targetTingkat = categoryRules[formData.tingkat!];
 
-      if (editingRule) {
-        // Update existing rule
-        const ruleIndex = targetTingkat.findIndex((r: Aturan) => r.id === editingRule.id);
-        if (ruleIndex > -1) {
-          targetTingkat[ruleIndex] = { ...editingRule, deskripsi: formData.deskripsi, poin: poinValue };
-        }
-      } else {
-        // Add new rule
-        const newRule = { id: Date.now(), deskripsi: formData.deskripsi, poin: poinValue };
-        targetTingkat.push(newRule);
+    if (editingRule) {
+      // Update existing rule
+      const ruleIndex = targetTingkat.findIndex((r: Aturan) => r.id === editingRule.id);
+      if (ruleIndex > -1) {
+        targetTingkat[ruleIndex] = { ...editingRule, deskripsi: formData.deskripsi, poin: poinValue };
       }
-      return newState;
-    });
+    } else {
+      // Add new rule
+      const newRule = { id: Date.now(), deskripsi: formData.deskripsi, poin: poinValue };
+      targetTingkat.push(newRule);
+    }
+    setTataTertib(newState);
 
     toast({ title: "Sukses", description: "Aturan berhasil disimpan. Klik 'Simpan Perubahan' untuk menyimpan permanen." });
     setIsDialogOpen(false);
   };
   
   const handleDeleteRule = () => {
-    if (!ruleToDelete) return;
+    if (!ruleToDelete || !tataTertib) return;
     const { kategori, tingkat, ruleId } = ruleToDelete;
 
-    setTataTertib(prev => {
-      const newState = JSON.parse(JSON.stringify(prev));
-      newState[kategori][tingkat] = newState[kategori][tingkat].filter((r: Aturan) => r.id !== ruleId);
-      return newState;
-    });
+    const newState = JSON.parse(JSON.stringify(tataTertib));
+    newState[kategori][tingkat] = newState[kategori][tingkat].filter((r: Aturan) => r.id !== ruleId);
+    setTataTertib(newState);
 
     toast({ title: "Aturan Dihapus", description: "Jangan lupa simpan perubahan." });
     setRuleToDelete(null);
   };
 
-  const handleSaveChanges = () => {
-    updateSourceData('tataTertibData', tataTertib);
+  const handleSaveChanges = async () => {
+    if (!tataTertib) return;
+    await updateSourceData('tataTertibData', tataTertib);
     toast({ title: "Perubahan Disimpan", description: "Buku tata tertib telah berhasil diperbarui." });
   };
 
@@ -142,6 +151,14 @@ export default function ManajemenTataTertibPage() {
   };
 
   const canEdit = userRole === 'wakasek_kesiswaan';
+
+  if (isLoading || !tataTertib) {
+    return (
+      <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6">
