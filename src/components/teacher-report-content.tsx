@@ -113,17 +113,19 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
     
     if (roleKey === 'guru_pendamping') {
         const allSiswa = getSourceData('siswaData', []);
-        const logBimbingan = getSourceData('logBimbinganData', {});
+        const logAkademik = getSourceData('logAkademikData', {});
+        const logKompetensi = getSourceData('logKompetensiData', {});
+        const logKarakter = getSourceData('logBimbinganData', {});
         const prestasiData = getSourceData('prestasiData', []);
         const pklData = getSourceData('pklData', {});
 
         const siswaBinaan = allSiswa.filter((s: any) => guru.siswaBinaan?.includes(s.nama));
 
         const bimbinganData = siswaBinaan.flatMap((siswa: any) => {
-            const logs = logBimbingan[siswa.nis] || [];
-            return logs
-                .filter((log: any) => isWithinInterval(new Date(log.tanggal), monthInterval))
-                .map((log: any) => [siswa.nama, log.kategori, log.catatan]);
+            const logsAkademik = (logAkademik[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Akademik', l.kategori, l.catatan]);
+            const logsKompetensi = (logKompetensi[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Kompetensi', l.kategori, l.catatan]);
+            const logsKarakter = (logKarakter[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Karakter', l.kategori, l.catatan]);
+            return [...logsAkademik, ...logsKompetensi, ...logsKarakter];
         });
         
         const prestasiSiswaBinaan = siswaBinaan.flatMap((siswa: any) => {
@@ -215,8 +217,8 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
         
         {roleKey === 'guru_pendamping' && (
              <>
-                <Section title="Log Bimbingan Perilaku & Karakter">
-                    <ReportTable headers={["Nama Siswa", "Kategori", "Catatan"]} data={reportData.bimbinganData} />
+                <Section title="Log Bimbingan Siswa (Akademik, Kompetensi, Karakter)">
+                    <ReportTable headers={["Nama Siswa", "Tipe", "Kategori", "Catatan"]} data={reportData.bimbinganData} />
                 </Section>
                  <Section title="Rekapitulasi Prestasi Siswa Binaan">
                     <ReportTable headers={["Nama Siswa", "Deskripsi Prestasi", "Tingkat"]} data={reportData.prestasiSiswaBinaan} />
