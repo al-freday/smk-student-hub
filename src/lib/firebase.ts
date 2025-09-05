@@ -7,13 +7,13 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSign
 // Your web app's Firebase configuration
 // IMPORTANT: DO NOT MODIFY THIS OBJECT, IT IS POPULATED BY THE SYSTEM
 const firebaseConfig = {
-  apiKey: "API_KEY",
-  authDomain: "AUTH_DOMAIN",
-  projectId: "PROJECT_ID",
-  storageBucket: "STORAGE_BUCKET",
-  messagingSenderId: "MESSAGING_SENDER_ID",
-  appId: "APP_ID",
-  databaseURL: "https://PROJECT_ID.firebaseio.com"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com"
 };
 
 // Initialize Firebase for client side
