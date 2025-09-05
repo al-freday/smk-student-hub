@@ -44,49 +44,55 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const loadInitialData = () => {
+      try {
+          const savedData = getSourceData('teachersData', {});
+          if (savedData.schoolInfo) {
+              setSchoolInfo(savedData.schoolInfo);
+          }
+
+          const users: User[] = [];
+          const { schoolInfo, ...roles } = savedData;
+          
+          // Add wakasek manually
+          users.push({
+            id: 'wakasek_kesiswaan-0',
+            nama: 'Wakasek Kesiswaan',
+            role: 'Wakasek Kesiswaan',
+            password: 'password123',
+          });
+
+          Object.keys(roles).forEach(roleKey => {
+              if (Array.isArray(roles[roleKey])) {
+                  roles[roleKey].forEach((guru: any) => {
+                      if(guru && guru.id !== undefined && guru.nama) {
+                          const uniqueId = `${roleKey}-${guru.id}`;
+                          users.push({
+                              id: uniqueId,
+                              nama: guru.nama,
+                              role: getRoleName(roleKey),
+                              password: guru.password,
+                          });
+                      }
+                  });
+              }
+          });
+          setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+      } catch (e) {
+          console.error("Failed to load initial data", e)
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
   useEffect(() => {
-    const loadInitialData = async () => {
-        try {
-            const savedData = getSourceData('teachersData', {});
-            if (savedData.schoolInfo) {
-                setSchoolInfo(savedData.schoolInfo);
-            }
-
-            const users: User[] = [];
-            const { schoolInfo, ...roles } = savedData;
-            
-            // Add wakasek manually
-            users.push({
-              id: 'wakasek_kesiswaan-0',
-              nama: 'Wakasek Kesiswaan',
-              role: 'Wakasek Kesiswaan',
-              password: 'password123',
-            });
-
-            Object.keys(roles).forEach(roleKey => {
-                if (Array.isArray(roles[roleKey])) {
-                    roles[roleKey].forEach((guru: any) => {
-                        if(guru && guru.id !== undefined && guru.nama) {
-                            const uniqueId = `${roleKey}-${guru.id}`;
-                            users.push({
-                                id: uniqueId,
-                                nama: guru.nama,
-                                role: getRoleName(roleKey),
-                                password: guru.password,
-                            });
-                        }
-                    });
-                }
-            });
-            setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
-        } catch (e) {
-            console.error("Failed to load initial data", e)
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
     loadInitialData();
+    // Add event listener to reload school info when admin saves settings
+    window.addEventListener('dataUpdated', loadInitialData);
+
+    return () => {
+        window.removeEventListener('dataUpdated', loadInitialData);
+    };
   }, []);
 
   if (isLoading) {
@@ -112,7 +118,7 @@ export default function LoginPage() {
                  <Icons.logo className="h-12 w-12 text-primary" />
                )}
             </div>
-            <CardTitle className="text-3xl font-bold tracking-tight text-primary">{schoolInfo.schoolName}</CardTitle>
+            <CardTitle className="text-3xl font.bold tracking-tight text-primary">{schoolInfo.schoolName}</CardTitle>
             <CardDescription>
               Sistem Manajemen Kesiswaan
             </CardDescription>

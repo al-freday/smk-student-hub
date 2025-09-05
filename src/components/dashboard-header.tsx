@@ -20,12 +20,18 @@ import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { getSourceData } from "@/lib/data-manager";
 
 interface UserInfo {
     nama: string;
     role: string;
     email: string;
     avatar?: string;
+}
+
+interface SchoolInfo {
+    schoolName: string;
+    logo?: string;
 }
 
 const getAvatarFallbackFromName = (name: string = "") => {
@@ -37,35 +43,30 @@ export default function DashboardHeader() {
   const router = useRouter();
   const { setTheme, theme } = useTheme();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [schoolName, setSchoolName] = useState("SMK Student Hub");
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({ schoolName: "SMK Student Hub" });
   
   const loadData = useCallback(() => {
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
         setUserInfo(JSON.parse(storedUser));
     }
-    const savedTeachers = localStorage.getItem('teachersData');
-    if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
-        if (teachersData.schoolInfo && teachersData.schoolInfo.schoolName) {
-            setSchoolName(teachersData.schoolInfo.schoolName);
-        }
+    const savedTeachersData = getSourceData('teachersData', {});
+    if (savedTeachersData && savedTeachersData.schoolInfo) {
+        setSchoolInfo(savedTeachersData.schoolInfo);
     }
   }, []);
 
   useEffect(() => {
     loadData();
     
-    const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === 'currentUser' || event.key === 'teachersData') {
-            loadData();
-        }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
+    // Listen for custom event when admin saves school info
+    window.addEventListener('dataUpdated', loadData);
+    // Listen for storage changes from other tabs
+    window.addEventListener('storage', loadData);
     
     return () => {
-        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('dataUpdated', loadData);
+        window.removeEventListener('storage', loadData);
     };
   }, [loadData]);
 
@@ -87,8 +88,15 @@ export default function DashboardHeader() {
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
             <Link href="#" className="flex h-16 items-center border-b px-4">
-               <Icons.logo className="h-6 w-6 mr-2" />
-               <span className="font-semibold">{schoolName}</span>
+               {schoolInfo.logo ? (
+                    <Avatar className="h-8 w-8 mr-2">
+                        <AvatarImage src={schoolInfo.logo} alt="School Logo" />
+                        <AvatarFallback>S</AvatarFallback>
+                    </Avatar>
+               ) : (
+                    <Icons.logo className="h-6 w-6 mr-2" />
+               )}
+               <span className="font.semibold">{schoolInfo.schoolName}</span>
             </Link>
             <DashboardNav isMobile={true} />
           </SheetContent>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -43,8 +44,9 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { Icons } from "./icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { getSourceData } from "@/lib/data-manager";
 
 const navItemsByRole = {
   wakasek_kesiswaan: [
@@ -125,18 +127,26 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   const [userRole, setUserRole] = useState<keyof typeof navItemsByRole | null>(null);
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
   
-  useEffect(() => {
+  const loadData = useCallback(() => {
     const role = (localStorage.getItem('userRole') as keyof typeof navItemsByRole) || 'wakasek_kesiswaan';
     setUserRole(role);
 
-    const savedTeachers = localStorage.getItem('teachersData');
-    if (savedTeachers) {
-        const teachersData = JSON.parse(savedTeachers);
-        if (teachersData.schoolInfo) {
-            setSchoolInfo(teachersData.schoolInfo);
-        }
+    const savedTeachersData = getSourceData('teachersData', {});
+    if (savedTeachersData && savedTeachersData.schoolInfo) {
+        setSchoolInfo(savedTeachersData.schoolInfo);
     }
   }, []);
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('dataUpdated', loadData);
+    window.addEventListener('storage', loadData);
+
+    return () => {
+        window.removeEventListener('dataUpdated', loadData);
+        window.removeEventListener('storage', loadData);
+    };
+  }, [loadData]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
