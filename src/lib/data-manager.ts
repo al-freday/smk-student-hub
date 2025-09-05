@@ -1,14 +1,13 @@
 
 "use client";
 
-import { db } from './firebase'; // Hanya import db instance
+import { db } from './firebase'; // Impor db yang sudah diinisialisasi
 import { ref, get, set } from 'firebase/database';
 
 const isServer = typeof window === 'undefined';
 
 /**
  * Retrieves data from localStorage. This is the primary method for components to get initial state.
- * Realtime Database synchronization should be handled within components/pages after initial load.
  * @param key The key to retrieve from localStorage.
  * @param defaultValue The value to return if the key doesn't exist.
  * @returns The parsed data from localStorage or the default value.

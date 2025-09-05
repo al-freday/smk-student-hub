@@ -1,31 +1,42 @@
 
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase, connectDatabaseEmulator } from "firebase/database";
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSignOut, User } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getDatabase, connectDatabaseEmulator, Database } from "firebase/database";
+import { getAuth, signInAnonymously, onAuthStateChanged, signOut as firebaseSignOut, User, Auth } from "firebase/auth";
 
-// Your web app's Firebase configuration
-// IMPORTANT: DO NOT MODIFY THIS OBJECT, IT IS POPULATED BY THE SYSTEM
+// Your web app's Firebase configuration is automatically provided by the system.
+// Do not manually edit this object.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com"
+  apiKey: "API_KEY",
+  authDomain: "PROJECT_ID.firebaseapp.com",
+  projectId: "PROJECT_ID",
+  storageBucket: "PROJECT_ID.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID",
+  measurementId: "G-MEASUREMENT_ID",
+  databaseURL: "https://PROJECT_ID.firebaseio.com"
 };
 
+
 // Initialize Firebase for client side
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const auth = getAuth(app);
+let app: FirebaseApp;
+let auth: Auth;
+let db: Database;
+
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
+auth = getAuth(app);
+db = getDatabase(app);
+
 
 // Check if we are in a local development environment and connect to the emulator if needed.
 if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('cloudworkstations.dev'))) {
     try {
-        // A simple check to prevent multiple connections in HMR environments
-        // @ts-ignore
+        // @ts-ignore - A simple check to prevent multiple connections in HMR environments
         if (!db.emulator) {
             console.log("Connecting to local Realtime Database emulator.");
             connectDatabaseEmulator(db, 'localhost', 9000);
