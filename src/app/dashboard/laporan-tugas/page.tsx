@@ -31,14 +31,19 @@ export default function LaporanTugasPage() {
   }
 
   useEffect(() => {
-    const user = getSourceData('currentUser', null);
-    if (user) {
-        const roleKey = getRoleKeyFromName(user.role);
-        const teachersData = getSourceData('teachersData', {});
-        const guruData = (teachersData[roleKey] || []).find((g: any) => g.nama === user.nama);
-        setCurrentUser({ ...user, roleKey, id: guruData?.id || 0 });
+    try {
+        const user = getSourceData('currentUser', null);
+        if (user) {
+            const roleKey = getRoleKeyFromName(user.role);
+            const teachersData = getSourceData('teachersData', {});
+            const guruData = (teachersData[roleKey] || []).find((g: any) => g.nama === user.nama);
+            setCurrentUser({ ...user, roleKey, id: guruData?.id || 0 });
+        }
+    } catch (error) {
+        console.error("Failed to load user data:", error);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const handleSubmitReport = () => {
