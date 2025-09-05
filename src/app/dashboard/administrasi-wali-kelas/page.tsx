@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAdministrasiWaliKelasData } from "@/lib/data";
-import { Loader2, Users, CalendarClock, BookUser, FileText, Award, ShieldAlert, BarChart3, TrendingUp, TrendingDown, UserCheck, Sitemap, Building } from "lucide-react";
+import { Loader2, Users, CalendarClock, BookUser, FileText, Award, ShieldAlert, BarChart3, TrendingUp, TrendingDown, UserCheck, UsersRound, Building } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +81,7 @@ export default function AdministrasiWaliKelasPage() {
         <ScrollArea className="w-full whitespace-nowrap">
           <TabsList>
             <TabsTrigger value="data-induk"><Users className="mr-2 h-4 w-4"/>Data Induk Kelas</TabsTrigger>
-            <TabsTrigger value="struktur-kelas"><Sitemap className="mr-2 h-4 w-4" />Struktur Kelas</TabsTrigger>
+            <TabsTrigger value="struktur-kelas"><UsersRound className="mr-2 h-4 w-4" />Struktur Kelas</TabsTrigger>
             <TabsTrigger value="sarana-prasarana"><Building className="mr-2 h-4 w-4" />Sarana Prasarana</TabsTrigger>
             <TabsTrigger value="kehadiran"><CalendarClock className="mr-2 h-4 w-4"/>Administrasi Kehadiran</TabsTrigger>
             <TabsTrigger value="pembelajaran"><BookUser className="mr-2 h-4 w-4"/>Administrasi Pembelajaran</TabsTrigger>
