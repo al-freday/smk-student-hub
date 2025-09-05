@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, File, List, CheckCircle } from "lucide-react";
+import { Upload, List, CheckCircle, FileUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // --- Tipe Data ---
 interface PreviewData {
@@ -30,9 +30,9 @@ interface PreviewData {
 export default function UploadDataIndukPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [activeTab, setActiveTab] = useState("upload");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -41,21 +41,22 @@ export default function UploadDataIndukPage() {
             setFile(selectedFile);
             toast({
                 title: "File Terpilih",
-                description: `${selectedFile.name}`,
+                description: `Pratinjau data dari ${selectedFile.name} tersedia di tab 'Olah Data Unggahan'.`,
             });
             // Simulate reading file for preview
             setPreviewData({
                 fileName: selectedFile.name,
-                rowCount: 5, // Placeholder
-                headers: ["NIS", "Nama Siswa", "Kelas", "Tanggal Lahir"],
+                rowCount: 250, // Placeholder
+                headers: ["NIS", "Nama Siswa", "Kelas", "Tanggal Lahir", "Nama Wali"],
                 rows: [
-                    ["24001", "Ahmad Dahlan", "X TKJ 1", "2008-05-10"],
-                    ["24002", "Budi Santoso", "X TKJ 1", "2008-06-15"],
-                    ["24003", "Citra Lestari", "X TKJ 2", "2008-07-20"],
-                    ["24004", "Dewi Anggraini", "X TKJ 2", "2008-08-25"],
-                    ["23001", "Eko Prasetyo", "XI OT 1", "2007-09-01"],
+                    ["24001", "Ahmad Dahlan", "X TKJ 1", "2008-05-10", "Bpk. Dahlan"],
+                    ["24002", "Budi Santoso", "X TKJ 1", "2008-06-15", "Ibu Santoso"],
+                    ["24003", "Citra Lestari", "X TKJ 2", "2008-07-20", "Bpk. Lestari"],
+                    ["24004", "Dewi Anggraini", "X TKJ 2", "2008-08-25", "Ibu Anggraini"],
+                    ["23001", "Eko Prasetyo", "XI OT 1", "2007-09-01", "Bpk. Prasetyo"],
                 ]
             });
+            setActiveTab("process"); // Automatically switch to process tab
         } else {
             toast({
                 title: "Format File Salah",
@@ -77,6 +78,7 @@ export default function UploadDataIndukPage() {
       });
       setFile(null);
       setPreviewData(null);
+      setActiveTab("upload"); // Switch back to upload tab
   }
 
   return (
@@ -92,63 +94,78 @@ export default function UploadDataIndukPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Upload /> Unggah File Data Induk</CardTitle>
-          <CardDescription>
-            Pilih file Excel atau CSV yang berisi data siswa sesuai template yang ditentukan.
-          </CardDescription>
+            <CardTitle>Alur Kerja Impor Data</CardTitle>
+            <CardDescription>
+                Ikuti langkah-langkah di bawah ini untuk mengimpor data siswa baru ke dalam sistem.
+            </CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg">
-                <input
-                    type="file"
-                    id="file-upload"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept=".xlsx, .csv"
-                />
-                 <label htmlFor="file-upload" className="cursor-pointer">
-                    <Button as="span">Pilih File</Button>
-                 </label>
-                 <p className="mt-2 text-sm text-muted-foreground">
-                    {file ? `Terpilih: ${file.name}` : "Belum ada file yang dipilih"}
-                 </p>
-            </div>
+             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload"><FileUp className="mr-2 h-4 w-4" /> 1. Unggah File</TabsTrigger>
+                    <TabsTrigger value="process" disabled={!previewData}><List className="mr-2 h-4 w-4" /> 2. Olah Data Unggahan</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="upload" className="pt-6">
+                     <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg text-center">
+                        <Upload className="h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-semibold">Pilih File Data Induk</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Pilih file Excel atau CSV yang berisi data siswa sesuai template.
+                         </p>
+                        <input
+                            type="file"
+                            id="file-upload"
+                            className="hidden"
+                            onChange={handleFileChange}
+                            accept=".xlsx, .csv"
+                        />
+                         <label htmlFor="file-upload" className="mt-4">
+                            <Button as="span">Pilih File dari Komputer</Button>
+                         </label>
+                         <p className="mt-2 text-xs text-muted-foreground">
+                            {file ? `Terpilih: ${file.name}` : "Belum ada file yang dipilih"}
+                         </p>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="process" className="pt-6">
+                     {previewData ? (
+                        <div className="space-y-4">
+                           <p className="text-sm text-muted-foreground">
+                                Pratinjau data dari file <span className="font-semibold text-primary">{previewData.fileName}</span>. Pastikan kolom sudah sesuai sebelum memproses.
+                            </p>
+                            <div className="overflow-x-auto border rounded-lg">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            {previewData.headers.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {previewData.rows.map((row, rowIndex) => (
+                                            <TableRow key={rowIndex}>
+                                                {row.map((cell, cellIndex) => <TableCell key={cellIndex}>{cell}</TableCell>)}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <Separator className="my-4" />
+                            <div className="flex justify-between items-center">
+                                <p className="text-sm text-muted-foreground">Menampilkan 5 dari {previewData.rowCount} baris data.</p>
+                                <Button onClick={handleProcessFile}><CheckCircle className="mr-2 h-4 w-4" /> Proses & Impor Data</Button>
+                            </div>
+                        </div>
+                     ) : (
+                        <div className="text-center text-muted-foreground p-8">
+                            <p>Silakan unggah file di tab "Unggah File" untuk melihat pratinjau di sini.</p>
+                        </div>
+                     )}
+                </TabsContent>
+            </Tabs>
         </CardContent>
       </Card>
-
-      {previewData && (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><List /> Proses File</CardTitle>
-                <CardDescription>
-                    Pratinjau data dari file <span className="font-semibold text-primary">{previewData.fileName}</span>. Pastikan kolom sudah sesuai sebelum memproses.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {previewData.headers.map(header => <TableHead key={header}>{header}</TableHead>)}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {previewData.rows.map((row, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {row.map((cell, cellIndex) => <TableCell key={cellIndex}>{cell}</TableCell>)}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-                <Separator className="my-4" />
-                <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">Menampilkan 5 dari {previewData.rowCount} baris data.</p>
-                    <Button onClick={handleProcessFile}><CheckCircle className="mr-2 h-4 w-4" /> Proses & Impor Data</Button>
-                </div>
-            </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
