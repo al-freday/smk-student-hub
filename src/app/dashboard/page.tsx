@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -65,14 +66,15 @@ const WakasekDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchStats = () => {
-            const newStats = getDashboardStats();
+        const fetchStats = async () => {
+            setIsLoading(true);
+            const newStats = await getDashboardStats();
             setStats(newStats);
             setIsLoading(false);
         };
         fetchStats();
-        window.addEventListener('dataUpdated', fetchStats);
-        return () => window.removeEventListener('dataUpdated', fetchStats);
+        // Listener tidak lagi efektif karena data diambil satu kali,
+        // perlu strategi refetch atau real-time listener dari Firestore.
     }, []);
 
     return (

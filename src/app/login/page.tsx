@@ -45,44 +45,48 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-        const savedData = getSourceData('teachersData', {});
-        if (savedData.schoolInfo) {
-            setSchoolInfo(savedData.schoolInfo);
-        }
-
-        const users: User[] = [];
-        const { schoolInfo, ...roles } = savedData;
-        
-        // Add wakasek manually
-        users.push({
-          id: 'wakasek_kesiswaan-0',
-          nama: 'Wakasek Kesiswaan',
-          role: 'Wakasek Kesiswaan',
-          password: 'password123',
-        });
-
-        Object.keys(roles).forEach(roleKey => {
-            if (Array.isArray(roles[roleKey])) {
-                roles[roleKey].forEach((guru: any) => {
-                    if(guru && guru.id !== undefined && guru.nama) {
-                        const uniqueId = `${roleKey}-${guru.id}`;
-                        users.push({
-                            id: uniqueId,
-                            nama: guru.nama,
-                            role: getRoleName(roleKey),
-                            password: guru.password,
-                        });
-                    }
-                });
+    const loadInitialData = async () => {
+        try {
+            const savedData = getSourceData('teachersData', {});
+            if (savedData.schoolInfo) {
+                setSchoolInfo(savedData.schoolInfo);
             }
-        });
-        setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
-    } catch (e) {
-        console.error("Failed to load initial data", e)
-    } finally {
-        setIsLoading(false);
-    }
+
+            const users: User[] = [];
+            const { schoolInfo, ...roles } = savedData;
+            
+            // Add wakasek manually
+            users.push({
+              id: 'wakasek_kesiswaan-0',
+              nama: 'Wakasek Kesiswaan',
+              role: 'Wakasek Kesiswaan',
+              password: 'password123',
+            });
+
+            Object.keys(roles).forEach(roleKey => {
+                if (Array.isArray(roles[roleKey])) {
+                    roles[roleKey].forEach((guru: any) => {
+                        if(guru && guru.id !== undefined && guru.nama) {
+                            const uniqueId = `${roleKey}-${guru.id}`;
+                            users.push({
+                                id: uniqueId,
+                                nama: guru.nama,
+                                role: getRoleName(roleKey),
+                                password: guru.password,
+                            });
+                        }
+                    });
+                }
+            });
+            setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+        } catch (e) {
+            console.error("Failed to load initial data", e)
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    loadInitialData();
   }, []);
 
   if (isLoading) {

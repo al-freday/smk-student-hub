@@ -14,9 +14,9 @@ interface Kelas { id: number; nama: string; }
 
 /**
  * Mengambil dan menghitung statistik kunci untuk ditampilkan di dasbor.
- * @returns {object} Objek berisi statistik kunci.
+ * @returns {Promise<object>} Objek berisi statistik kunci.
  */
-export const getDashboardStats = () => {
+export const getDashboardStats = async () => {
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
     const totalSiswa = Array.isArray(allSiswa) ? allSiswa.length : 0;
 
@@ -50,7 +50,7 @@ export const getDashboardStats = () => {
 
 /**
  * Menghitung jumlah siswa di setiap kelas.
- * @returns {Array<object>} Data untuk diagram batang jumlah siswa per kelas.
+ * @returns {Promise<Array<object>>} Data untuk diagram batang jumlah siswa per kelas.
  */
 export const getSiswaPerKelasData = () => {
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
@@ -71,7 +71,7 @@ export const getSiswaPerKelasData = () => {
 
 /**
  * Menghitung statistik pelanggaran berdasarkan tingkatannya.
- * @returns {Array<object>} Data untuk diagram lingkaran proporsi pelanggaran.
+ * @returns {Promise<Array<object>>} Data untuk diagram lingkaran proporsi pelanggaran.
  */
 export const getPelanggaranStats = () => {
     const riwayatPelanggaran: CatatanPelanggaran[] = getSourceData('riwayatPelanggaran', []);
@@ -95,7 +95,7 @@ export const getPelanggaranStats = () => {
 /**
  * Menghitung tren kehadiran selama 30 hari terakhir.
  * @param filterKelas Opsional, array nama kelas untuk memfilter data kehadiran.
- * @returns {Array<object>} Data untuk diagram garis tren kehadiran.
+ * @returns {Promise<Array<object>>} Data untuk diagram garis tren kehadiran.
  */
 export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
     let allRecords: KehadiranPerSesi[] = getSourceData('kehadiranSiswaPerSesi', []);
@@ -143,7 +143,7 @@ export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
 /**
  * Mengambil dan mengolah semua data yang dibutuhkan untuk halaman Administrasi Wali Kelas.
  * @param selectedKelas Kelas yang dipilih untuk filtering data.
- * @returns {object} Objek berisi semua data yang telah diolah.
+ * @returns {Promise<object>} Objek berisi semua data yang telah diolah.
  */
 export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     const currentUser = getSourceData('currentUser', null);
