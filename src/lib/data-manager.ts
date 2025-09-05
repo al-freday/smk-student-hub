@@ -1,4 +1,3 @@
-
 import { initialKurikulumData } from './kurikulum-data';
 import { tataTertibData } from './tata-tertib-data';
 import { pklData } from './pklData';
