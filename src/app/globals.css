@@ -85,19 +85,20 @@
 }
 
 @page {
-  size: 215mm 297mm; /* A4s size */
-  margin: 20mm;
+  size: a4 portrait;
+  margin: 1cm;
 }
 
 @media print {
   .print\:hidden {
-    display: none;
+    display: none !important;
   }
   body {
     background: white !important;
     color: black !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-size: 10pt;
   }
   .printable-content {
     display: block;
@@ -106,6 +107,8 @@
     width: 100%;
     height: 100%;
     page-break-after: always;
+    box-shadow: none !important;
+    border: none !important;
   }
   header, [data-sidebar="sidebar"], .peer, .non-printable {
     display: none !important;
@@ -117,10 +120,20 @@
   .card, .accordion-item {
     border: none !important;
     box-shadow: none !important;
+    page-break-inside: avoid;
   }
   .card-header, .card-content, .accordion-content {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
+    padding: 0.5rem !important;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
   }
   .dark {
     --background: 0 0% 100%;

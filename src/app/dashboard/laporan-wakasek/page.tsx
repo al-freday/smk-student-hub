@@ -194,7 +194,7 @@ export default function LaporanWakasekPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <div>
             <h2 className="text-3xl font-bold tracking-tight">Laporan Tugas Guru</h2>
             <p className="text-muted-foreground">
@@ -233,60 +233,62 @@ export default function LaporanWakasekPage() {
                     const filteredReports = allReports.filter(r => r.roleKey === roleKey);
                     return (
                         <TabsContent value={roleKey} key={roleKey} className="mt-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Nama Guru</TableHead>
-                                  <TableHead>Tanggal Kirim</TableHead>
-                                  <TableHead>Status</TableHead>
-                                  <TableHead className="text-right">Aksi</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {filteredReports.length > 0 ? (
-                                  filteredReports.map((report) => (
-                                    <TableRow key={report.id}>
-                                      <TableCell className="font-medium">{report.namaGuru}</TableCell>
-                                      <TableCell>{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
-                                      <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
-                                      <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
-                                                    <span className="sr-only">Buka menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem disabled>
-                                                    <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDownloadPdf(report)} disabled={isGeneratingPdf}>
-                                                    {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
-                                                    Unduh PDF
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
-                                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                                    Tandai Diproses
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
-                                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                                    Tandai Diterima
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      </TableCell>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Nama Guru</TableHead>
+                                      <TableHead>Tanggal Kirim</TableHead>
+                                      <TableHead>Status</TableHead>
+                                      <TableHead className="text-right">Aksi</TableHead>
                                     </TableRow>
-                                  ))
-                                ) : (
-                                   <TableRow>
-                                      <TableCell colSpan={4} className="text-center h-24">
-                                        Tidak ada guru yang ditugaskan untuk peran ini.
-                                      </TableCell>
-                                    </TableRow>
-                                )}
-                              </TableBody>
-                            </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {filteredReports.length > 0 ? (
+                                      filteredReports.map((report) => (
+                                        <TableRow key={report.id}>
+                                          <TableCell className="font-medium whitespace-nowrap">{report.namaGuru}</TableCell>
+                                          <TableCell className="whitespace-nowrap">{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
+                                          <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
+                                          <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
+                                                        <span className="sr-only">Buka menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem disabled>
+                                                        <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDownloadPdf(report)} disabled={isGeneratingPdf}>
+                                                        {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                                        Unduh PDF
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
+                                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                                        Tandai Diproses
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
+                                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                                        Tandai Diterima
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
+                                       <TableRow>
+                                          <TableCell colSpan={4} className="text-center h-24">
+                                            Tidak ada guru yang ditugaskan untuk peran ini.
+                                          </TableCell>
+                                        </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                            </div>
                         </TabsContent>
                     )
                 })}

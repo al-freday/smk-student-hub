@@ -305,41 +305,43 @@ export default function ManajemenPelanggaranPage() {
             </div>
         </CardHeader>
         <CardContent>
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Siswa</TableHead>
-                        <TableHead>Detail Pelanggaran</TableHead>
-                        <TableHead>Pelapor & Tindakan Awal</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredData.length > 0 ? (
-                        filteredData.map((catatan) => (
-                            <TableRow key={catatan.id}>
-                                <TableCell>
-                                    <p className="font-medium">{catatan.namaSiswa}</p>
-                                    <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
-                                </TableCell>
-                                <TableCell>
-                                    <p>{catatan.pelanggaran}</p>
-                                    <Badge variant="destructive">{catatan.poin} Poin</Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <p className="font-medium">{catatan.guruPelapor}</p>
-                                    <p className="text-xs text-muted-foreground">{catatan.tindakanAwal || "-"}</p>
+             <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Siswa</TableHead>
+                            <TableHead>Detail Pelanggaran</TableHead>
+                            <TableHead>Pelapor & Tindakan Awal</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredData.length > 0 ? (
+                            filteredData.map((catatan) => (
+                                <TableRow key={catatan.id}>
+                                    <TableCell className="whitespace-nowrap">
+                                        <p className="font-medium">{catatan.namaSiswa}</p>
+                                        <p className="text-xs text-muted-foreground">{catatan.kelas} | {format(new Date(catatan.tanggal), "dd/MM/yyyy")}</p>
+                                    </TableCell>
+                                    <TableCell>
+                                        <p>{catatan.pelanggaran}</p>
+                                        <Badge variant="destructive">{catatan.poin} Poin</Badge>
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        <p className="font-medium">{catatan.guruPelapor}</p>
+                                        <p className="text-xs text-muted-foreground">{catatan.tindakanAwal || "-"}</p>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center h-24">
+                                    Tidak ada data pelanggaran untuk ditampilkan.
                                 </TableCell>
                             </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={3} className="text-center h-24">
-                                Tidak ada data pelanggaran untuk ditampilkan.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
+                        )}
+                    </TableBody>
+                </Table>
+             </div>
         </CardContent>
       </Card>
       
@@ -352,7 +354,7 @@ export default function ManajemenPelanggaranPage() {
             <div className="grid gap-6 py-4">
                 <div className="space-y-2">
                     <Label className="font-semibold">1. Pilih Kelas & Siswa</Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Select value={selectedKelasForForm} onValueChange={(value) => { setSelectedKelasForForm(value); setSelectedNis(""); }}>
                           <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
                           <SelectContent>

@@ -315,20 +315,22 @@ export default function RekapLaporanEskalasiPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead className="text-center">Poin</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                        {filteredData.length > 0 ? filteredData.map(p => (
-                             <TableRow key={p.id}>
-                                <TableCell>{format(new Date(p.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
-                                <TableCell><p className="font-medium">{p.namaSiswa}</p><p className="text-xs text-muted-foreground">{p.kelas}</p></TableCell>
-                                <TableCell>{p.pelanggaran}</TableCell>
-                                <TableCell className="text-center"><Badge variant="destructive">{p.poin}</Badge></TableCell>
-                                <TableCell><Badge variant={getStatusBadgeVariant(p.status)}>{p.status}</Badge></TableCell>
-                            </TableRow>
-                        )) : (<TableRow><TableCell colSpan={5} className="text-center h-24">Tidak ada data yang cocok dengan filter Anda.</TableCell></TableRow>)}
-                    </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead className="text-center">Poin</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {filteredData.length > 0 ? filteredData.map(p => (
+                                 <TableRow key={p.id}>
+                                    <TableCell className="whitespace-nowrap">{format(new Date(p.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
+                                    <TableCell><p className="font-medium whitespace-nowrap">{p.namaSiswa}</p><p className="text-xs text-muted-foreground">{p.kelas}</p></TableCell>
+                                    <TableCell>{p.pelanggaran}</TableCell>
+                                    <TableCell className="text-center"><Badge variant="destructive">{p.poin}</Badge></TableCell>
+                                    <TableCell><Badge variant={getStatusBadgeVariant(p.status)}>{p.status}</Badge></TableCell>
+                                </TableRow>
+                            )) : (<TableRow><TableCell colSpan={5} className="text-center h-24">Tidak ada data yang cocok dengan filter Anda.</TableCell></TableRow>)}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -340,7 +342,7 @@ export default function RekapLaporanEskalasiPage() {
                     <CardDescription>Pilih siswa dan jenis surat untuk membuat dokumen resmi.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Pilih Siswa (dengan Kasus Eskalasi)</Label>
                             <Select onValueChange={(nis) => setSelectedSiswa(siswaEskalasi.find(s => s.nis === nis) || null)}>
@@ -370,7 +372,7 @@ export default function RekapLaporanEskalasiPage() {
             </Card>
             
             {previewData && (
-                <div className="mt-6">
+                <div className="mt-6 printable-content">
                     <div className="flex justify-between items-center mb-4 print:hidden">
                         <h3 className="font-semibold">Pratinjau Surat</h3>
                         <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak Surat</Button>

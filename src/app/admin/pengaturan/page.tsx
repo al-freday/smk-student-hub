@@ -232,7 +232,7 @@ export default function AdminPengaturanPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                   {userRoles.map((role) => (
-                      <div key={role.key} className="flex items-center justify-between">
+                      <div key={role.key} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                          <div className="flex items-center gap-3">
                             <div className="flex -space-x-2">
                                 <div className="h-6 w-6 rounded-full border-2 border-background" style={{ backgroundColor: `hsl(${themes[selectedThemes[role.key] || 'default'].colors['--primary']})` }} />
@@ -244,7 +244,7 @@ export default function AdminPengaturanPage() {
                             value={selectedThemes[role.key] || 'default'}
                             onValueChange={(value) => handleThemeChange(role.key, value)}
                          >
-                            <SelectTrigger id={`theme-${role.key}`} className="w-[180px]">
+                            <SelectTrigger id={`theme-${role.key}`} className="w-full sm:w-[180px]">
                                 <SelectValue placeholder="Pilih Tema" />
                             </SelectTrigger>
                             <SelectContent>
@@ -264,7 +264,7 @@ export default function AdminPengaturanPage() {
                     <CardDescription>Kelola akun dan peran pengguna sistem.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-secondary rounded-lg gap-4">
                         <div className="flex items-center gap-4">
                             <Users className="h-8 w-8 text-primary"/>
                             <div>
@@ -272,7 +272,7 @@ export default function AdminPengaturanPage() {
                                 <p className="text-sm text-muted-foreground">Pengguna Terdaftar</p>
                             </div>
                         </div>
-                         <Button onClick={() => router.push('/admin/pengaturan/pengguna')}>
+                         <Button onClick={() => router.push('/admin/pengaturan/pengguna')} className="w-full sm:w-auto">
                             Kelola Pengguna
                         </Button>
                     </div>
