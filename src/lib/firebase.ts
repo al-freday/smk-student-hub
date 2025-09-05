@@ -16,15 +16,22 @@ const firebaseConfig = {
   databaseURL: "DATABASE_URL"
 };
 
+// Dynamically construct the databaseURL if it's a placeholder
+if (firebaseConfig.databaseURL === "DATABASE_URL" && firebaseConfig.projectId) {
+  firebaseConfig.databaseURL = `https://${firebaseConfig.projectId}.firebaseio.com`;
+}
+
 // Initialize Firebase for client side
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
+// Check if we are in a local development environment and connect to the emulator if needed.
 if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.includes('cloudworkstations.dev'))) {
     try {
+        // A simple check to prevent multiple connections in HMR environments
         // @ts-ignore
-        if (!db.emulator) { // Check if emulator is not already connected
+        if (!db.emulator) {
             console.log("Connecting to local Realtime Database emulator.");
             connectDatabaseEmulator(db, 'localhost', 9000);
             // @ts-ignore
