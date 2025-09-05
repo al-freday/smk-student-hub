@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 
 interface SchoolInfo {
@@ -68,8 +69,7 @@ export default function AdminPengaturanPage() {
       return;
     }
       
-    const savedData = localStorage.getItem('teachersData');
-    const teachersData = savedData ? JSON.parse(savedData) : {};
+    const teachersData = getSourceData('teachersData', {});
     
     if (teachersData.schoolInfo) {
         setSchoolInfo(teachersData.schoolInfo);
@@ -79,7 +79,7 @@ export default function AdminPengaturanPage() {
     if (teachersData && typeof teachersData === 'object') {
         const { schoolInfo, ...roles } = teachersData;
         Object.keys(roles).forEach((key) => {
-            const roleArray = roles[key];
+            const roleArray = roles[key as keyof typeof roles];
              if (Array.isArray(roleArray)) {
                 count += roleArray.length;
             }
@@ -132,10 +132,9 @@ export default function AdminPengaturanPage() {
   };
   
   const handleSaveChanges = () => {
-      const savedData = localStorage.getItem('teachersData');
-      const teachersData = savedData ? JSON.parse(savedData) : {};
-      const updatedData = { ...teachersData, schoolInfo: schoolInfo };
-      localStorage.setItem('teachersData', JSON.stringify(updatedData));
+      const savedData = getSourceData('teachersData', {});
+      const updatedData = { ...savedData, schoolInfo: schoolInfo };
+      updateSourceData('teachersData', updatedData);
       
       toast({
           title: "Pengaturan Disimpan",

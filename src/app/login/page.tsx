@@ -45,6 +45,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadInitialData = useCallback(() => {
+      setIsLoading(true);
       try {
           const savedData = getSourceData('teachersData', {});
           if (savedData.schoolInfo) {
@@ -62,8 +63,9 @@ export default function LoginPage() {
           });
 
           Object.keys(roles).forEach(roleKey => {
-              if (Array.isArray(roles[roleKey])) {
-                  roles[roleKey].forEach((guru: any) => {
+              const roleArray = roles[roleKey as keyof typeof roles];
+              if (Array.isArray(roleArray)) {
+                  roleArray.forEach((guru: any) => {
                       if(guru && guru.id !== undefined && guru.nama) {
                           const uniqueId = `${roleKey}-${guru.id}`;
                           users.push({
@@ -86,12 +88,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     loadInitialData();
-    window.addEventListener('dataUpdated', loadInitialData);
-    window.addEventListener('storage', loadInitialData); // Listen for changes from other tabs
+    
+    const handleDataChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.key === 'teachersData') {
+        loadInitialData();
+      }
+    };
+    
+    window.addEventListener('dataUpdated', handleDataChange);
 
     return () => {
-        window.removeEventListener('dataUpdated', loadInitialData);
-        window.removeEventListener('storage', loadInitialData);
+        window.removeEventListener('dataUpdated', handleDataChange);
     };
   }, [loadInitialData]);
 

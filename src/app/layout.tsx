@@ -58,14 +58,19 @@ export default function RootLayout({
   useEffect(() => {
     loadSchoolInfoAndTheme();
 
-    window.addEventListener('storage', loadSchoolInfoAndTheme);
+    const handleDataChange = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if(customEvent.detail.key === 'teachersData'){
+            loadSchoolInfoAndTheme();
+        }
+    };
+
+    window.addEventListener('dataUpdated', handleDataChange);
     window.addEventListener('roleChanged', applyTheme);
-    window.addEventListener('dataUpdated', loadSchoolInfoAndTheme);
 
     return () => {
-      window.removeEventListener('storage', loadSchoolInfoAndTheme);
+      window.removeEventListener('dataUpdated', handleDataChange);
       window.removeEventListener('roleChanged', applyTheme);
-      window.removeEventListener('dataUpdated', loadSchoolInfoAndTheme);
     };
   }, [loadSchoolInfoAndTheme]);
   
