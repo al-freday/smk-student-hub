@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 // --- Tipe Data ---
 interface PreviewData {
@@ -24,6 +25,13 @@ interface PreviewData {
   rowCount: number;
   headers: string[];
   rows: (string | number)[][];
+}
+
+interface Siswa {
+    id: number;
+    nis: string;
+    nama: string;
+    kelas: string;
 }
 
 
@@ -54,6 +62,9 @@ export default function UploadDataIndukPage() {
                     ["24003", "Citra Lestari", "X TKJ 2", "2008-07-20", "Bpk. Lestari"],
                     ["24004", "Dewi Anggraini", "X TKJ 2", "2008-08-25", "Ibu Anggraini"],
                     ["23001", "Eko Prasetyo", "XI OT 1", "2007-09-01", "Bpk. Prasetyo"],
+                    ["23005", "Farida Yani", "XI OT 1", "2007-10-10", "Bpk. Yani"],
+                    ["22001", "Guntur Wijaya", "XII MM 1", "2006-11-12", "Ibu Wijaya"],
+                    ["22002", "Hasanudin", "XII MM 1", "2006-12-18", "Bpk. Hasanudin"],
                 ]
             });
             setActiveTab("process"); // Automatically switch to process tab
@@ -72,13 +83,29 @@ export default function UploadDataIndukPage() {
           toast({ title: "Gagal", description: "Tidak ada data untuk diproses.", variant: "destructive" });
           return;
       }
+      
+      // Simulasi konversi data pratinjau menjadi format Siswa
+      const newSiswaData: Siswa[] = previewData.rows.map((row, index) => ({
+          id: 100 + index, // Gunakan ID sementara untuk data baru
+          nis: String(row[0]),
+          nama: String(row[1]),
+          kelas: String(row[2]),
+      }));
+      
+      // Timpa data siswa yang ada dengan data yang baru diimpor
+      updateSourceData('siswaData', newSiswaData);
+
       toast({
           title: "Proses Berhasil",
-          description: `Data dari file ${previewData.fileName} telah berhasil diimpor.`,
+          description: `Data siswa dari file ${previewData.fileName} telah berhasil diimpor ke sistem.`,
       });
+      
       setFile(null);
       setPreviewData(null);
       setActiveTab("upload"); // Switch back to upload tab
+      
+      // Arahkan pengguna untuk melihat hasilnya
+      router.push('/dashboard/hasil-data-olahan');
   }
 
   return (
@@ -143,7 +170,7 @@ export default function UploadDataIndukPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {previewData.rows.map((row, rowIndex) => (
+                                        {previewData.rows.slice(0, 5).map((row, rowIndex) => (
                                             <TableRow key={rowIndex}>
                                                 {row.map((cell, cellIndex) => <TableCell key={cellIndex}>{cell}</TableCell>)}
                                             </TableRow>
