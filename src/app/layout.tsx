@@ -26,40 +26,51 @@ const themes = {
     slate: { name: "Slate & Sky", colors: { "--primary": "215 30% 50%", "--accent": "200 100% 75%" } },
 };
 
-const applyThemeForRole = async () => {
-    const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-    const themeSettings = await getSourceData('themeSettings', {});
-    const themeKey = themeSettings[userRole] || 'default';
-    const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
-    
-    Object.entries(themeToApply.colors).forEach(([property, value]) => {
-        document.documentElement.style.setProperty(property, value as string);
-    });
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const [schoolInfo, setSchoolInfo] = useState({ schoolName: "SMK Student Hub", logo: "" });
+
+  const applyThemeForRole = useCallback(async () => {
+    const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
+    // Use localStorage for theme settings to avoid async calls in layout
+    const themeSettings = JSON.parse(localStorage.getItem('themeSettings') || '{}');
+    const themeKey = themeSettings[userRole] || 'default';
+    const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
+    
+    Object.entries(themeToApply.colors).forEach(([property, value]) => {
+        document.documentElement.style.setProperty(property, value as string);
+    });
+  }, []);
   
-  const loadSchoolInfoAndTheme = useCallback(async () => {
-      const savedData = await getSourceData('teachersData', {});
-      if (savedData && savedData.schoolInfo) {
-          setSchoolInfo(savedData.schoolInfo);
-      }
-      await applyThemeForRole();
+  const loadSchoolInfo = useCallback(async () => {
+    // This now fetches from DB and might take a moment.
+    // It's better to load this inside specific components that need it.
+    // For the layout, we can rely on a cached version in localStorage.
+    const savedData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+     if (savedData && savedData.schoolInfo) {
+        setSchoolInfo(savedData.schoolInfo);
+     }
+     // Async fetch for future updates
+     getSourceData('teachersData', {}).then(dbData => {
+         if (dbData && dbData.schoolInfo) {
+             setSchoolInfo(dbData.schoolInfo);
+             localStorage.setItem('teachersData', JSON.stringify(dbData));
+         }
+     });
   }, []);
   
   useEffect(() => {
-    loadSchoolInfoAndTheme();
+    loadSchoolInfo();
+    applyThemeForRole();
 
     const handleDataChange = () => {
-      loadSchoolInfoAndTheme();
+      loadSchoolInfo();
+      applyThemeForRole();
     };
 
-    // Listen for custom events that signify data has changed
     window.addEventListener('dataUpdated', handleDataChange);
     window.addEventListener('roleChanged', handleDataChange);
     
@@ -67,12 +78,11 @@ export default function RootLayout({
       window.removeEventListener('dataUpdated', handleDataChange);
       window.removeEventListener('roleChanged', handleDataChange);
     };
-  }, [loadSchoolInfoAndTheme]);
+  }, [loadSchoolInfo, applyThemeForRole]);
   
   const pageTitle = schoolInfo.schoolName || "SMK Student Hub";
   const pageDescription = `Sistem Manajemen Kesiswaan untuk ${pageTitle}.`;
   const imageUrl = "https://picsum.photos/1200/630";
-
 
   return (
     <html lang="en" suppressHydrationWarning>
