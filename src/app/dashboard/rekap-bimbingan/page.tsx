@@ -10,10 +10,11 @@ import { getSourceData } from "@/lib/data-manager";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Loader2, ArrowLeft, BookCopy, Gem, ShieldCheck, UserSearch, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 
 // Tipe Data
@@ -41,6 +42,7 @@ export default function RekapBimbinganPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [allLogs, setAllLogs] = useState<Log[]>([]);
   const [siswaBinaan, setSiswaBinaan] = useState<Siswa[]>([]);
   const [selectedNis, setSelectedNis] = useState<string>("");
@@ -79,7 +81,11 @@ export default function RekapBimbinganPage() {
           if (nisBinaan.has(nis)) logs.forEach(log => combinedLogs.push({ ...log, nis, tipe: 'Karakter' }));
       });
       
-      setAllLogs(combinedLogs.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()));
+      setAllLogs(combinedLogs.sort((a, b) => {
+        const dateComparison = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+        if (dateComparison !== 0) return dateComparison;
+        return a.tipe.localeCompare(b.tipe);
+      }));
 
     } catch (error) {
       console.error("Gagal memuat data rekap:", error);
@@ -98,6 +104,50 @@ export default function RekapBimbinganPage() {
     return allLogs.filter(log => log.nis === selectedNis);
   }, [allLogs, selectedNis]);
 
+  const selectedSiswa = useMemo(() => {
+    return siswaBinaan.find(s => s.nis === selectedNis);
+  }, [siswaBinaan, selectedNis]);
+  
+  const handleDownloadPdf = async () => {
+    if (!selectedSiswa) {
+        toast({ title: "Gagal", description: "Pilih siswa terlebih dahulu.", variant: "destructive" });
+        return;
+    }
+    
+    const reportElement = document.getElementById('report-table');
+    if (!reportElement) {
+        toast({ title: "Gagal", description: "Tidak dapat menemukan tabel laporan.", variant: "destructive" });
+        return;
+    }
+    
+    setIsGeneratingPdf(true);
+    toast({ title: "Membuat PDF...", description: "Harap tunggu sebentar." });
+    
+    try {
+        const canvas = await html2canvas(reportElement, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.setFontSize(16);
+        pdf.text(`Rekap Bimbingan - ${selectedSiswa.nama}`, 14, 22);
+        pdf.setFontSize(10);
+        pdf.text(`Kelas: ${selectedSiswa.kelas}`, 14, 28);
+        
+        pdf.addImage(imgData, 'PNG', 14, 40, pdfWidth - 28, imgHeight);
+        
+        pdf.save(`Rekap_Bimbingan_${selectedSiswa.nama.replace(/\s/g, '_')}.pdf`);
+        toast({ title: "Berhasil!", description: "Laporan PDF telah diunduh." });
+    } catch (error) {
+        console.error("Gagal membuat PDF:", error);
+        toast({ title: "Gagal", description: "Terjadi kesalahan saat membuat PDF.", variant: "destructive" });
+    } finally {
+        setIsGeneratingPdf(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 flex justify-center items-center h-[calc(100vh-8rem)]">
@@ -105,6 +155,10 @@ export default function RekapBimbinganPage() {
       </div>
     );
   }
+
+  // Variabel untuk melacak data yang berulang
+  let lastDate = "";
+  let lastType = "";
 
   return (
     <div className="space-y-6">
@@ -125,60 +179,80 @@ export default function RekapBimbinganPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <CardTitle>Riwayat Catatan Bimbingan</CardTitle>
-                    <CardDescription>Pilih seorang siswa untuk melihat semua riwayat bimbingannya.</CardDescription>
+                    <CardDescription>Pilih seorang siswa untuk melihat dan mengunduh riwayat bimbingannya.</CardDescription>
                 </div>
-                <div className="w-full sm:w-64">
-                    <Label htmlFor="siswa-select">Pilih Siswa</Label>
-                    <Select value={selectedNis} onValueChange={setSelectedNis}>
-                        <SelectTrigger id="siswa-select">
-                            <SelectValue placeholder="Pilih siswa binaan..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {siswaBinaan.map(siswa => (
-                                <SelectItem key={siswa.nis} value={siswa.nis}>{siswa.nama} ({siswa.kelas})</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                <div className="flex items-end gap-2 w-full sm:w-auto">
+                    <div className="flex-1">
+                        <Label htmlFor="siswa-select">Pilih Siswa</Label>
+                        <Select value={selectedNis} onValueChange={setSelectedNis}>
+                            <SelectTrigger id="siswa-select">
+                                <SelectValue placeholder="Pilih siswa binaan..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {siswaBinaan.map(siswa => (
+                                    <SelectItem key={siswa.nis} value={siswa.nis}>{siswa.nama} ({siswa.kelas})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button onClick={handleDownloadPdf} disabled={!selectedNis || isGeneratingPdf}>
+                        {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                        PDF
+                    </Button>
                 </div>
             </div>
         </CardHeader>
         <CardContent>
            {selectedNis ? (
-             <Table>
-                <TableHeader>
-                  <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Tipe</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead>Catatan</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredLogs.length > 0 ? (
-                      filteredLogs.map(log => {
-                          return (
-                               <TableRow key={log.id}>
-                                  <TableCell className="whitespace-nowrap">{format(new Date(log.tanggal), "dd MMM yyyy", { locale: id })}</TableCell>
-                                  <TableCell>
-                                      <div className="flex items-center gap-2">
-                                          {getTipeIcon(log.tipe)}
-                                          <span className="font-medium">{log.tipe}</span>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell>{log.kategori}</TableCell>
-                                  <TableCell><p className="line-clamp-3">{log.catatan}</p></TableCell>
-                              </TableRow>
-                          )
-                      })
-                    ) : (
-                      <TableRow>
-                          <TableCell colSpan={4} className="h-24 text-center">
-                              Tidak ada catatan bimbingan yang ditemukan untuk siswa ini.
-                          </TableCell>
-                      </TableRow>
-                    )}
-                </TableBody>
-             </Table>
+             <div id="report-table">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-1/4">Siswa & Tanggal</TableHead>
+                        <TableHead className="w-1/4">Tipe</TableHead>
+                        <TableHead>Kategori & Catatan</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {filteredLogs.length > 0 ? (
+                        filteredLogs.map((log, index) => {
+                            const showDate = log.tanggal !== lastDate;
+                            const showType = showDate || log.tipe !== lastType;
+
+                            if(showDate) lastDate = log.tanggal;
+                            if(showType) lastType = log.tipe;
+
+                            return (
+                                 <TableRow key={log.id}>
+                                    <TableCell className="align-top">
+                                        {index === 0 && <p className="font-semibold">{selectedSiswa?.nama}</p>}
+                                        {showDate && <p className="text-sm text-muted-foreground">{format(new Date(log.tanggal), "EEEE, dd MMM yyyy", { locale: id })}</p>}
+                                    </TableCell>
+                                    <TableCell className="align-top">
+                                        {showType && (
+                                            <div className="flex items-center gap-2">
+                                                {getTipeIcon(log.tipe)}
+                                                <span className="font-medium">{log.tipe}</span>
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <p className="font-semibold">{log.kategori}</p>
+                                        <p className="text-muted-foreground text-sm">{log.catatan}</p>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })
+                      ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="h-24 text-center">
+                                Tidak ada catatan bimbingan yang ditemukan untuk siswa ini.
+                            </TableCell>
+                        </TableRow>
+                      )}
+                  </TableBody>
+                </Table>
+             </div>
            ) : (
              <div className="text-center text-muted-foreground py-10">
                 <UserSearch className="mx-auto h-12 w-12 text-gray-400" />
