@@ -121,11 +121,26 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
 
         const siswaBinaan = allSiswa.filter((s: any) => guru.siswaBinaan?.includes(s.nama));
 
-        const bimbinganData = siswaBinaan.flatMap((siswa: any) => {
-            const logsAkademik = (logAkademik[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Akademik', l.kategori, l.catatan]);
-            const logsKompetensi = (logKompetensi[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Kompetensi', l.kategori, l.catatan]);
-            const logsKarakter = (logKarakter[siswa.nis] || []).filter((l:any) => isWithinInterval(new Date(l.tanggal), monthInterval)).map((l:any) => [siswa.nama, 'Karakter', l.kategori, l.catatan]);
-            return [...logsAkademik, ...logsKompetensi, ...logsKarakter];
+        const bimbinganLogs: any[] = [];
+        siswaBinaan.forEach((siswa: any) => {
+            const logs = [
+                ...((logAkademik[siswa.nis] || []).map((l:any) => ({ ...l, tipe: 'Akademik' }))),
+                ...((logKompetensi[siswa.nis] || []).map((l:any) => ({ ...l, tipe: 'Kompetensi' }))),
+                ...((logKarakter[siswa.nis] || []).map((l:any) => ({ ...l, tipe: 'Karakter' })))
+            ];
+            const filteredLogs = logs
+                .filter(l => isWithinInterval(new Date(l.tanggal), monthInterval))
+                .sort((a,b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+            
+            filteredLogs.forEach(log => {
+                bimbinganLogs.push({ ...log, namaSiswa: siswa.nama, kelas: siswa.kelas });
+            });
+        });
+
+        bimbinganLogs.sort((a,b) => {
+            if (a.kelas !== b.kelas) return a.kelas.localeCompare(b.kelas);
+            if (a.namaSiswa !== b.namaSiswa) return a.namaSiswa.localeCompare(b.namaSiswa);
+            return new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime();
         });
         
         const prestasiSiswaBinaan = siswaBinaan.flatMap((siswa: any) => {
@@ -139,7 +154,7 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
             return [siswa.nama, status.status, status.perusahaan, `${status.progres}%`];
         });
 
-        data = { ...data, bimbinganData, prestasiSiswaBinaan, statusPkl };
+        data = { ...data, bimbinganLogs, prestasiSiswaBinaan, statusPkl };
     }
 
     if (roleKey === 'guru_piket') {
@@ -218,7 +233,44 @@ export default function TeacherReportContent({ guruId, roleKey }: ReportProps) {
         {roleKey === 'guru_pendamping' && (
              <>
                 <Section title="Log Bimbingan Siswa (Akademik, Kompetensi, Karakter)">
-                    <ReportTable headers={["Nama Siswa", "Tipe", "Kategori", "Catatan"]} data={reportData.bimbinganData} />
+                     <table className="w-full text-sm border-collapse">
+                        <thead>
+                            <tr className="bg-gray-200">
+                                <th className="border p-2 text-left font-semibold">Kelas</th>
+                                <th className="border p-2 text-left font-semibold">Nama Siswa</th>
+                                <th className="border p-2 text-left font-semibold">Tanggal</th>
+                                <th className="border p-2 text-left font-semibold">Tipe</th>
+                                <th className="border p-2 text-left font-semibold">Kategori</th>
+                                <th className="border p-2 text-left font-semibold">Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {reportData.bimbinganLogs?.length > 0 ? (
+                                reportData.bimbinganLogs.map((log: any, index: number, array: any[]) => {
+                                    const prevLog = index > 0 ? array[index - 1] : null;
+                                    const showKelas = !prevLog || prevLog.kelas !== log.kelas;
+                                    const showNama = showKelas || prevLog.namaSiswa !== log.namaSiswa;
+                                    const showTanggal = showNama || prevLog.tanggal !== log.tanggal;
+                                    const showTipe = showTanggal || prevLog.tipe !== log.tipe;
+
+                                    return (
+                                        <tr key={log.id} className="odd:bg-gray-50">
+                                            <td className="border p-2">{showKelas ? log.kelas : ''}</td>
+                                            <td className="border p-2">{showNama ? log.namaSiswa : ''}</td>
+                                            <td className="border p-2">{showTanggal ? format(new Date(log.tanggal), "dd MMM", { locale: id }) : ''}</td>
+                                            <td className="border p-2">{showTipe ? log.tipe : ''}</td>
+                                            <td className="border p-2">{log.kategori}</td>
+                                            <td className="border p-2">{log.catatan}</td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="text-center p-4 border text-gray-500">Tidak ada data untuk dilaporkan pada periode ini.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </Section>
                  <Section title="Rekapitulasi Prestasi Siswa Binaan">
                     <ReportTable headers={["Nama Siswa", "Deskripsi Prestasi", "Tingkat"]} data={reportData.prestasiSiswaBinaan} />
