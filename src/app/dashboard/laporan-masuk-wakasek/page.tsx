@@ -11,7 +11,7 @@ import { getSourceData, updateSourceData } from "@/lib/data-manager";
 import { format } from "date-fns";
 import { id } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, ArrowRight, FileSignature, Users, Phone, Handshake, Search, Save, UserCheck } from "lucide-react";
+import { Loader2, Check, ArrowRight, FileSignature, Users, Phone, Handshake, Search, Save, UserCheck, Archive } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -139,8 +139,15 @@ export default function LaporanMasukWakasekPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle>Daftar Laporan Eskalasi</CardTitle>
-            <CardDescription>Pilih kasus dari daftar di bawah ini untuk penanganan akhir.</CardDescription>
+            <div className="flex justify-between items-center">
+                <div>
+                    <CardTitle>Daftar Laporan Eskalasi Aktif</CardTitle>
+                    <CardDescription>Pilih kasus dari daftar di bawah ini untuk penanganan akhir.</CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => router.push('/dashboard/rekap-laporan-eskalasi')}>
+                    <Archive className="mr-2 h-4 w-4" /> Lihat Rekap & Arsip
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
             <Table>

@@ -29,7 +29,8 @@ import {
   Award,
   Inbox,
   DollarSign,
-  FileSignature, // Ditambahkan
+  FileSignature,
+  Archive, // Ditambahkan
 } from "lucide-react";
 import {
   SidebarHeader,
@@ -61,6 +62,7 @@ const navItemsByRole = {
     { type: 'divider', label: 'Laporan & Notifikasi' },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
+    { href: "/dashboard/rekap-laporan-eskalasi", icon: Archive, label: "Rekap Laporan Eskalasi" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
   ],
   wali_kelas: [
