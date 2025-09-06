@@ -2,13 +2,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getSourceData } from '@/lib/data-manager';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 interface SchoolInfo {
