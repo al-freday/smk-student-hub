@@ -21,7 +21,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { getSourceData } from "@/lib/data-manager";
-import { signOutFromFirebase } from "@/lib/firebase";
 
 interface UserInfo {
     nama: string;
@@ -76,7 +75,6 @@ export default function DashboardHeader() {
   }, [loadData]);
 
   const handleLogout = async () => {
-    await signOutFromFirebase();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     router.push('/');

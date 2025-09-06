@@ -47,7 +47,6 @@ import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { getSourceData } from "@/lib/data-manager";
-import { signOutFromFirebase } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 const navItemsByRole = {
@@ -152,7 +151,6 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
   }, [loadData]);
 
   const handleLogout = async () => {
-    await signOutFromFirebase();
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     router.push('/');

@@ -22,8 +22,6 @@ export const getDashboardStats = () => {
     const teachersData = getSourceData('teachersData', {});
     let totalGuru = 0;
     if (teachersData && typeof teachersData === 'object' && !Array.isArray(teachersData)) {
-        // Start with 1 for wakasek, then iterate roles
-        totalGuru = 1; 
         const { schoolInfo, ...roles } = teachersData;
         Object.values(roles).forEach((roleArray: any) => {
             if (Array.isArray(roleArray)) {

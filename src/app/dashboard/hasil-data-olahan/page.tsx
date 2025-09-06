@@ -74,7 +74,7 @@ export default function HasilDataOlahanPage() {
     loadData();
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
-  }, [router, toast]);
+  }, []);
 
   const filteredSiswa = useMemo(() => {
     let siswa = daftarSiswa;
