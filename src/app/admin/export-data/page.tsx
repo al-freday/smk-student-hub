@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Loader2, Database } from "lucide-react";
+import { Download, Loader2, Database, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
 
 // Daftar semua kunci localStorage yang digunakan oleh aplikasi
 const APP_DATA_KEYS = [
@@ -18,11 +19,11 @@ const APP_DATA_KEYS = [
   'riwayatPembayaranKomite', 'arsipSuratData', 'tataTertibData', 
   'kurikulumData', 'themeSettings', 'currentUser', 
   'userRole', 'admin_logged_in'
-  // Tambahkan kunci lain jika ada
 ];
 
 export default function ExportDataPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportData = () => {
@@ -43,7 +44,7 @@ export default function ExportDataPage() {
             allData[key] = JSON.parse(data);
             totalSize += data.length;
           } catch (e) {
-            allData[key] = data; // Simpan sebagai string jika bukan JSON valid
+            allData[key] = data;
           }
         }
       });
@@ -81,12 +82,17 @@ export default function ExportDataPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Export Semua Data Aplikasi</h2>
-        <p className="text-muted-foreground">
-          Unduh salinan lengkap dari semua data yang saat ini tersimpan di browser Anda.
-        </p>
+    <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
+       <div className="flex items-center gap-4">
+        <Button variant="outline" size="icon" onClick={() => router.push('/admin/pengaturan')}>
+            <ArrowLeft />
+        </Button>
+        <div>
+            <h2 className="text-3xl font-bold tracking-tight">Export Semua Data Aplikasi</h2>
+            <p className="text-muted-foreground">
+              Unduh salinan lengkap dari semua data yang saat ini tersimpan di browser Anda.
+            </p>
+        </div>
       </div>
       
       <Card className="max-w-2xl">

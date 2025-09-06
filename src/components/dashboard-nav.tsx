@@ -64,8 +64,6 @@ const navItemsByRole = {
     { href: "/dashboard/laporan-pelanggaran", icon: BarChart, label: "Laporan Pelanggaran"},
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
-    { type: 'divider', label: 'Sistem' },
-    { href: "/dashboard/export-data", icon: Database, label: "Export Semua Data" },
   ],
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },

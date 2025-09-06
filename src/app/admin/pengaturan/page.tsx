@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users, Palette, Database, Loader2 } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette, Database, Loader2, Download } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -296,8 +296,8 @@ export default function AdminPengaturanPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Penyimpanan Lokal</CardTitle>
-                    <CardDescription>Total ukuran data cache di browser ini.</CardDescription>
+                    <CardTitle>Data Aplikasi</CardTitle>
+                    <CardDescription>Kelola data yang tersimpan di browser ini.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
@@ -309,6 +309,9 @@ export default function AdminPengaturanPage() {
                             </div>
                         </div>
                     </div>
+                     <Button onClick={() => router.push('/admin/export-data')} className="w-full">
+                        <Download className="mr-2 h-4 w-4" /> Export Semua Data
+                    </Button>
                 </CardContent>
             </Card>
           </div>
