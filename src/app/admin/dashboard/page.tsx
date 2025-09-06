@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -45,15 +44,10 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/admin");
-      return;
-    }
-    
+  const loadUsers = useCallback(() => {
     setIsLoading(true);
     try {
-      const teachersData = getSourceData('teachersData', {});
+      const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
       const users: User[] = [];
       if (teachersData) {
         const { schoolInfo, ...roles } = teachersData;
@@ -85,7 +79,26 @@ export default function AdminDashboardPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [router, toast]);
+  }, [toast]);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("admin_logged_in") !== "true") {
+      router.push("/admin");
+      return;
+    }
+    loadUsers();
+
+    // Add event listener to update users when admin makes changes in another tab
+    const handleFocus = () => {
+        if (document.visibilityState === 'visible') {
+            loadUsers();
+        }
+    };
+    window.addEventListener('visibilitychange', handleFocus);
+    return () => {
+        window.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [router, loadUsers]);
   
   const handleImpersonate = () => {
     if (!selectedUser) {
@@ -94,20 +107,21 @@ export default function AdminDashboardPage() {
     }
     const userToImpersonate = allUsers.find(u => u.id === selectedUser);
     if (userToImpersonate) {
-        updateSourceData('userRole', userToImpersonate.roleKey);
+        localStorage.setItem('userRole', userToImpersonate.roleKey);
 
         const userForSettings = {
             nama: userToImpersonate.nama,
             role: userToImpersonate.roleName,
             email: createEmailFromName(userToImpersonate.nama, userToImpersonate.id),
         };
-        updateSourceData('currentUser', userForSettings);
+        localStorage.setItem('currentUser', JSON.stringify(userForSettings));
 
         toast({
             title: "Login Berhasil",
             description: `Anda sekarang login sebagai ${userToImpersonate.nama} (${userToImpersonate.roleName}).`,
         });
         
+        // Dispatch custom event to notify other components (like header/sidebar)
         window.dispatchEvent(new Event('roleChanged'));
         
         router.push('/dashboard');
@@ -144,7 +158,8 @@ export default function AdminDashboardPage() {
                     <SelectValue placeholder="Pilih nama pengguna..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {allUsers.map(user => (
+                    <SelectItem value="wakasek_kesiswaan-1">Wakasek Kesiswaan (Andi Wijaya)</SelectItem>
+                    {allUsers.filter(u => u.roleKey !== 'wakasek_kesiswaan').map(user => (
                        <SelectItem key={user.id} value={user.id}>
                         {user.nama} ({user.roleName})
                       </SelectItem>

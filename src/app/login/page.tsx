@@ -8,7 +8,6 @@ import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getSourceData } from '@/lib/data-manager';
 import { Button } from '@/components/ui/button';
 
 interface SchoolInfo {
@@ -45,9 +44,10 @@ export default function LoginPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const loadInitialData = useCallback(() => {
+    setIsLoading(true);
     try {
-        const teachersData = getSourceData('teachersData', {});
+        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -82,6 +82,15 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+      loadInitialData();
+      // Listen for changes from admin panel
+      window.addEventListener('storage', loadInitialData);
+      return () => {
+          window.removeEventListener('storage', loadInitialData);
+      }
+  }, [loadInitialData]);
 
 
   if (isLoading) {

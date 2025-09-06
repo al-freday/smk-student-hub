@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { useEffect, useState, useCallback } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import Head from "next/head";
-import { getSourceData } from "@/lib/data-manager";
 
 // A static themes object to avoid dependency issues on initial load
 const themes = {
@@ -37,7 +36,7 @@ export default function RootLayout({
   const applyThemeForRole = useCallback(() => {
     if (typeof window !== 'undefined') {
         const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-        const themeSettings = getSourceData('themeSettings', {});
+        const themeSettings = JSON.parse(localStorage.getItem('themeSettings') || '{}');
         const themeKey = themeSettings[userRole] || 'default';
         const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
         
@@ -48,7 +47,7 @@ export default function RootLayout({
   }, []);
   
   const loadSchoolInfo = useCallback(() => {
-    const teachersData = getSourceData('teachersData', {});
+    const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
     if (teachersData && teachersData.schoolInfo) {
         setPageTitle(teachersData.schoolInfo.schoolName || "SMK Student Hub");
         setSchoolLogo(teachersData.schoolInfo.logo || "");
@@ -59,12 +58,17 @@ export default function RootLayout({
     applyThemeForRole();
     loadSchoolInfo();
 
-    window.addEventListener('roleChanged', applyThemeForRole);
-    window.addEventListener('dataUpdated', loadSchoolInfo);
+    const handleDataOrRoleChange = () => {
+      applyThemeForRole();
+      loadSchoolInfo();
+    };
+
+    window.addEventListener('roleChanged', handleDataOrRoleChange);
+    window.addEventListener('storage', handleDataOrRoleChange); // Listen for any storage change
 
     return () => {
-      window.removeEventListener('roleChanged', applyThemeForRole);
-      window.removeEventListener('dataUpdated', loadSchoolInfo);
+      window.removeEventListener('roleChanged', handleDataOrRoleChange);
+      window.removeEventListener('storage', handleDataOrRoleChange);
     };
   }, [applyThemeForRole, loadSchoolInfo]);
   

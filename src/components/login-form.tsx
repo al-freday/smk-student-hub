@@ -19,7 +19,6 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { updateSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
   userId: z.string().min(1, { message: "Silakan pilih pengguna." }),
@@ -51,13 +50,13 @@ export function LoginForm({ allUsers }: LoginFormProps) {
     },
   });
 
- async function onSubmit(values: z.infer<typeof formSchema>) {
+ function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    // Fallback password logic for users without an explicit password set.
-    const defaultPassword = `password${String(selectedUser?.id).split('-').pop() || "0"}`;
+    const idPart = String(selectedUser?.id).split('-').pop() || "0";
+    const defaultPassword = `password${idPart}`;
     const expectedPassword = selectedUser?.password || defaultPassword;
 
     if (selectedUser && values.password === expectedPassword) {
@@ -65,13 +64,13 @@ export function LoginForm({ allUsers }: LoginFormProps) {
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             
             sessionStorage.removeItem("admin_logged_in");
-            updateSourceData('userRole', selectedUser.roleKey);
+            localStorage.setItem('userRole', selectedUser.roleKey);
             const userProfile = {
                 nama: selectedUser.nama,
                 role: selectedUser.role,
                 email: `${selectedUser.id.replace(/-/g, '_')}@schoolemail.com`,
             };
-            updateSourceData('currentUser', userProfile);
+            localStorage.setItem('currentUser', JSON.stringify(userProfile));
             window.dispatchEvent(new Event('roleChanged'));
             
             router.push("/dashboard");

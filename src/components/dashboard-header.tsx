@@ -20,7 +20,6 @@ import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { getSourceData } from "@/lib/data-manager";
 
 interface UserInfo {
     nama: string;
@@ -54,7 +53,7 @@ export default function DashboardHeader() {
             console.error("Failed to parse user info from localStorage", e);
         }
     }
-    const savedTeachersData = getSourceData('teachersData', {});
+    const savedTeachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
     if (savedTeachersData && savedTeachersData.schoolInfo) {
         setSchoolInfo(savedTeachersData.schoolInfo);
     }
@@ -66,15 +65,15 @@ export default function DashboardHeader() {
         loadData();
     };
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('dataUpdated', handleStorageChange);
+    window.addEventListener('roleChanged', handleStorageChange);
     
     return () => {
         window.removeEventListener('storage', handleStorageChange);
-        window.removeEventListener('dataUpdated', handleStorageChange);
+        window.removeEventListener('roleChanged', handleStorageChange);
     };
   }, [loadData]);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     router.push('/');
