@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { fetchDataFromFirebase, saveDataToFirebase } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 // --- Tipe Data ---
 interface Guru {
@@ -112,10 +112,10 @@ export default function AdminManajemenPenggunaPage() {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [activeDialogRole, setActiveDialogRole] = useState<AllRoles>('wali_kelas');
 
-  const loadDataFromFirebase = useCallback(async () => {
+  const loadDataFromLocalStorage = useCallback(() => {
     setIsLoading(true);
     try {
-        const teachersData = await fetchDataFromFirebase('teachersData');
+        const teachersData = getSourceData('teachersData', {});
         const loadedData = { ...initialData, ...(teachersData || {}) };
         
         const usersData = { ...initialData } as { [key in AllRoles]: User[] };
@@ -125,7 +125,6 @@ export default function AdminManajemenPenggunaPage() {
         for (const roleKey in roles) {
             if (usersData.hasOwnProperty(roleKey)) {
                 usersData[roleKey as AllRoles] = (roles[roleKey] || []).map((guru: Guru) => {
-                    const idPart = String(guru.id).split('-').pop();
                     const defaultPassword = `password${guru.id}`;
                     return {
                         ...guru,
@@ -138,10 +137,10 @@ export default function AdminManajemenPenggunaPage() {
         }
         setUsers(usersData);
     } catch (error) {
-        console.error("Failed to load teachers data from Firebase", error);
+        console.error("Gagal memuat data pengguna dari localStorage", error);
         toast({
             title: "Gagal Memuat Data",
-            description: "Data pengguna tidak dapat dimuat dari server.",
+            description: "Data pengguna tidak dapat dimuat dari penyimpanan browser.",
             variant: "destructive"
         })
     } finally {
@@ -154,8 +153,8 @@ export default function AdminManajemenPenggunaPage() {
       router.push("/admin");
       return;
     }
-    loadDataFromFirebase();
-  }, [router, loadDataFromFirebase]);
+    loadDataFromLocalStorage();
+  }, [router, loadDataFromLocalStorage]);
   
   const handleOpenDialog = (role: AllRoles, user: User | null = null) => {
       setActiveDialogRole(role);
@@ -164,13 +163,13 @@ export default function AdminManajemenPenggunaPage() {
       setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
       if (!formData.nama) {
           toast({ title: "Gagal", description: "Nama pengguna harus diisi.", variant: "destructive" });
           return;
       }
 
-      const teachersData = await fetchDataFromFirebase('teachersData') || { ...initialData };
+      const teachersData = getSourceData('teachersData', { ...initialData });
       const currentList: Guru[] = teachersData[activeDialogRole] || [];
       let updatedList;
       
@@ -189,34 +188,38 @@ export default function AdminManajemenPenggunaPage() {
           const newUser: Guru = { id: newId, nama: formData.nama!, password: newPassword };
           updatedList = [...currentList, newUser];
       }
-
-      await saveDataToFirebase(`teachersData/${activeDialogRole}`, updatedList);
       
-      await loadDataFromFirebase(); 
-      toast({ title: "Sukses", description: "Data pengguna berhasil disimpan ke server." });
+      teachersData[activeDialogRole] = updatedList;
+      updateSourceData('teachersData', teachersData);
+      
+      loadDataFromLocalStorage(); 
+      toast({ title: "Sukses", description: "Data pengguna berhasil disimpan." });
       setIsDialogOpen(false);
   };
   
-  const handleDelete = async () => {
+  const handleDelete = () => {
       if (!userToDelete) return;
       
-      const teachersData = await fetchDataFromFirebase('teachersData') || initialData;
+      const teachersData = getSourceData('teachersData', initialData);
       const roleKey = getRoleKey(userToDelete.role);
       if(!roleKey) return;
 
       const updatedList = (teachersData[roleKey] || []).filter((t: Guru) => t.id !== userToDelete.id);
+      teachersData[roleKey] = updatedList;
+
+      updateSourceData('teachersData', teachersData);
       
-      await saveDataToFirebase(`teachersData/${roleKey}`, updatedList);
-      
-      await loadDataFromFirebase(); 
+      loadDataFromLocalStorage(); 
       toast({ title: "Pengguna Dihapus", description: `${userToDelete.nama} telah dihapus.` });
       setUserToDelete(null);
   };
   
-  const handleDeleteAll = async (role: AllRoles) => {
-    await saveDataToFirebase(`teachersData/${role}`, []);
+  const handleDeleteAll = (role: AllRoles) => {
+    const teachersData = getSourceData('teachersData', initialData);
+    teachersData[role] = [];
+    updateSourceData('teachersData', teachersData);
     
-    await loadDataFromFirebase();
+    loadDataFromLocalStorage();
     toast({
       title: `Semua Pengguna Dihapus`,
       description: `Semua pengguna dari peran ${getRoleName(role)} telah dihapus.`,
@@ -233,7 +236,7 @@ export default function AdminManajemenPenggunaPage() {
     );
   }
 
-  // --- Render logic remains mostly the same, only data source and save handlers are changed ---
+  // --- Render logic ---
   return (
     <div className="flex-1 space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-4">
@@ -243,7 +246,7 @@ export default function AdminManajemenPenggunaPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Manajemen Pengguna</h2>
           <p className="text-muted-foreground">
-            Tambah, edit, atau hapus data pengguna untuk setiap peran. Perubahan disimpan langsung ke server.
+            Tambah, edit, atau hapus data pengguna untuk setiap peran.
           </p>
         </div>
       </div>
@@ -436,7 +439,7 @@ export default function AdminManajemenPenggunaPage() {
               <AlertDialogHeader>
                   <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                   <AlertDialogDescription>
-                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna <span className="font-semibold">{userToDelete?.nama}</span> secara permanen dari server.
+                     Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data pengguna <span className="font-semibold">{userToDelete?.nama}</span> secara permanen dari penyimpanan lokal.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -463,5 +466,3 @@ export default function AdminManajemenPenggunaPage() {
     </div>
   );
 }
-
-    

@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getSourceData, updateSourceData, fetchDataFromFirebase, saveDataToFirebase } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 
 interface SchoolInfo {
@@ -64,19 +64,19 @@ export default function AdminPengaturanPage() {
   const [selectedThemes, setSelectedThemes] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    async function loadData() {
+    function loadData() {
         if (sessionStorage.getItem("admin_logged_in") !== "true") {
           router.push("/");
           return;
         }
         
-        const teachersData = await fetchDataFromFirebase('teachersData');
+        const teachersData = getSourceData('teachersData', {});
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
         }
 
-        let count = 1; // Start with 1 for wakasek
+        let count = 0;
         if (teachersData && typeof teachersData === 'object') {
             const { schoolInfo, ...roles } = teachersData;
             Object.keys(roles).forEach((key) => {
@@ -130,17 +130,19 @@ export default function AdminPengaturanPage() {
     }
   };
   
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = () => {
       try {
-        await saveDataToFirebase('teachersData/schoolInfo', schoolInfo);
+        const teachersData = getSourceData('teachersData', {});
+        const updatedData = { ...teachersData, schoolInfo: schoolInfo };
+        updateSourceData('teachersData', updatedData);
         toast({
             title: "Pengaturan Disimpan",
-            description: "Informasi sekolah telah berhasil diperbarui di server.",
+            description: "Informasi sekolah telah berhasil diperbarui.",
         });
       } catch (error) {
          toast({
             title: "Gagal Menyimpan",
-            description: "Tidak dapat menyimpan informasi sekolah ke server.",
+            description: "Tidak dapat menyimpan informasi sekolah.",
             variant: "destructive"
         });
       }

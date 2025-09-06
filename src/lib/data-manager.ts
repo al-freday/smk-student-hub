@@ -1,27 +1,89 @@
 
 "use client";
 
-import { db, ensureAuthenticated } from './firebase';
-import { ref, get, set, child } from 'firebase/database';
+// --- Tipe Data Awal ---
+const initialTeachersData = {
+    schoolInfo: {
+        schoolName: "SMKN 2 Tana Toraja",
+        headmasterName: "Nama Kepala Sekolah",
+        logo: ""
+    },
+    wakasek_kesiswaan: [{ id: 1, nama: "Andi Wijaya" }],
+    tata_usaha: [{ id: 1, nama: "Budi Setiawan" }],
+    wali_kelas: [
+        { id: 1, nama: "Citra Dewi", kelas: ["X TKJ 1", "X TKJ 2"] },
+        { id: 2, nama: "Doni Hermawan", kelas: ["XI OT 1"] }
+    ],
+    guru_bk: [
+        { id: 1, nama: "Eka Fitriani", tugasKelas: "Kelas X" },
+        { id: 2, nama: "Fajar Nugroho", tugasKelas: "Kelas XI" }
+    ],
+    guru_mapel: [
+        { id: 1, nama: "Gita Lestari" },
+        { id: 2, nama: "Hendra Gunawan" }
+    ],
+    guru_piket: [{ id: 1, nama: "Indah Permata" }],
+    guru_pendamping: [{ id: 1, nama: "Joko Susilo" }]
+};
+
+const initialSiswaData = [
+    { id: 1, nis: "24001", nama: "Ahmad Dahlan", kelas: "X TKJ 1" },
+    { id: 2, nis: "24002", nama: "Budi Santoso", kelas: "X TKJ 1" },
+    { id: 3, nis: "24003", nama: "Citra Lestari", kelas: "X TKJ 2" },
+    { id: 4, nis: "23001", nama: "Eko Prasetyo", kelas: "XI OT 1" }
+];
+
+const initialKelasData = [
+    { id: 1, nama: "X TKJ 1" },
+    { id: 2, nama: "X TKJ 2" },
+    { id: 3, nama: "XI OT 1" }
+];
+
+
+// --- Fungsi Manajemen Data ---
 
 const isServer = typeof window === 'undefined';
 
+/**
+ * Mengambil data dari localStorage. Jika tidak ada, inisialisasi dengan data default.
+ * @param {string} key Kunci data di localStorage.
+ * @param {any} defaultValue Nilai default jika tidak ada data.
+ * @returns {any} Data yang telah di-parse.
+ */
 export const getSourceData = (key: string, defaultValue: any): any => {
   if (isServer) {
     return defaultValue;
   }
   try {
-    const localData = localStorage.getItem(key);
+    let localData = localStorage.getItem(key);
     if (localData === null) {
-      return defaultValue;
+      // Inisialisasi data awal jika belum ada di localStorage
+      if (key === 'teachersData') {
+        localStorage.setItem(key, JSON.stringify(initialTeachersData));
+        localData = JSON.stringify(initialTeachersData);
+      } else if (key === 'siswaData') {
+         localStorage.setItem(key, JSON.stringify(initialSiswaData));
+         localData = JSON.stringify(initialSiswaData);
+      } else if (key === 'kelasData') {
+          localStorage.setItem(key, JSON.stringify(initialKelasData));
+          localData = JSON.stringify(initialKelasData);
+      } else {
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+        localData = JSON.stringify(defaultValue);
+      }
     }
     return JSON.parse(localData);
   } catch (e) {
-    console.error(`Failed to get/parse data for key "${key}" from localStorage.`, e);
+    console.error(`Gagal mengambil/parse data untuk kunci "${key}" dari localStorage.`, e);
     return defaultValue;
   }
 };
 
+/**
+ * Menyimpan data ke localStorage dan memicu event untuk pembaruan UI.
+ * @param {string} key Kunci data di localStorage.
+ * @param {any} data Data yang akan disimpan.
+ */
 export const updateSourceData = (key: string, data: any): void => {
   if (isServer) {
     return;
@@ -29,55 +91,9 @@ export const updateSourceData = (key: string, data: any): void => {
   try {
     const dataString = JSON.stringify(data);
     localStorage.setItem(key, dataString);
+    // Kirim event kustom untuk memberitahu komponen lain bahwa data telah diperbarui
     window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key, value: data } }));
   } catch (error) {
-    console.error(`Failed to save data to localStorage for key "${key}".`, error);
+    console.error(`Gagal menyimpan data ke localStorage untuk kunci "${key}".`, error);
   }
 };
-
-
-export async function fetchDataFromFirebase(path: string) {
-  try {
-    await ensureAuthenticated(); 
-    
-    const dbRef = ref(db);
-    const snapshot = await get(child(dbRef, path));
-    
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      if (!isServer) {
-        updateSourceData(path, data);
-      }
-      return data;
-    } else {
-      console.log(`No data available at path: ${path}`);
-      if (!isServer) {
-        updateSourceData(path, null);
-      }
-      return null;
-    }
-  } catch (error) {
-    console.error(`Firebase Read Error for path "${path}":`, error);
-    if (!isServer) {
-      return getSourceData(path, null);
-    }
-    throw error;
-  }
-}
-
-export async function saveDataToFirebase(path: string, data: any) {
-  try {
-    await ensureAuthenticated();
-
-    const dbRef = ref(db, path);
-    await set(dbRef, data);
-    
-    if (!isServer) {
-      const rootPath = path.split('/')[0];
-      await fetchDataFromFirebase(rootPath);
-    }
-  } catch (error) {
-    console.error(`Firebase Write Error for path "${path}":`, error);
-    throw error;
-  }
-}

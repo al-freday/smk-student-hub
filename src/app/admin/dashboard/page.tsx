@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { fetchDataFromFirebase, updateSourceData } from "@/lib/data-manager";
+import { getSourceData, updateSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -45,10 +45,10 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(() => {
     setIsLoading(true);
     try {
-      const teachersData = await fetchDataFromFirebase('teachersData');
+      const teachersData = getSourceData('teachersData', {});
       const users: User[] = [];
       if (teachersData) {
         const { schoolInfo, ...roles } = teachersData;
@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
       console.error("Gagal memuat data pengguna:", error);
       toast({
         title: "Gagal Memuat",
-        description: "Tidak dapat memuat data pengguna. Pastikan Anda memiliki koneksi.",
+        description: "Tidak dapat memuat data pengguna dari localStorage.",
         variant: "destructive",
       });
     } finally {

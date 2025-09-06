@@ -1,79 +1,13 @@
 
 "use client";
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getDatabase, Database } from "firebase/database";
-import { getAuth, signInAnonymously, onAuthStateChanged, User, Auth, signOut } from "firebase/auth";
+// File ini sengaja dikosongkan untuk menonaktifkan koneksi Firebase
+// dan memaksa aplikasi menggunakan localStorage.
 
-const firebaseConfig = {
-  apiKey: "API_KEY",
-  authDomain: "PROJECT_ID.firebaseapp.com",
-  projectId: "PROJECT_ID",
-  storageBucket: "PROJECT_ID.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID",
-  databaseURL: "https://PROJECT_ID.firebaseio.com"
-};
-
-let app: FirebaseApp;
-let auth: Auth;
-let db: Database;
-
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
-auth = getAuth(app);
-db = getDatabase(app);
-
-let authReadyPromise: Promise<User | null> | null = null;
-
-const initializeAuth = (): Promise<User | null> => {
-  if (authReadyPromise) {
-    return authReadyPromise;
-  }
-
-  authReadyPromise = new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        unsubscribe();
-        resolve(user);
-      } else {
-        signInAnonymously(auth)
-          .then((userCredential) => {
-             // User is signed in, we don't need to resolve here as the listener will trigger again
-          })
-          .catch(error => {
-            console.error("Firebase anonymous sign-in failed:", error);
-            unsubscribe();
-            reject(error);
-          });
-      }
-    }, (error) => {
-      console.error("Auth state change error:", error);
-      unsubscribe();
-      reject(error);
-    });
-  });
-
-  return authReadyPromise;
-};
-
-export const ensureAuthenticated = (): Promise<User | null> => {
-  return initializeAuth();
-};
-
-export const signOutFromFirebase = async () => {
-  try {
-    await signOut(auth);
-    // Reset the auth promise to allow for re-authentication
-    authReadyPromise = null; 
-  } catch (error) {
-    console.error("Error signing out from Firebase:", error);
-  }
-};
-
-
-export { app, db, auth };
+// Kosongkan semua ekspor yang mungkin masih diimpor di tempat lain
+// untuk menghindari error saat build.
+export const app = null;
+export const db = null;
+export const auth = null;
+export const ensureAuthenticated = () => Promise.resolve(null);
+export const signOutFromFirebase = () => Promise.resolve();

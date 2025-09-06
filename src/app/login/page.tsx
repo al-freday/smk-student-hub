@@ -7,7 +7,7 @@ import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { fetchDataFromFirebase } from '@/lib/data-manager';
+import { getSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -42,15 +42,14 @@ export default function LoginPage() {
   });
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState("Menghubungkan ke server...");
+  const [loadingMessage, setLoadingMessage] = useState("Memuat data aplikasi...");
 
-  const loadInitialData = useCallback(async () => {
+  const loadInitialData = useCallback(() => {
       setIsLoading(true);
       try {
-          setLoadingMessage("Mengautentikasi koneksi...");
-          const teachersData = await fetchDataFromFirebase('teachersData'); 
-          
           setLoadingMessage("Memuat data pengguna...");
+          const teachersData = getSourceData('teachersData', {});
+          
           if (teachersData && teachersData.schoolInfo) {
               setSchoolInfo(teachersData.schoolInfo);
           }
@@ -79,15 +78,16 @@ export default function LoginPage() {
           }
           setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
       } catch (e) {
-          console.error("Failed to load initial data from Firebase", e);
-          setLoadingMessage("Gagal memuat data. Periksa koneksi Anda.");
+          console.error("Gagal memuat data awal dari localStorage", e);
+          setLoadingMessage("Gagal memuat data. Silakan coba muat ulang halaman.");
       } finally {
           setIsLoading(false);
       }
   }, []);
 
   useEffect(() => {
-    loadInitialData();
+    // Memberi sedikit waktu agar data awal bisa diinisialisasi jika localStorage kosong
+    setTimeout(loadInitialData, 100);
   }, [loadInitialData]);
 
   if (isLoading) {
