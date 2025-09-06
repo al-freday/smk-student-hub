@@ -13,8 +13,6 @@ export const getSourceData = (key: string, defaultValue: any): any => {
   try {
     const localData = localStorage.getItem(key);
     if (localData === null) {
-      // If data is not in localStorage, it might not have been fetched yet.
-      // Returning defaultValue is appropriate here.
       return defaultValue;
     }
     return JSON.parse(localData);
@@ -40,7 +38,6 @@ export const updateSourceData = (key: string, data: any): void => {
 
 export async function fetchDataFromFirebase(path: string) {
   try {
-    // THIS IS THE KEY FIX: Always wait for auth to be ready before fetching.
     await ensureAuthenticated(); 
     
     const dbRef = ref(db);
@@ -49,21 +46,18 @@ export async function fetchDataFromFirebase(path: string) {
     if (snapshot.exists()) {
       const data = snapshot.val();
       if (!isServer) {
-        // Cache the fetched data in localStorage
         updateSourceData(path, data);
       }
       return data;
     } else {
       console.log(`No data available at path: ${path}`);
       if (!isServer) {
-        // Cache the fact that there's no data
         updateSourceData(path, null);
       }
       return null;
     }
   } catch (error) {
     console.error(`Firebase Read Error for path "${path}":`, error);
-    // On error, try to return locally cached data if available, otherwise null.
     if (!isServer) {
       return getSourceData(path, null);
     }
@@ -78,7 +72,6 @@ export async function saveDataToFirebase(path: string, data: any) {
     const dbRef = ref(db, path);
     await set(dbRef, data);
     
-    // After saving, re-fetch the entire root object to keep local cache consistent.
     if (!isServer) {
       const rootPath = path.split('/')[0];
       await fetchDataFromFirebase(rootPath);

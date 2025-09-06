@@ -48,7 +48,6 @@ export default function LoginPage() {
       setIsLoading(true);
       try {
           setLoadingMessage("Mengautentikasi koneksi...");
-          // This call now correctly waits for auth before proceeding.
           const teachersData = await fetchDataFromFirebase('teachersData'); 
           
           setLoadingMessage("Memuat data pengguna...");
