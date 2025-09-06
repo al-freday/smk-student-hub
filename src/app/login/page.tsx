@@ -4,10 +4,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Icons } from '@/components/icons';
 import { LoginForm } from '@/components/login-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getSourceData } from '@/lib/data-manager';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface SchoolInfo {
   schoolName: string;
@@ -44,7 +46,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Data is loaded synchronously from localStorage, so we can do it directly.
     try {
         const teachersData = getSourceData('teachersData', {});
         
@@ -115,6 +116,11 @@ export default function LoginPage() {
           <CardContent>
             <LoginForm allUsers={allUsers} />
           </CardContent>
+          <CardFooter className="flex justify-center text-sm">
+             <Button variant="link" asChild>
+                <Link href="/admin">Login sebagai Administrator</Link>
+             </Button>
+          </CardFooter>
         </Card>
       </div>
     </main>
