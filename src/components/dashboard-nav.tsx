@@ -52,9 +52,6 @@ import { useRouter } from "next/navigation";
 const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { type: 'divider', label: 'Pusat Data Induk' },
-    { href: "/dashboard/unggah-data-induk", icon: FileUp, label: "Unggah Data Induk" },
-    { href: "/dashboard/hasil-data-olahan", icon: Database, label: "Hasil Data Olahan" },
     { type: 'divider', label: 'Manajemen Akademik' },
     { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
@@ -65,7 +62,6 @@ const navItemsByRole = {
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Kehadiran Siswa" },
     { href: "/dashboard/kehadiran-guru", icon: UserCheck, label: "Kehadiran Guru"},
     { href: "/dashboard/manajemen-pelanggaran", icon: ShieldAlert, label: "Manajemen Pelanggaran" },
-    { href: "/dashboard/laporan-masuk-wakasek", icon: Inbox, label: "Laporan Eskalasi" },
     { type: 'divider', label: 'Laporan & Notifikasi' },
     { href: "/dashboard/laporan-pelanggaran", icon: FileBarChart, label: "Laporan Pelanggaran"},
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
