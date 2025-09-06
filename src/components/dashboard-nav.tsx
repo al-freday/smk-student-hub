@@ -16,17 +16,12 @@ import {
   UserCheck,
   Scale,
   ShieldAlert,
-  Trophy,
-  FileBarChart,
-  ClipboardList,
   BookMarked,
   HeartHandshake,
   Contact,
-  LineChart,
-  ClipboardCheck,
+  ClipboardList,
   Briefcase,
   Folders,
-  Award,
   Inbox,
   DollarSign,
   FileSignature,
@@ -52,7 +47,7 @@ import { useRouter } from "next/navigation";
 const navItemsByRole = {
   wakasek_kesiswaan: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { type: 'divider', label: 'Manajemen Akademik' },
+    { type: 'divider', label: 'Data Induk' },
     { href: "/dashboard/manajemen-siswa", icon: Users, label: "Manajemen Siswa" },
     { href: "/dashboard/manajemen-guru", icon: UserCog, label: "Manajemen Guru" },
     { href: "/dashboard/manajemen-tata-tertib", icon: Scale, label: "Manajemen Tata Tertib" },
@@ -67,12 +62,13 @@ const navItemsByRole = {
     { href: "/dashboard/laporan-wakasek", icon: FileText, label: "Laporan Tugas Guru" },
     { href: "/dashboard/rekap-laporan-eskalasi", icon: Archive, label: "Rekap Laporan Eskalasi" },
     { href: "/dashboard/notifikasi", icon: Bell, label: "Notifikasi" },
+    { type: 'divider', label: 'Utilitas' },
+    { href: "/dashboard/export-data", icon: Database, label: "Export Semua Data" },
   ],
   wali_kelas: [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/dashboard/laporan-masuk", icon: Inbox, label: "Laporan Masuk" },
     { href: "/dashboard/surat", icon: FileSignature, label: "Surat" },
-    { type: 'divider', label: 'Manajemen Kelas' },
     { href: "/dashboard/administrasi-wali-kelas", icon: Folders, label: "Administrasi Kelas" },
     { href: "/dashboard/kehadiran-siswa", icon: ClipboardList, label: "Input Kehadiran" },
     { href: "/dashboard/pembayaran-komite", icon: DollarSign, label: "Pembayaran Komite" },
@@ -82,8 +78,7 @@ const navItemsByRole = {
   guru_bk: [
     { href: "/dashboard", icon: HeartHandshake, label: "Dasbor BK" },
     { href: "/dashboard/laporan-masuk-bk", icon: Inbox, label: "Laporan Masuk BK" },
-    { type: 'divider', label: 'Layanan BK' },
-    { href: "/dashboard/pemantauan-siswa-bk", icon: LineChart, label: "Pemantauan Siswa" },
+    { href: "/dashboard/pemantauan-siswa-bk", icon: Users, label: "Pemantauan Siswa" },
     { href: "/dashboard/layanan-bimbingan-bk", icon: ClipboardCheck, label: "Layanan Bimbingan" },
     { href: "/dashboard/rencana-individual-bk", icon: Briefcase, label: "Rencana Individual" },
     { href: "/dashboard/administrasi-bk", icon: Folders, label: "Administrasi BK" },
@@ -151,7 +146,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     };
   }, [loadData]);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     router.push('/');
