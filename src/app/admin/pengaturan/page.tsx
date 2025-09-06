@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, ArrowLeft, Upload, Users, Palette, Database, Loader2, Download } from "lucide-react";
+import { Save, ArrowLeft, Upload, Users, Palette, Database, Loader2, Download, UploadCloud } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -309,9 +309,14 @@ export default function AdminPengaturanPage() {
                             </div>
                         </div>
                     </div>
-                     <Button onClick={() => router.push('/admin/export-data')} className="w-full">
-                        <Download className="mr-2 h-4 w-4" /> Export Semua Data
-                    </Button>
+                     <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={() => router.push('/admin/export-data')} className="w-full" variant="outline">
+                            <Download className="mr-2 h-4 w-4" /> Export Data
+                        </Button>
+                         <Button onClick={() => router.push('/admin/import-data')} className="w-full">
+                            <UploadCloud className="mr-2 h-4 w-4" /> Import Data
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
           </div>
