@@ -8,22 +8,22 @@ const initialTeachersData = {
         headmasterName: "Nama Kepala Sekolah",
         logo: ""
     },
-    wakasek_kesiswaan: [{ id: 1, nama: "Andi Wijaya" }],
-    tata_usaha: [{ id: 1, nama: "Budi Setiawan" }],
+    wakasek_kesiswaan: [{ id: 1, nama: "Andi Wijaya", password: "password1" }],
+    tata_usaha: [{ id: 1, nama: "Budi Setiawan", password: "password1" }],
     wali_kelas: [
-        { id: 1, nama: "Citra Dewi", kelas: ["X TKJ 1", "X TKJ 2"] },
-        { id: 2, nama: "Doni Hermawan", kelas: ["XI OT 1"] }
+        { id: 1, nama: "Citra Dewi", kelas: ["X TKJ 1", "X TKJ 2"], password: "password1" },
+        { id: 2, nama: "Doni Hermawan", kelas: ["XI OT 1"], password: "password1" }
     ],
     guru_bk: [
-        { id: 1, nama: "Eka Fitriani", tugasKelas: "Kelas X" },
-        { id: 2, nama: "Fajar Nugroho", tugasKelas: "Kelas XI" }
+        { id: 1, nama: "Eka Fitriani", tugasKelas: "Kelas X", password: "password1" },
+        { id: 2, nama: "Fajar Nugroho", tugasKelas: "Kelas XI", password: "password1" }
     ],
     guru_mapel: [
-        { id: 1, nama: "Gita Lestari" },
-        { id: 2, nama: "Hendra Gunawan" }
+        { id: 1, nama: "Gita Lestari", password: "password1" },
+        { id: 2, nama: "Hendra Gunawan", password: "password1" }
     ],
-    guru_piket: [{ id: 1, nama: "Indah Permata" }],
-    guru_pendamping: [{ id: 1, nama: "Joko Susilo" }]
+    guru_piket: [{ id: 1, nama: "Indah Permata", password: "password1" }],
+    guru_pendamping: [{ id: 1, nama: "Joko Susilo", password: "password1" }]
 };
 
 const initialSiswaData = [
