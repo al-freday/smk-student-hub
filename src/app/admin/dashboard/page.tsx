@@ -45,7 +45,12 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const loadUsers = useCallback(() => {
+  useEffect(() => {
+    if (sessionStorage.getItem("admin_logged_in") !== "true") {
+      router.push("/admin");
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const teachersData = getSourceData('teachersData', {});
@@ -80,15 +85,7 @@ export default function AdminDashboardPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    if (sessionStorage.getItem("admin_logged_in") !== "true") {
-      router.push("/admin");
-      return;
-    }
-    loadUsers();
-  }, [router, loadUsers]);
+  }, [router, toast]);
   
   const handleImpersonate = () => {
     if (!selectedUser) {

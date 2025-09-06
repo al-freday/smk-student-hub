@@ -42,59 +42,52 @@ export default function LoginPage() {
   });
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState("Memuat data aplikasi...");
-
-  const loadInitialData = useCallback(() => {
-      setIsLoading(true);
-      try {
-          setLoadingMessage("Memuat data pengguna...");
-          const teachersData = getSourceData('teachersData', {});
-          
-          if (teachersData && teachersData.schoolInfo) {
-              setSchoolInfo(teachersData.schoolInfo);
-          }
-
-          const users: User[] = [];
-          if (teachersData) {
-            const { schoolInfo, ...roles } = teachersData;
-            Object.keys(roles).forEach(roleKey => {
-                const roleArray = roles[roleKey as keyof typeof roles];
-                if (Array.isArray(roleArray)) {
-                    roleArray.forEach((guru: any) => {
-                        if(guru && guru.id !== undefined && guru.nama) {
-                            const uniqueId = `${roleKey}-${guru.id}`;
-                            const roleName = getRoleName(roleKey);
-                            users.push({
-                                id: uniqueId,
-                                nama: guru.nama,
-                                role: roleName,
-                                roleKey: roleKey,
-                                password: guru.password,
-                            });
-                        }
-                    });
-                }
-            });
-          }
-          setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
-      } catch (e) {
-          console.error("Gagal memuat data awal dari localStorage", e);
-          setLoadingMessage("Gagal memuat data. Silakan coba muat ulang halaman.");
-      } finally {
-          setIsLoading(false);
-      }
-  }, []);
 
   useEffect(() => {
-    // Memberi sedikit waktu agar data awal bisa diinisialisasi jika localStorage kosong
-    setTimeout(loadInitialData, 100);
-  }, [loadInitialData]);
+    // Data is loaded synchronously from localStorage, so we can do it directly.
+    try {
+        const teachersData = getSourceData('teachersData', {});
+        
+        if (teachersData && teachersData.schoolInfo) {
+            setSchoolInfo(teachersData.schoolInfo);
+        }
+
+        const users: User[] = [];
+        if (teachersData) {
+          const { schoolInfo, ...roles } = teachersData;
+          Object.keys(roles).forEach(roleKey => {
+              const roleArray = roles[roleKey as keyof typeof roles];
+              if (Array.isArray(roleArray)) {
+                  roleArray.forEach((guru: any) => {
+                      if(guru && guru.id !== undefined && guru.nama) {
+                          const uniqueId = `${roleKey}-${guru.id}`;
+                          const roleName = getRoleName(roleKey);
+                          users.push({
+                              id: uniqueId,
+                              nama: guru.nama,
+                              role: roleName,
+                              roleKey: roleKey,
+                              password: guru.password,
+                          });
+                      }
+                  });
+              }
+          });
+        }
+        setAllUsers(users.sort((a,b) => a.nama.localeCompare(b.nama)));
+    } catch (e) {
+        console.error("Gagal memuat data awal dari localStorage", e);
+    } finally {
+        setIsLoading(false);
+    }
+  }, []);
+
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="mt-2 text-muted-foreground">{loadingMessage}</p>
+        <p className="mt-2 text-muted-foreground">Memuat data aplikasi...</p>
       </div>
     );
   }
