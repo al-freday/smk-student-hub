@@ -2,4 +2,4 @@
 
 This is a NextJS starter in Firebase Studio.
 
-To get started, take a look at src/app/page.t
+This is the SMK Student Hub application project.
