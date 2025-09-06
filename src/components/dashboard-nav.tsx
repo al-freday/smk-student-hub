@@ -143,10 +143,12 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
     loadData();
     window.addEventListener('dataUpdated', loadData);
     window.addEventListener('storage', loadData);
+    window.addEventListener('roleChanged', loadData);
 
     return () => {
         window.removeEventListener('dataUpdated', loadData);
         window.removeEventListener('storage', loadData);
+        window.removeEventListener('roleChanged', loadData);
     };
   }, [loadData]);
 
@@ -187,7 +189,7 @@ export function DashboardNav({ isMobile = false }: { isMobile?: boolean }) {
             );
           }
           if ('href' in item) {
-             const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard");
+             const isActive = item.href === '/dashboard' ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <SidebarMenuItem key={item.label}>
                 <Link href={item.href}>

@@ -19,7 +19,6 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ensureAuthenticated } from "@/lib/firebase";
 import { updateSourceData } from "@/lib/data-manager";
 
 const formSchema = z.object({
@@ -63,7 +62,6 @@ export function LoginForm({ allUsers }: LoginFormProps) {
 
     if (selectedUser && values.password === expectedPassword) {
         try {
-            await ensureAuthenticated(); 
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             
             sessionStorage.removeItem("admin_logged_in");
@@ -79,10 +77,10 @@ export function LoginForm({ allUsers }: LoginFormProps) {
             router.push("/dashboard");
 
         } catch (error) {
-            console.error("Firebase sign-in error:", error);
+            console.error("Login error:", error);
             toast({
                 title: "Login Gagal",
-                description: "Gagal menghubungkan ke server. Silakan coba lagi.",
+                description: "Terjadi kesalahan. Silakan coba lagi.",
                 variant: "destructive",
             });
             setIsLoading(false);
