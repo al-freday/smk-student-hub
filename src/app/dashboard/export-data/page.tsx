@@ -16,7 +16,7 @@ const APP_DATA_KEYS = [
   'layananBimbinganData', 'rencanaIndividualData', 'assignmentLogData', 
   'waliKelasReportsStatus', 'pklData', 'pembayaranKomiteData', 
   'riwayatPembayaranKomite', 'arsipSuratData', 'tataTertibData', 
-  'kurikulumData', 'themeSettings', 'schoolInfo', 'currentUser', 
+  'kurikulumData', 'themeSettings', 'currentUser', 
   'userRole', 'admin_logged_in'
   // Tambahkan kunci lain jika ada
 ];
