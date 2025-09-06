@@ -55,20 +55,17 @@ export function LoginForm({ allUsers }: LoginFormProps) {
 
     const selectedUser = allUsers.find(u => u.id === values.userId);
     
-    const idPart = String(selectedUser?.id).split('-').pop() || "0";
-    const defaultPassword = `password${idPart}`;
-    const expectedPassword = selectedUser?.password || defaultPassword;
-
-    if (selectedUser && values.password === expectedPassword) {
+    if (selectedUser && values.password === selectedUser.password) {
         try {
             toast({ title: "Login Berhasil", description: `Selamat datang, ${selectedUser.nama}.` });
             
             sessionStorage.removeItem("admin_logged_in");
             localStorage.setItem('userRole', selectedUser.roleKey);
+            
             const userProfile = {
                 nama: selectedUser.nama,
                 role: selectedUser.role,
-                email: `${selectedUser.id.replace(/-/g, '_')}@schoolemail.com`,
+                email: `${selectedUser.id.replace(/-/g, '_').replace(/ /g, '.')}@schoolemail.com`,
             };
             localStorage.setItem('currentUser', JSON.stringify(userProfile));
             window.dispatchEvent(new Event('roleChanged'));

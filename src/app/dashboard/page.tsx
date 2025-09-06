@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Users, UserCog, Loader2, ShieldAlert, Inbox, FileText, ArrowRight } from "lucide-react";
 import StatCard from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import GuruMapelDashboard from "@/components/guru-mapel-dashboard";
 import GuruPiketDashboard from "@/components/guru-piket-dashboard";
 import GuruPendampingDashboard from "@/components/guru-pendamping-dashboard";
 import UnggahDataIndukPage from "./unggah-data-induk/page";
+import { getSourceData } from "@/lib/data-manager";
 
 const getRoleDisplayName = (role: string) => {
     const roles: { [key: string]: string } = {
@@ -66,13 +67,16 @@ const WakasekDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchStats = () => {
             setIsLoading(true);
-            const newStats = await getDashboardStats();
+            const newStats = getDashboardStats();
             setStats(newStats);
             setIsLoading(false);
         };
         fetchStats();
+        
+        window.addEventListener('dataUpdated', fetchStats);
+        return () => window.removeEventListener('dataUpdated', fetchStats);
     }, []);
 
     return (
@@ -203,9 +207,10 @@ const renderDashboardByRole = (role: string) => {
 export default function DashboardPage() {
     const router = useRouter();
     const [userRole, setUserRole] = useState<string | null>(null);
-    const [userInfo, setUserInfo] = useState<{ name: string, role: string } | null>(null);
+    const [userInfo, setUserInfo] = useState<{ nama: string, role: string } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     
-    useEffect(() => {
+    const loadUser = useCallback(() => {
         const role = localStorage.getItem('userRole');
         const user = localStorage.getItem('currentUser');
 
@@ -216,16 +221,24 @@ export default function DashboardPage() {
         
         try {
             const parsedUser = JSON.parse(user);
-            setUserInfo({ name: parsedUser.nama, role: parsedUser.role });
+            setUserInfo({ nama: parsedUser.nama, role: parsedUser.role });
             setUserRole(role);
         } catch (e) {
             console.error("Failed to parse user data, redirecting to login.");
             router.replace('/');
+        } finally {
+            setIsLoading(false);
         }
     }, [router]);
 
+    useEffect(() => {
+        loadUser();
+        window.addEventListener('roleChanged', loadUser);
+        return () => window.removeEventListener('roleChanged', loadUser);
+    }, [loadUser]);
 
-    if (!userRole || !userInfo) {
+
+    if (isLoading || !userRole || !userInfo) {
         return (
             <div className="flex-1 space-y-6 flex justify-center items-center h-[calc(100vh-8rem)]">
                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -243,8 +256,8 @@ export default function DashboardPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle>Selamat Datang, {userInfo.name}!</CardTitle>
-                    <CardDescription>{getWelcomeMessage(userRole, userInfo.name)}</CardDescription>
+                    <CardTitle>Selamat Datang, {userInfo.nama}!</CardTitle>
+                    <CardDescription>{getWelcomeMessage(userRole, userInfo.nama)}</CardDescription>
                 </CardHeader>
             </Card>
 

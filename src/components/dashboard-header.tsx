@@ -20,6 +20,7 @@ import { Icons } from "./icons";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { getSourceData } from "@/lib/data-manager";
 
 interface UserInfo {
     nama: string;
@@ -53,9 +54,9 @@ export default function DashboardHeader() {
             console.error("Failed to parse user info from localStorage", e);
         }
     }
-    const savedTeachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
-    if (savedTeachersData && savedTeachersData.schoolInfo) {
-        setSchoolInfo(savedTeachersData.schoolInfo);
+    const teachersData = getSourceData('teachersData', {});
+    if (teachersData && teachersData.schoolInfo) {
+        setSchoolInfo(teachersData.schoolInfo);
     }
   }, []);
 
@@ -65,11 +66,11 @@ export default function DashboardHeader() {
         loadData();
     };
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('roleChanged', handleStorageChange);
+    window.addEventListener('dataUpdated', handleStorageChange);
     
     return () => {
         window.removeEventListener('storage', handleStorageChange);
-        window.removeEventListener('roleChanged', handleStorageChange);
+        window.removeEventListener('dataUpdated', handleStorageChange);
     };
   }, [loadData]);
 
@@ -99,7 +100,7 @@ export default function DashboardHeader() {
                ) : (
                     <Icons.logo className="h-6 w-6 mr-2" />
                )}
-               <span className="font.semibold">{schoolInfo.schoolName}</span>
+               <span className="font-semibold">{schoolInfo.schoolName}</span>
             </Link>
             <DashboardNav isMobile={true} />
           </SheetContent>

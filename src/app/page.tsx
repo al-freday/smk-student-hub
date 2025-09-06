@@ -10,5 +10,5 @@ export default function HomePage() {
     router.replace('/login');
   }, [router]);
 
-  return null; // or a loading spinner
+  return null;
 }

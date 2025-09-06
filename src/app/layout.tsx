@@ -6,9 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { useEffect, useState, useCallback } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import Head from "next/head";
+import { getSourceData } from "@/lib/data-manager";
 
-// A static themes object to avoid dependency issues on initial load
-const themes = {
+const themes: { [key: string]: { name: string, colors: { [key: string]: string } } } = {
     default: { name: "Default (Oranye & Biru)", colors: { "--primary": "25 95% 53%", "--accent": "217 91% 60%" } },
     green: { name: "Hutan (Hijau)", colors: { "--primary": "142 76% 36%", "--accent": "142 63% 52%" } },
     blue: { name: "Samudera (Biru)", colors: { "--primary": "217 91% 60%", "--accent": "217 80% 75%" } },
@@ -35,8 +35,8 @@ export default function RootLayout({
 
   const applyThemeForRole = useCallback(() => {
     if (typeof window !== 'undefined') {
-        const userRole = localStorage.getItem("userRole") || 'wakasek_kesiswaan';
-        const themeSettings = JSON.parse(localStorage.getItem('themeSettings') || '{}');
+        const userRole = localStorage.getItem("userRole") || (sessionStorage.getItem("admin_logged_in") ? 'admin' : 'wakasek_kesiswaan');
+        const themeSettings = getSourceData('themeSettings', {});
         const themeKey = themeSettings[userRole] || 'default';
         const themeToApply = themes[themeKey as keyof typeof themes] || themes.default;
         
@@ -47,7 +47,7 @@ export default function RootLayout({
   }, []);
   
   const loadSchoolInfo = useCallback(() => {
-    const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+    const teachersData = getSourceData('teachersData', {});
     if (teachersData && teachersData.schoolInfo) {
         setPageTitle(teachersData.schoolInfo.schoolName || "SMK Student Hub");
         setSchoolLogo(teachersData.schoolInfo.logo || "");
@@ -64,11 +64,13 @@ export default function RootLayout({
     };
 
     window.addEventListener('roleChanged', handleDataOrRoleChange);
-    window.addEventListener('storage', handleDataOrRoleChange); // Listen for any storage change
+    window.addEventListener('storage', handleDataOrRoleChange); 
+    window.addEventListener('dataUpdated', handleDataOrRoleChange);
 
     return () => {
       window.removeEventListener('roleChanged', handleDataOrRoleChange);
       window.removeEventListener('storage', handleDataOrRoleChange);
+      window.removeEventListener('dataUpdated', handleDataOrRoleChange);
     };
   }, [applyThemeForRole, loadSchoolInfo]);
   

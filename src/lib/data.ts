@@ -1,6 +1,7 @@
 
 import { format, subDays, eachDayOfInterval, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { getSourceData } from "./data-manager";
+import { tataTertibData } from "./tata-tertib-data";
 
 // --- Tipe Data ---
 interface Siswa { id: number; nis: string; nama: string; kelas: string; }
@@ -51,7 +52,7 @@ export const getDashboardStats = () => {
  */
 export const getSiswaPerKelasData = () => {
     const allSiswa: Siswa[] = getSourceData('siswaData', []);
-    const allKelas: Kelas[] = getSourceData('kelasData', []);
+    const allKelas: any[] = getSourceData('kelasData', []);
 
     if (!Array.isArray(allSiswa) || !Array.isArray(allKelas)) return [];
 
@@ -75,11 +76,24 @@ export const getPelanggaranStats = () => {
     if (!Array.isArray(riwayatPelanggaran)) return [];
 
     let ringan = 0, sedang = 0, berat = 0;
+    
+    const allRules = Object.values(tataTertibData).flatMap(kategori =>
+      Object.entries(kategori).flatMap(([tingkat, rules]) =>
+        rules.map(rule => ({ ...rule, tingkat, kategori: Object.keys(tataTertibData).find(key => tataTertibData[key as keyof typeof tataTertibData] === kategori) }))
+      )
+    );
 
     riwayatPelanggaran.forEach(p => {
-        if (p.poin <= 10) ringan++;
-        else if (p.poin <= 20) sedang++;
-        else berat++;
+        const rule = allRules.find(r => r.deskripsi === p.pelanggaran);
+        if (rule) {
+            if (rule.tingkat === 'ringan') ringan++;
+            else if (rule.tingkat === 'sedang') sedang++;
+            else berat++;
+        } else {
+             if (p.poin <= 10) ringan++;
+            else if (p.poin <= 20) sedang++;
+            else berat++;
+        }
     });
 
     return [
@@ -88,6 +102,7 @@ export const getPelanggaranStats = () => {
         { name: 'Berat', value: berat, fill: 'hsl(var(--chart-1))' },
     ].filter(item => item.value > 0);
 };
+
 
 /**
  * Menghitung tren kehadiran selama 30 hari terakhir.
@@ -144,7 +159,7 @@ export const getKehadiranTrenBulanan = (filterKelas?: string[]) => {
  */
 export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     const currentUser = getSourceData('currentUser', null);
-    if (!currentUser) return { currentUser: null };
+    if (!currentUser) return { currentUser: null, kelasBinaan: [] };
     
     const teachersData = getSourceData('teachersData', {});
     const waliKelasData = teachersData.wali_kelas?.find((wk: any) => wk.nama === currentUser.nama);
@@ -218,7 +233,7 @@ export const getAdministrasiWaliKelasData = (selectedKelas: string) => {
     
     return {
         currentUser,
-        kelasBinaan, // Return all assigned classes for the dropdown
+        kelasBinaan,
         totalSiswa: siswaBinaan.length,
         kehadiranRataRata,
         siswaPoinTertinggi,

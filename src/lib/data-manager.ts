@@ -1,46 +1,6 @@
 
 "use client";
-
-// --- Tipe Data Awal ---
-const initialTeachersData = {
-    schoolInfo: {
-        schoolName: "SMKN 2 Tana Toraja",
-        headmasterName: "Nama Kepala Sekolah",
-        logo: ""
-    },
-    wakasek_kesiswaan: [{ id: 1, nama: "Andi Wijaya", password: "password1" }],
-    tata_usaha: [{ id: 1, nama: "Budi Setiawan", password: "password1" }],
-    wali_kelas: [
-        { id: 1, nama: "Citra Dewi", kelas: ["X TKJ 1", "X TKJ 2"], password: "password1" },
-        { id: 2, nama: "Doni Hermawan", kelas: ["XI OT 1"], password: "password1" }
-    ],
-    guru_bk: [
-        { id: 1, nama: "Eka Fitriani", tugasKelas: "Kelas X", password: "password1" },
-        { id: 2, nama: "Fajar Nugroho", tugasKelas: "Kelas XI", password: "password1" }
-    ],
-    guru_mapel: [
-        { id: 1, nama: "Gita Lestari", password: "password1" },
-        { id: 2, nama: "Hendra Gunawan", password: "password1" }
-    ],
-    guru_piket: [{ id: 1, nama: "Indah Permata", password: "password1" }],
-    guru_pendamping: [{ id: 1, nama: "Joko Susilo", password: "password1" }]
-};
-
-const initialSiswaData = [
-    { id: 1, nis: "24001", nama: "Ahmad Dahlan", kelas: "X TKJ 1" },
-    { id: 2, nis: "24002", nama: "Budi Santoso", kelas: "X TKJ 1" },
-    { id: 3, nis: "24003", nama: "Citra Lestari", kelas: "X TKJ 2" },
-    { id: 4, nis: "23001", nama: "Eko Prasetyo", kelas: "XI OT 1" }
-];
-
-const initialKelasData = [
-    { id: 1, nama: "X TKJ 1" },
-    { id: 2, nama: "X TKJ 2" },
-    { id: 3, nama: "XI OT 1" }
-];
-
-
-// --- Fungsi Manajemen Data ---
+import { seedInitialData } from './seed-data';
 
 const isServer = typeof window === 'undefined';
 
@@ -57,20 +17,8 @@ export const getSourceData = (key: string, defaultValue: any): any => {
   try {
     let localData = localStorage.getItem(key);
     if (localData === null) {
-      // Inisialisasi data awal jika belum ada di localStorage
-      if (key === 'teachersData') {
-        localStorage.setItem(key, JSON.stringify(initialTeachersData));
-        localData = JSON.stringify(initialTeachersData);
-      } else if (key === 'siswaData') {
-         localStorage.setItem(key, JSON.stringify(initialSiswaData));
-         localData = JSON.stringify(initialSiswaData);
-      } else if (key === 'kelasData') {
-          localStorage.setItem(key, JSON.stringify(initialKelasData));
-          localData = JSON.stringify(initialKelasData);
-      } else {
-        localStorage.setItem(key, JSON.stringify(defaultValue));
-        localData = JSON.stringify(defaultValue);
-      }
+      localStorage.setItem(key, JSON.stringify(defaultValue));
+      localData = JSON.stringify(defaultValue);
     }
     return JSON.parse(localData);
   } catch (e) {
@@ -91,9 +39,20 @@ export const updateSourceData = (key: string, data: any): void => {
   try {
     const dataString = JSON.stringify(data);
     localStorage.setItem(key, dataString);
-    // Kirim event kustom untuk memberitahu komponen lain bahwa data telah diperbarui
     window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { key, value: data } }));
   } catch (error) {
     console.error(`Gagal menyimpan data ke localStorage untuk kunci "${key}".`, error);
   }
 };
+
+
+const initializeData = () => {
+  if (isServer) return;
+  if (!localStorage.getItem('app_initialized')) {
+    seedInitialData();
+    localStorage.setItem('app_initialized', 'true');
+    console.log("Data awal telah diinisialisasi ke localStorage.");
+  }
+};
+
+initializeData();

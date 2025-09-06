@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { getSourceData } from '@/lib/data-manager';
 
 interface SchoolInfo {
   schoolName: string;
@@ -47,7 +48,7 @@ export default function LoginPage() {
   const loadInitialData = useCallback(() => {
     setIsLoading(true);
     try {
-        const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+        const teachersData = getSourceData('teachersData', {});
         
         if (teachersData && teachersData.schoolInfo) {
             setSchoolInfo(teachersData.schoolInfo);
@@ -85,10 +86,9 @@ export default function LoginPage() {
 
   useEffect(() => {
       loadInitialData();
-      // Listen for changes from admin panel
-      window.addEventListener('storage', loadInitialData);
+      window.addEventListener('dataUpdated', loadInitialData);
       return () => {
-          window.removeEventListener('storage', loadInitialData);
+          window.removeEventListener('dataUpdated', loadInitialData);
       }
   }, [loadInitialData]);
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
                  <Icons.logo className="h-12 w-12 text-primary" />
                )}
             </div>
-            <CardTitle className="text-3xl font.bold tracking-tight text-primary">{schoolInfo.schoolName}</CardTitle>
+            <CardTitle className="text-3xl font-bold tracking-tight text-primary">{schoolInfo.schoolName}</CardTitle>
             <CardDescription>
               Sistem Manajemen Kesiswaan
             </CardDescription>

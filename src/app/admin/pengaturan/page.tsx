@@ -38,6 +38,7 @@ const themes: { [key: string]: { name: string, colors: { [key: string]: string }
 };
 
 const userRoles = [
+    { key: "admin", name: "Administrator" },
     { key: "wakasek_kesiswaan", name: "Wakasek Kesiswaan" },
     { key: "tata_usaha", name: "Tata Usaha" },
     { key: "wali_kelas", name: "Wali Kelas" },
@@ -161,7 +162,7 @@ export default function AdminPengaturanPage() {
         description: `Tema untuk ${userRoles.find(r => r.key === roleKey)?.name} telah diubah.`,
     });
 
-    if (roleKey === localStorage.getItem('userRole')) {
+    if (roleKey === localStorage.getItem('userRole') || (roleKey === 'admin' && sessionStorage.getItem("admin_logged_in") === "true")) {
         Object.entries(themes[themeKey].colors).forEach(([property, value]) => {
             document.documentElement.style.setProperty(property, value);
         });
@@ -184,7 +185,7 @@ export default function AdminPengaturanPage() {
             <ArrowLeft />
         </Button>
         <div>
-            <h2 className="text-3xl font.bold tracking-tight">Pengaturan Global</h2>
+            <h2 className="text-3xl font-bold tracking-tight">Pengaturan Global</h2>
             <p className="text-muted-foreground">
             Kelola informasi dan tampilan aplikasi untuk semua pengguna.
             </p>
@@ -282,7 +283,7 @@ export default function AdminPengaturanPage() {
                         <div className="flex items-center gap-4">
                             <Users className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font.bold">{totalUsers}</p>
+                                <p className="text-2xl font-bold">{totalUsers}</p>
                                 <p className="text-sm text-muted-foreground">Pengguna Terdaftar</p>
                             </div>
                         </div>
@@ -303,7 +304,7 @@ export default function AdminPengaturanPage() {
                         <div className="flex items-center gap-4">
                             <Database className="h-8 w-8 text-primary"/>
                             <div>
-                                <p className="text-2xl font.bold">{storageSize}</p>
+                                <p className="text-2xl font-bold">{storageSize}</p>
                                 <p className="text-sm text-muted-foreground">Total Ukuran Data</p>
                             </div>
                         </div>

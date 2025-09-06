@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { getSourceData } from "@/lib/data-manager";
 
 interface User {
   id: string;
@@ -47,7 +48,7 @@ export default function AdminDashboardPage() {
   const loadUsers = useCallback(() => {
     setIsLoading(true);
     try {
-      const teachersData = JSON.parse(localStorage.getItem('teachersData') || '{}');
+      const teachersData = getSourceData('teachersData', {});
       const users: User[] = [];
       if (teachersData) {
         const { schoolInfo, ...roles } = teachersData;
@@ -88,7 +89,6 @@ export default function AdminDashboardPage() {
     }
     loadUsers();
 
-    // Add event listener to update users when admin makes changes in another tab
     const handleFocus = () => {
         if (document.visibilityState === 'visible') {
             loadUsers();
@@ -121,7 +121,6 @@ export default function AdminDashboardPage() {
             description: `Anda sekarang login sebagai ${userToImpersonate.nama} (${userToImpersonate.roleName}).`,
         });
         
-        // Dispatch custom event to notify other components (like header/sidebar)
         window.dispatchEvent(new Event('roleChanged'));
         
         router.push('/dashboard');
@@ -136,7 +135,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-secondary">
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader>
           <CardTitle>Dasbor Administrator</CardTitle>
