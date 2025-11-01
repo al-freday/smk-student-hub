@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -32,7 +33,7 @@ export default function HomePage() {
   const { heroImage, featureImage1, featureImage2, featureImage3 } = placeholderImages;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {schoolInfo.logo ? (
@@ -76,16 +77,16 @@ export default function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-12 md:py-24 bg-background">
+        <section id="features" className="py-12 md:py-24 bg-white">
           <div className="container px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight">Fitur Unggulan</h2>
-              <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+              <p className="mt-2 max-w-2xl mx-auto text-slate-600">
                 Dirancang untuk mendukung setiap aspek kegiatan sekolah.
               </p>
             </div>
             <div className="mt-12 grid gap-8 md:grid-cols-3">
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow bg-white">
                 <CardHeader className="items-center">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <BookOpen className="h-8 w-8 text-primary" />
@@ -101,10 +102,10 @@ export default function HomePage() {
                   <CardTitle className="mt-4">Administrasi Terpusat</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="text-muted-foreground">Kelola data siswa, guru, pelanggaran, dan kehadiran dalam satu tempat yang mudah diakses.</p>
+                  <p className="text-slate-600">Kelola data siswa, guru, pelanggaran, dan kehadiran dalam satu tempat yang mudah diakses.</p>
                 </CardContent>
               </Card>
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow bg-white">
                 <CardHeader className="items-center">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <ShieldCheck className="h-8 w-8 text-primary" />
@@ -120,10 +121,10 @@ export default function HomePage() {
                   <CardTitle className="mt-4">Pemantauan Proaktif</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="text-muted-foreground">Sistem poin dan alur kerja laporan membantu penanganan masalah siswa secara cepat dan terstruktur.</p>
+                  <p className="text-slate-600">Sistem poin dan alur kerja laporan membantu penanganan masalah siswa secara cepat dan terstruktur.</p>
                 </CardContent>
               </Card>
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow bg-white">
                 <CardHeader className="items-center">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <BarChart2 className="h-8 w-8 text-primary" />
@@ -139,7 +140,7 @@ export default function HomePage() {
                   <CardTitle className="mt-4">Laporan Otomatis</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="text-muted-foreground">Hasilkan laporan kehadiran, pelanggaran, dan tugas guru secara otomatis untuk evaluasi.</p>
+                  <p className="text-slate-600">Hasilkan laporan kehadiran, pelanggaran, dan tugas guru secara otomatis untuk evaluasi.</p>
                 </CardContent>
               </Card>
             </div>
@@ -147,58 +148,58 @@ export default function HomePage() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="testimonials" className="py-12 md:py-24 bg-secondary">
+        <section id="testimonials" className="py-12 md:py-24 bg-slate-100">
           <div className="container px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold tracking-tight">Dari Para Pendidik</h2>
-              <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
+              <p className="mt-2 max-w-2xl mx-auto text-slate-600">
                 Lihat bagaimana aplikasi ini membantu mereka dalam tugas sehari-hari.
               </p>
             </div>
             <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
+              <Card className="bg-white">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    <p className="italic">"Sistem ini sangat membantu saya sebagai wali kelas untuk memantau siswa binaan. Semua data terintegrasi dengan baik."</p>
+                    <p className="italic text-slate-700">"Sistem ini sangat membantu saya sebagai wali kelas untuk memantau siswa binaan. Semua data terintegrasi dengan baik."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
                         <AvatarFallback>WK</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Citra Dewi</p>
-                        <p className="text-sm text-muted-foreground">Wali Kelas</p>
+                        <p className="text-sm text-slate-500">Wali Kelas</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    <p className="italic">"Fitur laporan eskalasi dari wali kelas ke BK sangat efisien. Kami bisa langsung fokus pada penanganan kasus yang lebih serius."</p>
+                    <p className="italic text-slate-700">"Fitur laporan eskalasi dari wali kelas ke BK sangat efisien. Kami bisa langsung fokus pada penanganan kasus yang lebih serius."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
                         <AvatarFallback>BK</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Eka Fitriani</p>
-                        <p className="text-sm text-muted-foreground">Guru BK</p>
+                        <p className="text-sm text-slate-500">Guru BK</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="bg-white">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    <p className="italic">"Sebagai Wakasek, saya bisa mendapatkan gambaran umum kondisi kesiswaan dengan cepat. Dasbornya sangat informatif."</p>
+                    <p className="italic text-slate-700">"Sebagai Wakasek, saya bisa mendapatkan gambaran umum kondisi kesiswaan dengan cepat. Dasbornya sangat informatif."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
                         <AvatarFallback>WK</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Andi Wijaya</p>
-                        <p className="text-sm text-muted-foreground">Wakasek Kesiswaan</p>
+                        <p className="text-sm text-slate-500">Wakasek Kesiswaan</p>
                       </div>
                     </div>
                   </div>
@@ -209,8 +210,8 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="bg-muted border-t">
-        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-muted-foreground text-sm">
+      <footer className="bg-slate-200 border-t border-slate-300">
+        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-slate-600 text-sm">
           &copy; {new Date().getFullYear()} {schoolInfo.schoolName}. All rights reserved.
         </div>
       </footer>
