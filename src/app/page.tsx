@@ -59,14 +59,14 @@ export default function HomePage() {
             src={heroImage.src}
             alt={heroImage.alt}
             fill
-            className="object-cover -z-10 brightness-50"
+            className="object-cover -z-10 brightness-75"
             data-ai-hint={heroImage.hint}
           />
           <div className="container px-4 sm:px-6 lg:px-8">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
               Selamat Datang di {schoolInfo.schoolName} Hub
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-primary-foreground/90">
+            <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-primary-foreground/95 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
               Platform terintegrasi untuk manajemen kesiswaan, akademik, dan bimbingan yang lebih efektif dan efisien.
             </p>
             <Button size="lg" className="mt-8" asChild>
