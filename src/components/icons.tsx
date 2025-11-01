@@ -1,8 +1,8 @@
 
-import { Cog, type SVGProps } from "lucide-react";
+import { Cog, type SVGProps, Image as ImageIcon } from "lucide-react";
 
 export const Icons = {
   logo: (props: SVGProps<SVGSVGElement>) => (
-    <Cog {...props} />
+    <ImageIcon {...props} />
   ),
 };

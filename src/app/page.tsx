@@ -163,7 +163,7 @@ export default function HomePage() {
                     <p className="italic text-slate-700">"Sistem ini sangat membantu saya sebagai wali kelas untuk memantau siswa binaan. Semua data terintegrasi dengan baik."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
-                        <AvatarFallback>WK</AvatarFallback>
+                        <AvatarFallback>CD</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Citra Dewi</p>
@@ -179,7 +179,7 @@ export default function HomePage() {
                     <p className="italic text-slate-700">"Fitur laporan eskalasi dari wali kelas ke BK sangat efisien. Kami bisa langsung fokus pada penanganan kasus yang lebih serius."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
-                        <AvatarFallback>BK</AvatarFallback>
+                        <AvatarFallback>EF</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Eka Fitriani</p>
@@ -195,7 +195,7 @@ export default function HomePage() {
                     <p className="italic text-slate-700">"Sebagai Wakasek, saya bisa mendapatkan gambaran umum kondisi kesiswaan dengan cepat. Dasbornya sangat informatif."</p>
                     <div className="flex items-center gap-4">
                       <Avatar>
-                        <AvatarFallback>WK</AvatarFallback>
+                        <AvatarFallback>AW</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">Andi Wijaya</p>

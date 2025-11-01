@@ -110,7 +110,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4">
                {schoolInfo.logo ? (
                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={schoolInfo.logo} alt="School Logo" data-ai-hint="school building"/>
+                    <AvatarImage src={schoolInfo.logo} alt="School Logo" />
                     <AvatarFallback>S</AvatarFallback>
                  </Avatar>
                ) : (

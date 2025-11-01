@@ -213,7 +213,7 @@ export default function AdminPengaturanPage() {
                  <Label htmlFor="logo">Logo Sekolah</Label>
                  <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20 rounded-lg">
-                       <AvatarImage src={schoolInfo.logo} alt="Logo Sekolah" data-ai-hint="school building"/>
+                       <AvatarImage src={schoolInfo.logo} alt="Logo Sekolah" />
                        <AvatarFallback>LOGO</AvatarFallback>
                     </Avatar>
                     <Input

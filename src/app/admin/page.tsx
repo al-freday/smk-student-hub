@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
-import { Icons } from '@/components/icons';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getSourceData } from '@/lib/data-manager';
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const [logo, setLogo] = useState("");
+
+  useEffect(() => {
+    const schoolInfo = getSourceData('teachersData', {})?.schoolInfo;
+    if (schoolInfo && schoolInfo.logo) {
+      setLogo(schoolInfo.logo);
+    }
+  }, []);
 
   const handleLogin = () => {
     setIsLoading(true);
@@ -41,7 +50,10 @@ export default function AdminLoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-            <Icons.logo className="mx-auto h-12 w-12 text-primary" />
+            <Avatar className="mx-auto h-16 w-16 mb-4">
+              <AvatarImage src={logo} alt="School Logo" />
+              <AvatarFallback>S</AvatarFallback>
+            </Avatar>
             <CardTitle>Login Administrator</CardTitle>
             <CardDescription>
                 Masukkan password untuk mengakses dasbor admin.

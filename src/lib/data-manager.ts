@@ -29,7 +29,7 @@ const seedInitialData = () => {
     schoolInfo: {
         schoolName: "SMKN 2 Tana Toraja",
         headmasterName: "Nama Kepala Sekolah",
-        logo: ""
+        logo: "https://iili.io/KAqSZhb.png"
     },
     wakasek_kesiswaan: [{ id: 1, nama: "Andi Wijaya", password: "password1" }],
     tata_usaha: [{ id: 1, nama: "Budi Setiawan", password: "password1" }],
