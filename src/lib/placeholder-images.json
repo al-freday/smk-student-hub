@@ -1,0 +1,22 @@
+{
+  "heroImage": {
+    "src": "https://picsum.photos/seed/school-hero/1200/800",
+    "alt": "Students collaborating in a modern classroom",
+    "hint": "students classroom"
+  },
+  "featureImage1": {
+    "src": "https://picsum.photos/seed/admin-desk/600/400",
+    "alt": "Teacher at a desk organizing files",
+    "hint": "desk organization"
+  },
+  "featureImage2": {
+    "src": "https://picsum.photos/seed/monitoring-data/600/400",
+    "alt": "Close-up of a computer screen showing charts and graphs",
+    "hint": "data chart"
+  },
+  "featureImage3": {
+    "src": "https://picsum.photos/seed/report-document/600/400",
+    "alt": "A person reviewing a printed report document",
+    "hint": "report document"
+  }
+}
