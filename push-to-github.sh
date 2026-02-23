@@ -6,7 +6,7 @@
 # perubahan Anda ke repositori GitHub.
 
 # Pesan commit default
-COMMIT_MESSAGE="feat: Simpan kemajuan dan perbarui aplikasi"
+COMMIT_MESSAGE="feat: Populate BK Administration page with student data"
 
 # 1. Kumpulkan semua file yang berubah
 git add .
