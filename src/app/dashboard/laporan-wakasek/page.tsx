@@ -16,6 +16,14 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import TeacherReportContent from "@/components/teacher-report-content";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 
 interface Guru {
   id: number | string;
@@ -54,6 +62,7 @@ export default function LaporanWakasekPage() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('wali_kelas');
+  const [viewingReport, setViewingReport] = useState<ReceivedReport | null>(null);
   
   const reportStorageKey = 'waliKelasReportsStatus';
 
@@ -102,6 +111,10 @@ export default function LaporanWakasekPage() {
     window.addEventListener('dataUpdated', loadData);
     return () => window.removeEventListener('dataUpdated', loadData);
   }, []);
+
+  const handleViewDetails = (report: ReceivedReport) => {
+    setViewingReport(report);
+  };
 
   const handleStatusChange = (guruId: number | string, status: ReportStatus) => {
     const updatedReports = allReports.map(report =>
@@ -193,117 +206,139 @@ export default function LaporanWakasekPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-        <div>
-            <h2 className="text-3xl font-bold tracking-tight">Laporan Tugas Guru</h2>
-            <p className="text-muted-foreground">
-              Daftar laporan yang telah dikirim oleh semua guru penanggung jawab.
-            </p>
+    <>
+      <div className="flex-1 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div>
+              <h2 className="text-3xl font-bold tracking-tight">Laporan Tugas Guru</h2>
+              <p className="text-muted-foreground">
+                Daftar laporan yang telah dikirim oleh semua guru penanggung jawab.
+              </p>
+          </div>
+          <Button variant="outline" onClick={loadData}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Muat Ulang Data
+          </Button>
         </div>
-        <Button variant="outline" onClick={loadData}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Muat Ulang Data
-        </Button>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Laporan Masuk per Peran</CardTitle>
-          <CardDescription>
-            Pilih peran untuk melihat laporan, lalu kelola statusnya melalui menu Aksi.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <ScrollArea className="w-full whitespace-nowrap">
-                    <TabsList>
-                        {reportableRoles.map(roleKey => (
-                            <TabsTrigger key={roleKey} value={roleKey}>{getRoleName(roleKey)}</TabsTrigger>
-                        ))}
-                    </TabsList>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-
-                {reportableRoles.map(roleKey => {
-                    const filteredReports = allReports.filter(r => r.roleKey === roleKey);
-                    return (
-                        <TabsContent value={roleKey} key={roleKey} className="mt-4">
-                            <div className="overflow-x-auto">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Nama Guru</TableHead>
-                                      <TableHead>Tanggal Kirim</TableHead>
-                                      <TableHead>Status</TableHead>
-                                      <TableHead className="text-right">Aksi</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {filteredReports.length > 0 ? (
-                                      filteredReports.map((report) => (
-                                        <TableRow key={report.id}>
-                                          <TableCell className="font-medium whitespace-nowrap">{report.namaGuru}</TableCell>
-                                          <TableCell className="whitespace-nowrap">{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
-                                          <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
-                                          <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
-                                                        <span className="sr-only">Buka menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem disabled>
-                                                        <Eye className="mr-2 h-4 w-4" />Lihat Detail (Segera)
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDownloadPdf(report)} disabled={isGeneratingPdf}>
-                                                        {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
-                                                        Unduh PDF
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
-                                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                                        Tandai Diproses
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
-                                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                                        Tandai Diterima
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                          </TableCell>
-                                        </TableRow>
-                                      ))
-                                    ) : (
-                                       <TableRow>
-                                          <TableCell colSpan={4} className="text-center h-24">
-                                            Tidak ada guru yang ditugaskan untuk peran ini.
-                                          </TableCell>
-                                        </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
-                            </div>
-                        </TabsContent>
-                    )
-                })}
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
-      {/* Hidden container for PDF generation */}
-      <div className="absolute -z-10 opacity-0">
-          {allReports.filter(r => r.status !== 'Belum Mengirim').map(report => (
-              <div id={`report-content-${report.id}`} key={report.id} className="p-8 bg-white text-black" style={{ display: 'none', width: '800px'}}>
-                  <TeacherReportContent guruId={report.guruId} roleKey={report.roleKey} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Laporan Masuk per Peran</CardTitle>
+            <CardDescription>
+              Pilih peran untuk melihat laporan, lalu kelola statusnya melalui menu Aksi.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-          ))}
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <ScrollArea className="w-full whitespace-nowrap">
+                      <TabsList>
+                          {reportableRoles.map(roleKey => (
+                              <TabsTrigger key={roleKey} value={roleKey}>{getRoleName(roleKey)}</TabsTrigger>
+                          ))}
+                      </TabsList>
+                      <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+
+                  {reportableRoles.map(roleKey => {
+                      const filteredReports = allReports.filter(r => r.roleKey === roleKey);
+                      return (
+                          <TabsContent value={roleKey} key={roleKey} className="mt-4">
+                              <div className="overflow-x-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Nama Guru</TableHead>
+                                        <TableHead>Tanggal Kirim</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Aksi</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {filteredReports.length > 0 ? (
+                                        filteredReports.map((report) => (
+                                          <TableRow key={report.id}>
+                                            <TableCell className="font-medium whitespace-nowrap">{report.namaGuru}</TableCell>
+                                            <TableCell className="whitespace-nowrap">{report.tanggalKirim !== '-' ? format(new Date(report.tanggalKirim), "dd MMMM yyyy") : '-'}</TableCell>
+                                            <TableCell><Badge variant={getStatusBadgeVariant(report.status)}>{report.status}</Badge></TableCell>
+                                            <TableCell className="text-right">
+                                              <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" className="h-8 w-8 p-0" disabled={report.status === 'Belum Mengirim'}>
+                                                          <span className="sr-only">Buka menu</span>
+                                                          <MoreHorizontal className="h-4 w-4" />
+                                                      </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent align="end">
+                                                      <DropdownMenuItem onClick={() => handleViewDetails(report)}>
+                                                          <Eye className="mr-2 h-4 w-4" />Lihat Detail
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => handleDownloadPdf(report)} disabled={isGeneratingPdf}>
+                                                          {isGeneratingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                                          Unduh PDF
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diproses')}>
+                                                          <RefreshCw className="mr-2 h-4 w-4" />
+                                                          Tandai Diproses
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onClick={() => handleStatusChange(report.guruId, 'Diterima')}>
+                                                          <CheckCircle className="mr-2 h-4 w-4" />
+                                                          Tandai Diterima
+                                                      </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                              </DropdownMenu>
+                                            </TableCell>
+                                          </TableRow>
+                                        ))
+                                      ) : (
+                                         <TableRow>
+                                            <TableCell colSpan={4} className="text-center h-24">
+                                              Tidak ada guru yang ditugaskan untuk peran ini.
+                                            </TableCell>
+                                          </TableRow>
+                                      )}
+                                    </TableBody>
+                                  </Table>
+                              </div>
+                          </TabsContent>
+                      )
+                  })}
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
+        {/* Hidden container for PDF generation */}
+        <div className="absolute -z-10 opacity-0">
+            {allReports.filter(r => r.status !== 'Belum Mengirim').map(report => (
+                <div id={`report-content-${report.id}`} key={report.id} className="p-8 bg-white text-black" style={{ display: 'none', width: '800px'}}>
+                    <TeacherReportContent guruId={report.guruId} roleKey={report.roleKey} />
+                </div>
+            ))}
+        </div>
       </div>
-    </div>
+
+      <Dialog open={!!viewingReport} onOpenChange={(isOpen) => { if (!isOpen) setViewingReport(null) }}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Detail Laporan: {viewingReport?.namaGuru}</DialogTitle>
+            <DialogDescription>
+              Peran: {viewingReport?.peran} | Tanggal Kirim: {viewingReport && viewingReport.tanggalKirim !== '-' ? format(new Date(viewingReport.tanggalKirim), "dd MMMM yyyy") : '-'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full pr-6">
+              {viewingReport && (
+                <div className="p-4 bg-white text-black rounded">
+                  <TeacherReportContent guruId={viewingReport.guruId} roleKey={viewingReport.roleKey} />
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
