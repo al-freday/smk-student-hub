@@ -152,6 +152,7 @@ export default function LaporanMasukWakasekPage() {
             </div>
         </CardHeader>
         <CardContent>
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -165,6 +166,7 @@ export default function LaporanMasukWakasekPage() {
                     )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan yang dieskalasi ke Anda saat ini.</TableCell></TableRow>)}
                 </TableBody>
             </Table>
+            </div>
         </CardContent>
       </Card>
 
@@ -223,3 +225,5 @@ export default function LaporanMasukWakasekPage() {
     </div>
   );
 }
+
+    

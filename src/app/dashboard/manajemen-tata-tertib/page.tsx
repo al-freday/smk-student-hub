@@ -234,6 +234,7 @@ export default function ManajemenTataTertibPage() {
                             </Button>
                         </div>
                     )}
+                    <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -271,6 +272,7 @@ export default function ManajemenTataTertibPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -331,3 +333,5 @@ export default function ManajemenTataTertibPage() {
     </div>
   );
 }
+
+    

@@ -184,6 +184,7 @@ export default function LaporanMasukPage() {
             <CardDescription>Pilih kasus dari daftar di bawah ini untuk memulai proses penanganan.</CardDescription>
         </CardHeader>
         <CardContent>
+            <div className="overflow-x-auto">
             <Table>
                 <TableHeader><TableRow><TableHead>Siswa</TableHead><TableHead>Pelanggaran</TableHead><TableHead>Pelapor</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -197,6 +198,7 @@ export default function LaporanMasukPage() {
                     )) : (<TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada laporan baru untuk kelas binaan Anda.</TableCell></TableRow>)}
                 </TableBody>
             </Table>
+            </div>
         </CardContent>
       </Card>
 
@@ -279,3 +281,5 @@ export default function LaporanMasukPage() {
     </div>
   );
 }
+
+    

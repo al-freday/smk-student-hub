@@ -376,6 +376,7 @@ export default function ManajemenSiswaPage() {
                         </AccordionTrigger>
                         <AccordionContent>
                             {siswaDiKelas.length > 0 ? (
+                                <div className="overflow-x-auto">
                                 <Table>
                                 <TableHeader><TableRow><TableHead>NIS</TableHead><TableHead>Nama Siswa</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                                 <TableBody>
@@ -396,6 +397,7 @@ export default function ManajemenSiswaPage() {
                                     ))}
                                 </TableBody>
                                 </Table>
+                                </div>
                             ) : (<div className="text-center text-sm text-muted-foreground py-4"><p>Belum ada data siswa di kelas ini.</p></div>)}
                         </AccordionContent>
                         </AccordionItem>
@@ -447,3 +449,5 @@ export default function ManajemenSiswaPage() {
     </div>
   );
 }
+
+    

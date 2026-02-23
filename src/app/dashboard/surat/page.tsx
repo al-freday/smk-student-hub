@@ -334,6 +334,7 @@ export default function SuratPage() {
                      <Card>
                         <CardHeader><CardTitle>Arsip Surat Tercetak</CardTitle><CardDescription>Riwayat semua surat yang telah dibuat dan dicetak.</CardDescription></CardHeader>
                         <CardContent>
+                           <div className="overflow-x-auto">
                            <Table>
                                 <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Tipe Surat</TableHead><TableHead>Siswa</TableHead><TableHead>Dicetak Oleh</TableHead></TableRow></TableHeader>
                                 <TableBody>
@@ -349,6 +350,7 @@ export default function SuratPage() {
                                     )}
                                 </TableBody>
                            </Table>
+                           </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -365,3 +367,5 @@ export default function SuratPage() {
         </div>
     );
 }
+
+    
