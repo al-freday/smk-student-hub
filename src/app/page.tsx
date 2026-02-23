@@ -44,7 +44,7 @@ export default function HomePage() {
           ) : (
             <Icons.logo className="h-8 w-8 text-primary" />
           )}
-          <span className="font-bold text-xl">{schoolInfo.schoolName}</span>
+          <span className="font-bold text-lg md:text-xl">{schoolInfo.schoolName}</span>
         </div>
         <Button asChild>
           <Link href="/login">
@@ -55,7 +55,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative h-[60vh] flex items-center justify-center text-center text-white bg-secondary/50">
+        <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center text-center text-white bg-secondary/50">
           <Image
             src={heroImage.src}
             alt={heroImage.alt}
@@ -64,10 +64,10 @@ export default function HomePage() {
             data-ai-hint={heroImage.hint}
           />
           <div className="container px-4 sm:px-6 lg:px-8">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
               Selamat Datang di {schoolInfo.schoolName} Hub
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-primary-foreground/95 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+            <p className="mt-4 max-w-2xl mx-auto text-base md:text-xl text-primary-foreground/95 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
               Platform terintegrasi untuk manajemen kesiswaan, akademik, dan bimbingan yang lebih efektif dan efisien.
             </p>
             <Button size="lg" className="mt-8" asChild>
@@ -85,7 +85,7 @@ export default function HomePage() {
                 Dirancang untuk mendukung setiap aspek kegiatan sekolah.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
               <Card className="hover:shadow-lg transition-shadow bg-white">
                 <CardHeader className="items-center">
                   <div className="p-4 bg-primary/10 rounded-full">
@@ -156,7 +156,7 @@ export default function HomePage() {
                 Lihat bagaimana aplikasi ini membantu mereka dalam tugas sehari-hari.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               <Card className="bg-white">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
