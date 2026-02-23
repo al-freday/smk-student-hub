@@ -96,7 +96,7 @@ export default function HomePage() {
                       alt={featureImage1.alt}
                       width={600}
                       height={400}
-                      className="rounded-md mt-4 object-cover aspect-[3/2]"
+                      className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage1.hint}
                     />
                   <CardTitle className="mt-4">Administrasi Terpusat</CardTitle>
@@ -115,7 +115,7 @@ export default function HomePage() {
                       alt={featureImage2.alt}
                       width={600}
                       height={400}
-                      className="rounded-md mt-4 object-cover aspect-[3/2]"
+                      className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage2.hint}
                     />
                   <CardTitle className="mt-4">Pemantauan Proaktif</CardTitle>
@@ -134,75 +134,13 @@ export default function HomePage() {
                       alt={featureImage3.alt}
                       width={600}
                       height={400}
-                      className="rounded-md mt-4 object-cover aspect-[3/2]"
+                      className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage3.hint}
                     />
                   <CardTitle className="mt-4">Laporan Otomatis</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-slate-600">Hasilkan laporan kehadiran, pelanggaran, dan tugas guru secara otomatis untuk evaluasi.</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section id="testimonials" className="py-12 md:py-24 bg-slate-100">
-          <div className="container px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold tracking-tight">Dari Para Pendidik</h2>
-              <p className="mt-2 max-w-2xl mx-auto text-slate-600">
-                Lihat bagaimana aplikasi ini membantu mereka dalam tugas sehari-hari.
-              </p>
-            </div>
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="bg-white">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <p className="italic text-slate-700">"Sistem ini sangat membantu saya sebagai wali kelas untuk memantau siswa binaan. Semua data terintegrasi dengan baik."</p>
-                    <div className="flex items-center gap-4">
-                      <Avatar>
-                        <AvatarFallback>CD</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">Citra Dewi</p>
-                        <p className="text-sm text-slate-500">Wali Kelas</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <p className="italic text-slate-700">"Fitur laporan eskalasi dari wali kelas ke BK sangat efisien. Kami bisa langsung fokus pada penanganan kasus yang lebih serius."</p>
-                    <div className="flex items-center gap-4">
-                      <Avatar>
-                        <AvatarFallback>EF</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">Eka Fitriani</p>
-                        <p className="text-sm text-slate-500">Guru BK</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <p className="italic text-slate-700">"Sebagai Wakasek, saya bisa mendapatkan gambaran umum kondisi kesiswaan dengan cepat. Dasbornya sangat informatif."</p>
-                    <div className="flex items-center gap-4">
-                      <Avatar>
-                        <AvatarFallback>AW</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">Andi Wijaya</p>
-                        <p className="text-sm text-slate-500">Wakasek Kesiswaan</p>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>
