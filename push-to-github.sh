@@ -6,7 +6,7 @@
 # perubahan Anda ke repositori GitHub.
 
 # Pesan commit default
-COMMIT_MESSAGE="feat: Save progress and update application"
+COMMIT_MESSAGE="feat: Simpan kemajuan dan perbarui aplikasi"
 
 # 1. Kumpulkan semua file yang berubah
 git add .
