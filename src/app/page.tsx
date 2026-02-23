@@ -20,7 +20,7 @@ interface SchoolInfo {
 export default function HomePage() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
     schoolName: "SMK Student Hub",
-    logo: "",
+    logo: "https://iili.io/KAqSZhb.png",
   });
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function HomePage() {
   const { heroImage, featureImage1, featureImage2, featureImage3 } = placeholderImages;
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex flex-col min-h-screen bg-white text-slate-800">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {schoolInfo.logo ? (
@@ -55,39 +55,40 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative h-[50vh] md:h-[60vh] flex items-center justify-center text-center text-white bg-secondary/50">
+        <section className="relative h-[60vh] lg:h-[70vh] flex items-center justify-center text-center text-white">
           <Image
             src={heroImage.src}
             alt={heroImage.alt}
             fill
+            priority
             className="object-cover -z-10 brightness-75"
             data-ai-hint={heroImage.hint}
           />
           <div className="container px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.5)]">
               Selamat Datang di {schoolInfo.schoolName} Hub
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-base md:text-xl text-primary-foreground/95 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+            <p className="mt-4 max-w-3xl mx-auto text-lg md:text-xl lg:text-2xl text-slate-100 [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
               Platform terintegrasi untuk manajemen kesiswaan, akademik, dan bimbingan yang lebih efektif dan efisien.
             </p>
-            <Button size="lg" className="mt-8" asChild>
+            <Button size="lg" className="mt-8 text-base md:text-lg" asChild>
               <Link href="/login">Mulai Sekarang</Link>
             </Button>
           </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-12 md:py-24 bg-white">
+        <section id="features" className="py-16 sm:py-20 lg:py-24 bg-white">
           <div className="container px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold tracking-tight">Fitur Unggulan</h2>
-              <p className="mt-2 max-w-2xl mx-auto text-slate-600">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Fitur Unggulan</h2>
+              <p className="mt-3 max-w-2xl mx-auto text-lg text-slate-600">
                 Dirancang untuk mendukung setiap aspek kegiatan sekolah.
               </p>
             </div>
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-              <Card className="hover:shadow-lg transition-shadow bg-white">
-                <CardHeader className="items-center">
+            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3 lg:gap-12">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="items-center p-6">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <BookOpen className="h-8 w-8 text-primary" />
                   </div>
@@ -99,14 +100,14 @@ export default function HomePage() {
                       className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage1.hint}
                     />
-                  <CardTitle className="mt-4">Administrasi Terpusat</CardTitle>
+                  <CardTitle className="mt-4 text-xl">Administrasi Terpusat</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center">
+                <CardContent className="text-center px-6 pb-6">
                   <p className="text-slate-600">Kelola data siswa, guru, pelanggaran, dan kehadiran dalam satu tempat yang mudah diakses.</p>
                 </CardContent>
               </Card>
-              <Card className="hover:shadow-lg transition-shadow bg-white">
-                <CardHeader className="items-center">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="items-center p-6">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <ShieldCheck className="h-8 w-8 text-primary" />
                   </div>
@@ -118,14 +119,14 @@ export default function HomePage() {
                       className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage2.hint}
                     />
-                  <CardTitle className="mt-4">Pemantauan Proaktif</CardTitle>
+                  <CardTitle className="mt-4 text-xl">Pemantauan Proaktif</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center">
+                <CardContent className="text-center px-6 pb-6">
                   <p className="text-slate-600">Sistem poin dan alur kerja laporan membantu penanganan masalah siswa secara cepat dan terstruktur.</p>
                 </CardContent>
               </Card>
-              <Card className="hover:shadow-lg transition-shadow bg-white">
-                <CardHeader className="items-center">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="items-center p-6">
                   <div className="p-4 bg-primary/10 rounded-full">
                     <BarChart2 className="h-8 w-8 text-primary" />
                   </div>
@@ -137,9 +138,9 @@ export default function HomePage() {
                       className="w-full h-auto rounded-md mt-4 object-cover aspect-[3/2]"
                       data-ai-hint={featureImage3.hint}
                     />
-                  <CardTitle className="mt-4">Laporan Otomatis</CardTitle>
+                  <CardTitle className="mt-4 text-xl">Laporan Otomatis</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center">
+                <CardContent className="text-center px-6 pb-6">
                   <p className="text-slate-600">Hasilkan laporan kehadiran, pelanggaran, dan tugas guru secara otomatis untuk evaluasi.</p>
                 </CardContent>
               </Card>
@@ -148,7 +149,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="bg-slate-200 border-t border-slate-300">
+      <footer className="bg-slate-100 border-t border-slate-200">
         <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-slate-600 text-sm">
           &copy; {new Date().getFullYear()} {schoolInfo.schoolName}. All rights reserved.
         </div>
